@@ -6,7 +6,7 @@ const METADATA_FIELDS = `mediaId provider providerId url coverUrl malId malUrl c
 const LIST_ITEM_FIELDS = `
 	id extensionId extensionName externalId contentType title inLibrary
 	thumbnailUrl description status extensionRemovedAt addedAt sourceName
-	unreadCount downloadCount: downloadedCount chapterCount
+	unreadCount downloadCount: downloadedCount chapterCount downloadFolderPath
 	latestChapter { number uploadedAt }
 	genres tags
 	metadata { coverUrl }
@@ -69,7 +69,7 @@ export const library = {
 				media(id: $id) {
 					id extensionId extensionName externalId contentType title inLibrary
 					thumbnailUrl hasCoverOverride description status author artist genres tags extensionRemovedAt addedAt sourceName
-					unreadCount downloadCount: downloadedCount
+					unreadCount downloadCount: downloadedCount downloadFolderPath
 					source { id repositoryId packageName name displayName version contentType lang iconUrl isNsfw supportsLatest apkUrl jarUrl jarPath installed enabled discoveredAt installedAt installedVersion needsUpdate }
 					chapters {
 						id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount

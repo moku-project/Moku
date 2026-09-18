@@ -42,6 +42,7 @@ export interface LibraryEntry {
 	title: string
 	thumbnailUrl: string | null
 	hasCoverOverride?: boolean
+	downloadFolderPath?: string | null
 	inLibrary: boolean
 	description: string | null
 	status: string | null

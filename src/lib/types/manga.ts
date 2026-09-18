@@ -20,6 +20,7 @@ export interface Manga {
   title:        string
   thumbnailUrl: string
   hasCoverOverride?: boolean
+  downloadFolderPath?: string | null
   inLibrary:    boolean
 
   downloadCount?: number

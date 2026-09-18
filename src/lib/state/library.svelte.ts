@@ -327,6 +327,7 @@ export function mapEntryToManga(entry: LibraryEntry): Manga {
     title:          entry.title,
     thumbnailUrl:   entry.thumbnailUrl ?? "",
     hasCoverOverride: entry.hasCoverOverride,
+    downloadFolderPath: entry.downloadFolderPath,
     inLibrary:      entry.inLibrary ?? true,
     contentType:    entry.contentType,
     description:    entry.description,

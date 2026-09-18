@@ -11,7 +11,7 @@
   import { clearBlobCache } from '$lib/core/cache/imageCache'
   import { cache as queryCache } from '$lib/core/cache/queryCache'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
-  import { canOpenFolder, openCustomFolder } from '$lib/core/filesystem'
+  import { canOpenFolder, openCustomFolder, isLocalServer } from '$lib/core/filesystem'
 
   const supportsFilesystem = platformService.isSupported('filesystem')
 
@@ -108,13 +108,7 @@
 
   interface StorageInfo { manga_bytes: number; total_bytes: number; free_bytes: number; path: string }
 
-  const isExternalServer = $derived.by(() => {
-    const url = (settingsState.settings.serverUrl ?? 'http://localhost:6007').toLowerCase().trim()
-    try {
-      const host = new URL(url).hostname
-      return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1'
-    } catch { return false }
-  })
+  const isExternalServer = $derived(!isLocalServer())
 
   let storageInfo    = $state<StorageInfo | null>(null)
   let storageLoading = $state(false)
@@ -141,15 +135,9 @@
   let pathsFieldError      = $state<{ dl?: string; loc?: string }>({})
   let pathsSaved           = $state(false)
 
-  let defaultDownloadsPath = $state('')
-  $effect(() => {
-    if (!supportsFilesystem) return
-    if (!isExternalServer) {
-      platformService.getDefaultDownloadsPath().then(p => { defaultDownloadsPath = p })
-    } else {
-      defaultDownloadsPath = ''
-    }
-  })
+  // The server falls back to its media dir when no downloads path is set,
+  // so that (not the OS "Downloads" folder) is the real default to show.
+  const defaultDownloadsPath = $derived(srvStorage?.mediaDir ?? '')
 
   let confirmedDownloadsPath   = $state(settingsState.settings.serverDownloadsPath ?? '')
   let confirmedLocalSourcePath = $state(settingsState.settings.serverLocalSourcePath ?? '')
@@ -456,7 +444,47 @@
     }
   }
 
-  $effect(() => { untrack(() => { loadBackupList(); fetchStorage(); loadServerStorage(); loadDbBackups() }) })
+  let mangaFormat     = $state<'loose' | 'cbz'>('loose')
+  let formatBusy      = $state(false)
+  let formatMigrating = $state(false)
+
+  async function loadMangaFormat() {
+    try {
+      const all = await tsunagu.serverSettings()
+      const v = all.find(s => s.key === 'manga_download_format')?.value
+      if (v === 'cbz' || v === 'loose') mangaFormat = v
+    } catch { /* keep default */ }
+  }
+
+  async function setMangaFormat(v: 'loose' | 'cbz') {
+    if (formatBusy || v === mangaFormat) return
+    formatBusy = true
+    try {
+      const r = await tsunagu.updateServerSetting('manga_download_format', v)
+      mangaFormat = r.setting.value === 'cbz' ? 'cbz' : 'loose'
+    } catch (e: any) {
+      toast({ kind: 'error', title: 'Manga download format', body: e?.message ?? String(e) })
+    } finally { formatBusy = false }
+  }
+
+  async function migrateMangaFormat() {
+    if (formatMigrating) return
+    formatMigrating = true
+    try {
+      const res = await tsunagu.migrateMangaDownloadFormat(mangaFormat)
+      toast({
+        kind: 'success',
+        title: 'Downloads converted',
+        body: res.chaptersMigrated > 0
+          ? `Converted ${res.chaptersMigrated} ${res.chaptersMigrated === 1 ? 'chapter' : 'chapters'} (${res.pagesMigrated} pages) to ${mangaFormat === 'cbz' ? 'CBZ' : 'loose images'}.`
+          : 'Nothing to convert.',
+      })
+    } catch (e: any) {
+      toast({ kind: 'error', title: 'Migration failed', body: e?.message ?? String(e) })
+    } finally { formatMigrating = false }
+  }
+
+  $effect(() => { untrack(() => { loadBackupList(); fetchStorage(); loadServerStorage(); loadDbBackups(); loadMangaFormat() }) })
 </script>
 
 <div class="s-panel">
@@ -560,7 +588,7 @@
       <div class="s-row" style="gap:var(--sp-2)">
         <input class="s-input full" class:error={!!pathsFieldError.dl}
           bind:value={downloadsPathInput}
-          placeholder={isExternalServer ? 'Server default' : (defaultDownloadsPath || 'Default location')}
+          placeholder={defaultDownloadsPath || 'Default location'}
           spellcheck="false"
           onkeydown={(e) => e.key === 'Enter' && savePaths()}
           oninput={() => { pathsFieldError = { ...pathsFieldError, dl: undefined } }} />
@@ -593,6 +621,30 @@
             </button>
           {/if}
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="s-section">
+    <p class="s-section-title">Manga Download Format</p>
+    <div class="s-section-body">
+      <div class="s-row">
+        <div class="s-row-info">
+          <span class="s-label">Store new chapters as</span>
+          <span class="s-desc">CBZ packs each chapter into one archive file.</span>
+        </div>
+        <div class="s-btn-row">
+          <button class="s-btn" class:s-btn-accent={mangaFormat === 'loose'} disabled={formatBusy} onclick={() => setMangaFormat('loose')}>Loose images</button>
+          <button class="s-btn" class:s-btn-accent={mangaFormat === 'cbz'} disabled={formatBusy} onclick={() => setMangaFormat('cbz')}>CBZ archive</button>
+        </div>
+      </div>
+      <div class="s-row">
+        <div class="s-row-info">
+          <span class="s-desc">Convert everything already downloaded to match the format above.</span>
+        </div>
+        <button class="s-btn" disabled={formatMigrating} onclick={migrateMangaFormat}>
+          {formatMigrating ? 'Converting…' : 'Convert existing downloads'}
+        </button>
       </div>
     </div>
   </div>

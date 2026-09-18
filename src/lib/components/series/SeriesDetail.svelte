@@ -170,6 +170,7 @@
       title: entry.title,
       thumbnailUrl: entry.thumbnailUrl ?? '',
       hasCoverOverride: entry.hasCoverOverride,
+      downloadFolderPath: entry.downloadFolderPath,
       inLibrary: entry.inLibrary ?? false,
       contentType: entry.contentType,
       description: entry.description,
@@ -257,6 +258,13 @@
         if (!ctrl.signal.aborted) loadingManga = false
       }
     })()
+  }
+
+  async function openFolderFresh() {
+    if (!manga) return
+    mangaCache.delete(mangaId)
+    const fresh = await loadMangaData(mangaId)
+    if (fresh) await openMangaFolder(fresh)
   }
 
   $effect(() => {
@@ -639,7 +647,7 @@
       onSetScanlatorForce={(v) => set('scanlatorForce', v)}
       onSortModeChange={(v) => updateSettings({ chapterSortMode: v })}
       onSortDirChange={(v) => updateSettings({ chapterSortDir: v })}
-      onOpenFolder={() => manga && openMangaFolder(manga)}
+      onOpenFolder={openFolderFresh}
       onJumpToChapter={(id) => chapterListRef?.scrollToChapter(id)}
     />
 

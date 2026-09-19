@@ -12,6 +12,7 @@
   import { cache as queryCache } from '$lib/core/cache/queryCache'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
   import { canOpenFolder, openCustomFolder, isLocalServer } from '$lib/core/filesystem'
+  import { authHeaders } from '$lib/state/auth.svelte'
 
   const supportsFilesystem = platformService.isSupported('filesystem')
 
@@ -323,6 +324,7 @@
   let deletingBk       = $state<string | null>(null)
   let exportingMihon   = $state(false)
   let importingMihon   = $state<string | null>(null)
+  let importingFile    = $state(false)
 
   async function loadServerStorage() {
     srvLoading = true; srvError = null
@@ -400,6 +402,43 @@
     } catch (e) {
       toast({ kind: 'error', title: 'Import failed', body: e instanceof Error ? e.message : String(e) })
     } finally { importingMihon = null }
+  }
+
+  function getServerUrl(): string {
+    const url = settingsState.settings.serverUrl
+    return typeof url === 'string' && url.trim() ? url.replace(/\/$/, '') : 'http://localhost:6007'
+  }
+
+  async function importBackupFile() {
+    if (importingFile) return
+    const path = await platformService.pickFile(['tachibk'])
+    if (!path) return
+    importingFile = true
+    try {
+      const bytes    = await platformService.readFile(path)
+      const filename = path.split(/[\\/]/).pop() || 'backup.tachibk'
+      const form = new FormData()
+      form.append('file', new Blob([bytes]), filename)
+      const res = await fetch(`${getServerUrl()}/api/backups/import-file`, {
+        method:  'POST',
+        headers: authHeaders(),
+        body:    form,
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const result = await res.json()
+      const parts = [`${result.mangaImported} imported`]
+      if (result.mangaSkipped) parts.push(`${result.mangaSkipped} skipped (source not installed)`)
+      if (result.trackingImported) parts.push(`${result.trackingImported} tracking links`)
+      toast({ kind: result.mangaSkipped ? 'error' : 'success', title: 'Library imported', body: parts.join(' · ') })
+      if (result.warnings?.length) {
+        for (const w of result.warnings.slice(0, 5)) toast({ kind: 'error', title: 'Import warning', body: w })
+      }
+      await loadDbBackups()
+      const { loadLibrary } = await import('$lib/state/library.svelte')
+      await loadLibrary(true)
+    } catch (e) {
+      toast({ kind: 'error', title: 'Import failed', body: e instanceof Error ? e.message : String(e) })
+    } finally { importingFile = false }
   }
 
   async function loadBackupList() {
@@ -766,7 +805,7 @@
         <div class="s-row">
           <div class="s-row-info">
             <span class="s-label">Server database</span>
-            <span class="s-desc">Full SQLite snapshot — restore by swapping the file back in while the server is stopped.</span>
+            <span class="s-desc">Full SQLite snapshot.</span>
           </div>
           <button class="s-btn s-btn-accent" onclick={makeDbBackup} disabled={backingUp}>{backingUp ? 'Backing up…' : 'Back up now'}</button>
         </div>
@@ -793,9 +832,7 @@
         <div class="s-row">
           <div class="s-row-info">
             <span class="s-label">Export library</span>
-            <span class="s-desc">
-              Writes a <span style="font-family:monospace">.tachibk</span> file (Mihon/Tachiyomi format) — <strong>manga and novels only</strong>, no anime.
-            </span>
+            <span class="s-desc">Manga and novels only, no anime.</span>
           </div>
           <button class="s-btn s-btn-accent" onclick={exportMihon} disabled={exportingMihon}>{exportingMihon ? 'Exporting…' : 'Export'}</button>
         </div>
@@ -803,12 +840,12 @@
         <div class="s-row">
           <div class="s-row-info">
             <span class="s-label">Import a backup</span>
-            <span class="s-desc">
-              Drop a <span style="font-family:monospace">.tachibk</span> file into the backups folder below, then import it.
-            </span>
+            <span class="s-desc">Pick a <span style="font-family:monospace">.tachibk</span> file.</span>
           </div>
-          {#if srvStorage?.dataDir && canOpenFolder()}
-            <button class="s-btn" onclick={() => openCustomFolder(`${srvStorage!.dataDir!.replace(/[\\/]+$/, '')}/backups`)}>Open backups folder</button>
+          {#if supportsFilesystem}
+            <button class="s-btn s-btn-accent" disabled={importingFile} onclick={importBackupFile}>
+              {importingFile ? 'Importing…' : 'Import file'}
+            </button>
           {/if}
         </div>
 
@@ -845,7 +882,7 @@
         <div class="s-row">
           <div class="s-row-info">
             <span class="s-label">Import settings</span>
-            <span class="s-desc">Restore from a previously exported .zip file. Reloads the app immediately.</span>
+            <span class="s-desc">Restore from a .zip file.</span>
           </div>
           <button class="s-btn" onclick={handleImportAppData} disabled={appDataImporting || !supportsFilesystem}>
             {appDataImporting ? 'Importing…' : 'Import'}

@@ -207,6 +207,15 @@
     );
   }
 
+  // Progress-bar slots are group indices in "double" style, but jumpToPage expects a
+  // real page number to resolve the group from — convert before jumping.
+  function jumpSlot(slot: number, commit = true) {
+    const page = style === "double" && readerState.pageGroups[slot - 1]
+      ? readerState.pageGroups[slot - 1][0]
+      : slot;
+    primedJump(page, commit);
+  }
+
   const playPeel = (dir: 1 | -1) => pageViewRef?.playPeel(dir) ?? Promise.resolve(false);
 
   const goNext = $derived(rtl
@@ -644,7 +653,7 @@
       {barPosition}
       onGoPrev={goPrev}
       onGoNext={goNext}
-      onJumpToPage={(p, commit) => jumpSliderSlot(p, commit)}
+      onJumpToPage={(p, commit) => jumpSlot(p, commit)}
     />
   {/snippet}
 
@@ -659,7 +668,7 @@
       {barPosition}
       onGoPrev={goPrev}
       onGoNext={goNext}
-      onJumpToPage={(p, commit) => jumpSliderSlot(p, commit)}
+      onJumpToPage={(p, commit) => jumpSlot(p, commit)}
     />
   {/if}
 </div>

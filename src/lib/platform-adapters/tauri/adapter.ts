@@ -89,6 +89,15 @@ export class TauriAdapter implements PlatformAdapter {
     return typeof result === 'string' ? result : null
   }
 
+  async pickFile(extensions?: string[]): Promise<string | null> {
+    const result = await open({
+      directory: false,
+      multiple: false,
+      filters: extensions?.length ? [{ name: 'File', extensions }] : undefined,
+    })
+    return typeof result === 'string' ? result : null
+  }
+
   async checkPathExists(path: string): Promise<boolean> {
     return invoke('check_path_exists', { path })
   }

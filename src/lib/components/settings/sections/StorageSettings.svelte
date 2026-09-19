@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Trash, ClockCounterClockwise } from 'phosphor-svelte'
+  import { Trash, ClockCounterClockwise, ArrowsClockwise } from 'phosphor-svelte'
   import { untrack } from 'svelte'
   import { platformService } from '$lib/platform-service'
   import { addToast as toast } from '$lib/state/notifications.svelte'
@@ -472,12 +472,13 @@
     formatMigrating = true
     try {
       const res = await tsunagu.migrateMangaDownloadFormat(mangaFormat)
+      const parts: string[] = []
+      if (res.chaptersMigrated > 0) parts.push(`Converted ${res.chaptersMigrated} ${res.chaptersMigrated === 1 ? 'chapter' : 'chapters'} (${res.pagesMigrated} pages).`)
+      if (res.chaptersFailed > 0) parts.push(`${res.chaptersFailed} failed, check the server log.`)
       toast({
-        kind: 'success',
-        title: 'Downloads converted',
-        body: res.chaptersMigrated > 0
-          ? `Converted ${res.chaptersMigrated} ${res.chaptersMigrated === 1 ? 'chapter' : 'chapters'} (${res.pagesMigrated} pages) to ${mangaFormat === 'cbz' ? 'CBZ' : 'loose images'}.`
-          : 'Nothing to convert.',
+        kind: res.chaptersFailed > 0 ? 'error' : 'success',
+        title: res.chaptersMigrated > 0 ? 'Downloads converted' : 'Nothing to convert',
+        body: parts.length > 0 ? parts.join(' ') : `All downloaded chapters are already ${mangaFormat === 'cbz' ? 'CBZ' : 'loose images'}.`,
       })
     } catch (e: any) {
       toast({ kind: 'error', title: 'Migration failed', body: e?.message ?? String(e) })
@@ -640,10 +641,12 @@
       </div>
       <div class="s-row">
         <div class="s-row-info">
-          <span class="s-desc">Convert everything already downloaded to match the format above.</span>
+          <span class="s-label">Convert existing downloads</span>
+          <span class="s-desc">Repacks everything already downloaded into the format above.</span>
         </div>
-        <button class="s-btn" disabled={formatMigrating} onclick={migrateMangaFormat}>
-          {formatMigrating ? 'Converting…' : 'Convert existing downloads'}
+        <button class="s-btn s-btn-accent" disabled={formatMigrating} onclick={migrateMangaFormat}>
+          <ArrowsClockwise size={13} />
+          {formatMigrating ? 'Converting…' : 'Convert'}
         </button>
       </div>
     </div>

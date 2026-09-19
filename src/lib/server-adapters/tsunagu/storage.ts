@@ -50,10 +50,14 @@ export const storage = {
 		return data.relocateLocalSource
 	},
 
-	async migrateMangaDownloadFormat(target: 'loose' | 'cbz'): Promise<{ chaptersMigrated: number; pagesMigrated: number }> {
-		const data = await gql<{ migrateMangaDownloadFormat: { chaptersMigrated: number; pagesMigrated: number } }>(
+	async migrateMangaDownloadFormat(
+		target: 'loose' | 'cbz',
+	): Promise<{ chaptersMigrated: number; pagesMigrated: number; chaptersFailed: number; chaptersAlreadyTarget: number }> {
+		const data = await gql<{
+			migrateMangaDownloadFormat: { chaptersMigrated: number; pagesMigrated: number; chaptersFailed: number; chaptersAlreadyTarget: number }
+		}>(
 			`mutation MigrateMangaDownloadFormat($target: String!) {
-				migrateMangaDownloadFormat(target: $target) { chaptersMigrated pagesMigrated }
+				migrateMangaDownloadFormat(target: $target) { chaptersMigrated pagesMigrated chaptersFailed chaptersAlreadyTarget }
 			}`,
 			{ target },
 			baseUrl(),

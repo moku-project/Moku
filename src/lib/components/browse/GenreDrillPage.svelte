@@ -230,7 +230,7 @@
   .card { background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
   .card:hover :global(.cover) { filter: brightness(1.06); }
   .card:hover .card-title { color: var(--text-primary); }
-  .cover-wrap { position: relative; aspect-ratio: 2/3; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-raised); border: 1px solid var(--border-dim); transform: translateZ(0); }
+  .cover-wrap { position: relative; aspect-ratio: 2/3; border-radius: var(--radius-md); clip-path: inset(0 round var(--radius-md)); background: var(--bg-raised); border: 1px solid var(--border-dim); }
   :global(.cover) { width: 100%; height: 100%; object-fit: cover; transition: filter var(--t-base); will-change: filter; }
   .in-library-badge { position: absolute; bottom: var(--sp-1); left: var(--sp-1); font-family: var(--font-ui); font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; background: var(--accent-muted); color: var(--accent-fg); border: 1px solid var(--accent-dim); padding: 2px 5px; border-radius: var(--radius-sm); }
   .card-title { margin-top: var(--sp-2); font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-snug); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color var(--t-base); }

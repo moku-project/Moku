@@ -112,4 +112,11 @@
     background: var(--bg-raised);
     color: var(--text-faint);
   }
+
+  :global(img.cover) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 </style>

@@ -355,7 +355,7 @@
   .loadMoreBtn          { font-family: var(--font-ui); font-size: var(--text-xs); letter-spacing: var(--tracking-wide); color: var(--text-faint); background: none; border: 1px solid var(--border-dim); border-radius: var(--radius-md); padding: 6px 20px; cursor: pointer; transition: color var(--t-base), border-color var(--t-base), background var(--t-base); }
   .loadMoreBtn:hover    { color: var(--text-muted); border-color: var(--border-strong); background: var(--bg-raised); }
   .card                 { background: none; border: none; padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: var(--sp-2); }
-  .coverWrap            { position: relative; aspect-ratio: 2/3; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-raised); border: 1px solid var(--border-dim); }
+  .coverWrap            { position: relative; aspect-ratio: 2/3; border-radius: var(--radius-md); clip-path: inset(0 round var(--radius-md)); background: var(--bg-raised); border: 1px solid var(--border-dim); }
   .cardTitle            { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-snug); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color var(--t-base); }
   .inLibBadge           { position: absolute; top: var(--sp-2); left: var(--sp-2); font-family: var(--font-ui); font-size: 9px; letter-spacing: var(--tracking-wide); background: var(--accent-muted); color: var(--accent-fg); border: 1px solid var(--accent-dim); border-radius: var(--radius-sm); padding: 1px 5px; }
   .skCard               { display: flex; flex-direction: column; gap: var(--sp-2); }

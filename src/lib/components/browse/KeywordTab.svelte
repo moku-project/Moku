@@ -58,6 +58,15 @@
   let kw_sentinel: HTMLDivElement | undefined = $state();
   let kw_observer: IntersectionObserver | null = null;
 
+  const RENDER_PAGE = 36;
+  let kw_renderCount = $state(RENDER_PAGE);
+  let kw_renderSentinel: HTMLDivElement | undefined = $state();
+  let kw_renderObserver: IntersectionObserver | null = null;
+
+  let pop_renderCount = $state(RENDER_PAGE);
+  let pop_renderSentinel: HTMLDivElement | undefined = $state();
+  let pop_renderObserver: IntersectionObserver | null = null;
+
   $effect(() => {
     if (!allSources.length) return;
     const available = new Set(allSources.map((s) => s.lang));
@@ -194,6 +203,14 @@
     return coverFirst(deduped).map((m, i) => ({ ...m, _priority: i < 12 ? 12 - i : 0 }));
   });
 
+  const kw_renderedResults = $derived(kw_flatResults.slice(0, kw_renderCount));
+  const pop_renderedResults = $derived(popularResults.slice(0, pop_renderCount));
+
+  $effect(() => {
+    kw_flatResults.length;
+    untrack(() => { kw_renderCount = RENDER_PAGE; });
+  });
+
   $effect(() => {
     kw_observer?.disconnect();
     if (!kw_sentinel) return;
@@ -209,9 +226,37 @@
     return () => kw_observer?.disconnect();
   });
 
+  $effect(() => {
+    kw_renderObserver?.disconnect();
+    if (!kw_renderSentinel) return;
+    kw_renderObserver = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      if (kw_renderCount < kw_flatResults.length) {
+        kw_renderCount = Math.min(kw_renderCount + RENDER_PAGE, kw_flatResults.length);
+      }
+    }, { rootMargin: "1600px" });
+    kw_renderObserver.observe(kw_renderSentinel);
+    return () => kw_renderObserver?.disconnect();
+  });
+
+  $effect(() => {
+    pop_renderObserver?.disconnect();
+    if (!pop_renderSentinel) return;
+    pop_renderObserver = new IntersectionObserver((entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      if (pop_renderCount < popularResults.length) {
+        pop_renderCount = Math.min(pop_renderCount + RENDER_PAGE, popularResults.length);
+      }
+    }, { rootMargin: "1600px" });
+    pop_renderObserver.observe(pop_renderSentinel);
+    return () => pop_renderObserver?.disconnect();
+  });
+
   onDestroy(() => {
     kw_abortCtrl?.abort();
     kw_observer?.disconnect();
+    kw_renderObserver?.disconnect();
+    pop_renderObserver?.disconnect();
     if (kw_debounceTimer) clearTimeout(kw_debounceTimer);
   });
 </script>
@@ -283,7 +328,7 @@
       <span class="searchLabel">Popular right now</span>
     </div>
     <div class="searchGrid">
-      {#each popularResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
+      {#each pop_renderedResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
         <button class="srchCard" onclick={() => onPreview(m)}>
           <div class="srchCoverWrap">
             <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={m._priority} id={m.id} contentType={m.contentType} />
@@ -298,6 +343,9 @@
       {/each}
       {#if popularLoading}
         {#each Array(12) as _, i (i)}<div class="skCard"><div class="skeleton skCover"></div></div>{/each}
+      {/if}
+      {#if pop_renderCount < popularResults.length}
+        <div bind:this={pop_renderSentinel} class="kw-sentinel" aria-hidden="true"></div>
       {/if}
       {#if !popularExhausted}<div bind:this={kw_sentinel} class="kw-sentinel" aria-hidden="true"></div>{/if}
     </div>
@@ -326,7 +374,7 @@
       <span class="searchLabel">{kw_flatResults.length} result{kw_flatResults.length !== 1 ? "s" : ""} for "{kw_localQuery.trim()}"</span>
     </div>
     <div class="searchGrid">
-      {#each kw_flatResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
+      {#each kw_renderedResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
         <button class="srchCard" onclick={() => onPreview(m)}>
           <div class="srchCoverWrap">
             <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={m._priority} id={m.id} contentType={m.contentType} />
@@ -341,6 +389,9 @@
       {/each}
       {#if kw_anyLoading || kw_loadingMore}
         {#each Array(6) as _, i (i)}<div class="skCard"><div class="skeleton skCover"></div></div>{/each}
+      {/if}
+      {#if kw_renderCount < kw_flatResults.length}
+        <div bind:this={kw_renderSentinel} class="kw-sentinel" aria-hidden="true"></div>
       {/if}
       <div bind:this={kw_sentinel} class="kw-sentinel" aria-hidden="true"></div>
     </div>
@@ -386,10 +437,10 @@
   .advancedFooter { font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-faint); }
   .searchHeader  { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-3) var(--sp-4) var(--sp-1); flex-shrink: 0; }
   .searchLabel   { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-faint); letter-spacing: var(--tracking-wider); text-transform: uppercase; }
-  .searchGrid    { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(90px, 11vw, 130px), 1fr)); gap: var(--sp-2); padding: var(--sp-2) var(--sp-4) var(--sp-6); overflow-y: auto; flex: 1; align-content: start; will-change: scroll-position; }
-  .srchCard      { background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+  .searchGrid    { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(90px, 11vw, 130px), 1fr)); gap: var(--sp-2); padding: var(--sp-2) var(--sp-4) var(--sp-6); overflow-y: auto; flex: 1; align-content: start; }
+  .srchCard      { background: none; border: none; padding: 0; cursor: pointer; text-align: left; contain: layout style paint; }
   .srchCard:hover .srchCoverWrap { filter: brightness(1.08) saturate(1.05); }
-  .srchCoverWrap { position: relative; aspect-ratio: 2/3; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-raised); border: 1px solid var(--border-dim); transform: translateZ(0); transition: filter var(--t-base); }
+  .srchCoverWrap { position: relative; aspect-ratio: 2/3; border-radius: var(--radius-md); clip-path: inset(0 round var(--radius-md)); background: var(--bg-raised); border: 1px solid var(--border-dim); transition: filter var(--t-base); }
   .srchGradient  { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.15) 50%, transparent 72%); pointer-events: none; }
   .srchFooter    { position: absolute; bottom: 0; left: 0; right: 0; z-index: 2; padding: var(--sp-2); pointer-events: none; }
   .srchTitle     { font-size: var(--text-xs); font-weight: var(--weight-medium); color: rgba(255,255,255,0.92); line-height: var(--leading-snug); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 4px rgba(0,0,0,0.7); }

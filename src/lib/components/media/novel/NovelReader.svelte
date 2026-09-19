@@ -240,8 +240,16 @@
   $effect(() => {
     if (!settingsState.settings.autoScroll || !scrollEl) return;
     let rafId: number;
+    let remainder = 0;
     const tick = () => {
-      if (!autoScrollPaused && scrollEl) scrollEl.scrollTop += (settingsState.settings.autoScrollSpeed ?? 5) * 0.5;
+      if (!autoScrollPaused && scrollEl) {
+        remainder += (settingsState.settings.autoScrollSpeed ?? 5) * 0.5;
+        const whole = Math.trunc(remainder);
+        if (whole !== 0) {
+          scrollEl.scrollTop += whole;
+          remainder -= whole;
+        }
+      }
       rafId = requestAnimationFrame(tick);
     };
     rafId = requestAnimationFrame(tick);

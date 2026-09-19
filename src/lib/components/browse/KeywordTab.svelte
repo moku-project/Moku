@@ -109,7 +109,7 @@
   const kw_visibleSources = $derived.by(() => {
     let srcs = allSources;
     if (kw_selectedLangs.size > 0)
-      srcs = srcs.filter((s) => kw_selectedLangs.has(s.lang));
+      srcs = srcs.filter((s) => s.lang === LANG_ALL || kw_selectedLangs.has(s.lang));
     return srcs;
   });
 

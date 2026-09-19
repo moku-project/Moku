@@ -537,7 +537,7 @@
 >
   <ReaderControls
     {displayChapter} {adjacent} {visibleChunkLastPage}
-    {zoom} {zoomPct}
+    {zoom} {zoomPct} {rtl}
     isFullscreen={readerState.isFullscreen}
     {isBookmarked}
     uiVisible={readerState.uiVisible}

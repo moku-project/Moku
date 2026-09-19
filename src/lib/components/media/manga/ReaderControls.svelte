@@ -25,6 +25,7 @@
     isFullscreen:         boolean;
     isBookmarked:         boolean;
     uiVisible:            boolean;
+    rtl:                  boolean;
     barPosition:          "top" | "left" | "right";
     progressBar?:         Snippet;
     onCaptureZoomAnchor:  () => void;
@@ -43,7 +44,7 @@
     displayChapter, adjacent, visibleChunkLastPage,
     zoom, zoomPct, isFullscreen,
     isBookmarked,
-    uiVisible,
+    uiVisible, rtl,
     barPosition, progressBar,
     onCaptureZoomAnchor, onRestoreZoomAnchor,
     onMaybeMarkRead, onToggleBookmark,
@@ -71,6 +72,14 @@
   }
 
   const isVertical  = $derived(barPosition === "left" || barPosition === "right");
+
+  // In RTL manga, reading progresses right-to-left, so the horizontal bar's left/right
+  // chapter buttons swap which chapter they jump to (vertical up/down bars are unaffected).
+  const leftChapter  = $derived(rtl && !isVertical ? adjacent.next : adjacent.prev);
+  const rightChapter = $derived(rtl && !isVertical ? adjacent.prev : adjacent.next);
+  const leftTitle    = $derived(rtl && !isVertical ? "Next chapter" : "Previous chapter");
+  const rightTitle   = $derived(rtl && !isVertical ? "Previous chapter" : "Next chapter");
+
   const popoverSide = $derived(
     barPosition === "left"  ? "right" :
     barPosition === "right" ? "left"  :
@@ -197,9 +206,9 @@
     <div class="bar-divider"></div>
 
     <button class="icon-btn"
-      onclick={() => { if (adjacent.prev) { onMaybeMarkRead(); readerState.openReader(adjacent.prev); } }}
-      disabled={!adjacent.prev}
-      title="Previous chapter">
+      onclick={() => { if (leftChapter) { onMaybeMarkRead(); readerState.openReader(leftChapter); } }}
+      disabled={!leftChapter}
+      title={leftTitle}>
       {#if isVertical}<CaretUp size={13} weight="regular" />{:else}<CaretLeft size={13} weight="regular" />{/if}
     </button>
 
@@ -261,7 +270,6 @@
             onclick={toggleChapterPicker}
           >
             <span class="ch-name">{displayChapter?.name}</span>
-            <CaretDown size={10} weight="bold" />
           </button>
           {#if readerState.chapterPickerOpen}
             <div class="popover ch-picker-pop popover-{popoverSide}" role="presentation" onclick={(e) => e.stopPropagation()}>
@@ -274,41 +282,20 @@
             </div>
           {/if}
         </div>
-        <div
-          class="ch-page"
-          class:editing={readerState.pageInputFocused}
-          role="group"
-          title="Go to page"
-          onclick={() => { if (!visibleChunkLastPage) return; pageInputEl?.focus(); }}
-        >
-          <input
-            class="ch-page-input"
-            type="text"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            autocomplete="off"
-            spellcheck="false"
-            aria-label="Go to page"
-            bind:this={pageInputEl}
-            value={pageDraft}
-            disabled={!visibleChunkLastPage}
-            style="width:{pageInputCh}ch"
-            onfocus={onPageFocus}
-            onblur={commitPage}
-            oninput={onPageInput}
-            onkeydown={onPageKey}
-            onclick={(e) => e.stopPropagation()}
-          />
-          <span class="ch-page-sep">/</span>
-          <span class="ch-page-max">{visibleChunkLastPage}</span>
-        </div>
+        {#if visibleChunkLastPage}
+          <div class="ch-page-display" aria-hidden="true">
+            <span>{readerState.pageNumber}</span>
+            <span class="ch-page-sep">/</span>
+            <span>{visibleChunkLastPage}</span>
+          </div>
+        {/if}
       {/if}
     </div>
 
     <button class="icon-btn"
-      onclick={() => { if (adjacent.next) { onMaybeMarkRead(); readerState.openReader(adjacent.next); } }}
-      disabled={!adjacent.next}
-      title="Next chapter">
+      onclick={() => { if (rightChapter) { onMaybeMarkRead(); readerState.openReader(rightChapter); } }}
+      disabled={!rightChapter}
+      title={rightTitle}>
       {#if isVertical}<CaretDown size={13} weight="regular" />{:else}<CaretRight size={13} weight="regular" />{/if}
     </button>
   </div>
@@ -574,7 +561,7 @@
     max-width: 22ch; flex-shrink: 1;
   }
   .ch-name-btn {
-    display: inline-flex; align-items: center; gap: 4px;
+    display: inline-flex; align-items: center;
     color: var(--text-muted); flex-shrink: 1;
   }
   .ch-title-btn:hover, .ch-name-btn:hover, .ch-name-btn.active {
@@ -582,8 +569,6 @@
     background: var(--bg-raised);
     color: var(--text-primary);
   }
-  .ch-name-btn :global(svg) { flex-shrink: 0; transition: transform var(--t-fast); }
-  .ch-name-btn.active :global(svg) { transform: rotate(180deg); }
   .ch-sep   { color: var(--text-faint); flex-shrink: 0; }
   .ch-name  {
     color: inherit;
@@ -596,7 +581,8 @@
 
   .ch-info-btn { font-size: 15px; line-height: 1; color: var(--text-faint); }
 
-  .ch-page {
+  .ch-page-sep { color: var(--border-strong); }
+  .ch-page-display {
     font-family: var(--font-ui);
     font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
@@ -607,19 +593,8 @@
     align-items: center;
     gap: 3px;
     padding: 3px 7px;
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-    cursor: text;
-    transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+    pointer-events: none;
   }
-  .ch-page:hover, .ch-page.editing {
-    border-color: var(--border-dim);
-    background: var(--bg-raised);
-    color: var(--text-primary);
-  }
-  .ch-page-sep { color: var(--border-strong); }
-  .ch-page.editing .ch-page-sep, .ch-page:hover .ch-page-sep { color: var(--text-faint); }
-  .ch-page-max { pointer-events: none; }
   .ch-page-input {
     font-family: var(--font-ui);
     font-size: var(--text-xs);

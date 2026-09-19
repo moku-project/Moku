@@ -17,7 +17,6 @@ export interface StripGestureTarget {
 export interface PageGestureOpts {
   getContainer:    () => HTMLElement | undefined;
   isLongstrip:     () => boolean;
-  getRtl:          () => boolean;
   getInspectScale: () => number;
   getPan:          () => { x: number; y: number };
   setInspect:      (scale: number, panX: number, panY: number) => void;
@@ -131,9 +130,14 @@ export function createPageGestures(opts: PageGestureOpts) {
       const dx = e.clientX - swipeStartX;
       const dy = e.clientY - swipeStartY;
       if (Math.abs(dx) >= SWIPE_MIN_DIST && Math.abs(dx) > Math.abs(dy)) {
+        // Dragging left always means "move the viewport rightward" (the same
+        // physical gesture regardless of reading direction) - onSwipe's
+        // caller (goNext/goPrev) is what already resolves that into
+        // story-forward vs story-backward based on rtl. Inverting here too
+        // would cancel that out and make swipe direction RTL-blind.
         const draggedLeft = dx < 0;
         justSwiped = true;
-        opts.onSwipe(opts.getRtl() ? !draggedLeft : draggedLeft);
+        opts.onSwipe(draggedLeft);
       }
     }
   }

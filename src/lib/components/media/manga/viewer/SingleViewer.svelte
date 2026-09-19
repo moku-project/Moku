@@ -96,7 +96,11 @@
   .peel-stack { position: relative; display: flex; align-items: center; justify-content: center; background: var(--bg-void); }
   .peel-stack.peeling { overflow: hidden; }
 
-  .peel-front { position: relative; z-index: 2; max-width: 100%; max-height: 100%; object-fit: contain; }
+  /* Sizing is left entirely to the fit-mode class (fit-width/fit-height/fit-screen/
+     fit-original, from PageView.svelte) - a hardcoded max-width/max-height/object-fit
+     here would tie with those on specificity and could silently win the cascade,
+     forcing every page into contain-style letterboxing regardless of fit mode. */
+  .peel-front { position: relative; z-index: 2; }
 
   .peel-under {
     position: absolute;

@@ -592,7 +592,6 @@
   const gestures = createPageGestures({
     getContainer:    () => containerEl,
     isLongstrip:     () => style === "longstrip",
-    getRtl:          () => rtl,
     getInspectScale: () => readerState.inspectScale,
     getPan:          () => ({ x: readerState.inspectPanX, y: readerState.inspectPanY }),
     setInspect:      (scale, panX, panY) => {

@@ -131,7 +131,7 @@
   let containerEl: HTMLDivElement | null = null;
   let pageViewRef: PageView;
   let zoomAnchor         = { el: null as HTMLElement | null, offset: 0 };
-  let hideTimer          = $state<ReturnType<typeof setTimeout> | null>(null);
+  let hideTimer: ReturnType<typeof setTimeout> | null = null;
   let markedRead         = new Set<string>();
   let appending          = false;
   let abortCtrl          = { current: null as AbortController | null };
@@ -430,6 +430,10 @@
     if (readerState.holdUi) {
       readerState.uiVisible = true;
       if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    } else if (!tapToToggleBar) {
+      // holdUi just released (e.g. a settings popover closed) - restart the
+      // hide countdown instead of leaving the bar stuck visible forever.
+      showUi();
     }
   });
 

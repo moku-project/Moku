@@ -258,6 +258,14 @@
 
   const bar = createBarReveal();
 
+  $effect(() => {
+    // MediaChrome forces uiVisible while a picker/menu is open but never
+    // re-arms the hide timer once it closes, so the bar would otherwise be
+    // stuck visible forever the moment any holdUi-triggering popover closes
+    // (e.g. opening settings to toggle auto-scroll, then closing it).
+    if (!mediaViewState.holdUi) bar.show();
+  });
+
   const onKey = createMediaKeyHandler({
     close: nav.close, next: nav.goNext, prev: nav.goPrev,
     toggleAutoScroll: () => updateSettings({ autoScroll: !(settingsState.settings.autoScroll ?? false) }),

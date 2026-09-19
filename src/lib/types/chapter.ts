@@ -7,6 +7,7 @@ export interface Chapter {
   downloaded:    boolean
   bookmarked:    boolean
   pageCount:     number
+  pdfSource?:    boolean
   pages?:        string[]
   mangaId:       string
   fetchedAt?:    string

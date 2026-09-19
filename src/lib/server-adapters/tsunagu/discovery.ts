@@ -28,7 +28,7 @@ export const discovery = {
 						status author artist genres tags inLibrary sourceName
 						source { id displayName iconUrl }
 						chapterCount unreadCount downloadCount: downloadedCount
-						chapters { id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount }
+						chapters { id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount pdfSource }
 					}
 				}`
 				: `query ResolveMedia($extensionId: ID!, $externalId: String!) {

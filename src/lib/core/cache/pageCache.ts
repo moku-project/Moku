@@ -1,4 +1,5 @@
 import { getBlobUrl, preloadBlobUrls, revokeBlobUrl } from "$lib/core/cache/imageCache";
+import { isPdfPageUrl }                               from "$lib/core/cache/pdfRender";
 import { settingsState }                              from "$lib/state/settings.svelte";
 
 const pageCache        = new Map<string, string[]>();
@@ -28,7 +29,7 @@ async function fetchChapterPagesFromServer(_mediaId: string, chapterId: string):
 }
 
 export function resolveUrl(url: string, useBlob: boolean, priority = 0): Promise<string> {
-  if (!useBlob) return Promise.resolve(url);
+  if (!useBlob && !isPdfPageUrl(url)) return Promise.resolve(url);
   const cached = resolvedUrlCache.get(url);
   if (cached) return cached;
   const p = getBlobUrl(url, priority).catch(err => {

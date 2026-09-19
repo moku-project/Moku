@@ -80,6 +80,7 @@ export interface Chapter {
 	download: Download | null
 	pages: string[] | null
 	pageCount: number | null
+	pdfSource: boolean
 	videoUrl: string | null
 }
 

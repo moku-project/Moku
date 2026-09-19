@@ -16,6 +16,10 @@ export async function getChapterText(mediaId: string, chapterId: string): Promis
     const ct = (res.headers.get("content-type") ?? "").toLowerCase();
     if (ct.includes("application/json")) {
       const j = await res.json();
+      if (j?.docxSource) {
+        const { renderDocxChapter } = await import("$lib/core/cache/docxRender");
+        return { text: await renderDocxChapter(mediaId, chapterId), format: "html" };
+      }
       const t = typeof j?.text === "string" ? j.text : "";
       return { text: t, format: /<[a-z][\s\S]*>/i.test(t) ? "html" : "text" };
     }

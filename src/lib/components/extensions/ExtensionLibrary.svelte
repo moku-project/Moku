@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowLeft, MagnifyingGlass, GearSix, Swap, Funnel, Check, CircleNotch, UploadSimple, PencilSimple, Trash } from "phosphor-svelte";
+  import { ArrowLeft, MagnifyingGlass, GearSix, Swap, Funnel, Check, CircleNotch, UploadSimple, PencilSimple, Trash, Plus } from "phosphor-svelte";
   import Thumbnail           from "$lib/components/shared/manga/Thumbnail.svelte";
   import { resolvedCover }   from "$lib/core/cover/coverResolver";
   import { tsunagu }         from "$lib/server-adapters/tsunagu";
@@ -64,6 +64,7 @@
   let importing   = $state(false);
   let importProgress = $state<{ copied: number; total: number } | null>(null);
   let dragOver    = $state(false);
+  let addMenuOpen = $state(false);
   let renaming    = $state<{ id: string; title: string; contentType: string | null } | null>(null);
   let renameInput = $state("");
   let deleting    = $state<{ id: string; title: string } | null>(null);
@@ -117,6 +118,12 @@
       importing = false;
       importProgress = null;
     }
+  }
+
+  async function pickAndImport(directory: boolean) {
+    addMenuOpen = false;
+    const paths = await platformService.pickImportPaths(directory);
+    if (paths.length > 0) void handleDrop(paths);
   }
 
   async function load() {
@@ -174,11 +181,7 @@
     const oldTitle = renaming.title;
     if (!newTitle || newTitle === oldTitle) { renaming = null; return; }
     try {
-      if (!mediaDir) mediaDir = (await tsunagu.storageInfo()).mediaDir;
-      const { renameLocalSeries } = await import("$lib/core/localImport");
-      const kind = renaming.contentType === "ANIME" ? "anime" : renaming.contentType === "NOVEL" ? "novel" : "manga";
-      await renameLocalSeries(mediaDir, kind, oldTitle, newTitle);
-      await tsunagu.rescanLocalMedia();
+      await tsunagu.renameLocalSeries(renaming.id, newTitle);
       renaming = null;
       await load();
     } catch (e: any) {
@@ -237,6 +240,15 @@
     return () => document.removeEventListener("mousedown", onOutside, true);
   });
 
+  $effect(() => {
+    if (!addMenuOpen) return;
+    function onOutside(e: MouseEvent) {
+      if (!(e.target as HTMLElement).closest(".add-menu-wrap")) addMenuOpen = false;
+    }
+    setTimeout(() => document.addEventListener("mousedown", onOutside, true), 0);
+    return () => document.removeEventListener("mousedown", onOutside, true);
+  });
+
   const CONTENT_FILTERS: [ContentFilter, string][] = [
     ["unread",     "Unread"],
     ["downloaded", "Downloaded"],
@@ -269,6 +281,24 @@
           <input class="search" placeholder="Search" bind:value={search} autocomplete="off" />
         {/if}
       </div>
+
+      {#if canImport}
+        <div class="filter-wrap add-menu-wrap">
+          <button class="settings-btn" onclick={() => addMenuOpen = !addMenuOpen} title="Add series">
+            <Plus size={14} weight="bold" />
+          </button>
+          {#if addMenuOpen}
+            <div class="filter-panel" role="menu">
+              <button class="panel-item" role="menuitem" onclick={() => pickAndImport(true)}>
+                Add folder…
+              </button>
+              <button class="panel-item" role="menuitem" onclick={() => pickAndImport(false)}>
+                Add files…
+              </button>
+            </div>
+          {/if}
+        </div>
+      {/if}
 
       {#if !isLocal}
         <div class="filter-wrap">
@@ -330,7 +360,7 @@
         {/if}
       {:else}
         <UploadSimple size={13} weight="bold" />
-        Drag manga, anime, or novel folders (or .cbz/.zip files) anywhere in this window to import them
+        Drag manga, anime, or novel folders (or .cbz/.cbr/.cb7/.cbt/.pdf/.epub/.docx files) anywhere in this window to import them
       {/if}
     </div>
   {/if}

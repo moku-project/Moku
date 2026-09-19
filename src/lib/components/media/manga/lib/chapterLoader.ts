@@ -4,6 +4,7 @@ import { settingsState }                                       from "$lib/state/
 import { fetchPages, buildPageGroups }                          from "./pageLoader";
 import { cancelQueuedFetches, revokeBlobUrl, preloadBlobUrls } from "$lib/core/cache/imageCache";
 import { clearResolvedUrlCache, clearPageCache, measureAspect, isDegenerateAspect } from "$lib/core/cache/pageCache";
+import { clearPdfChapterCache }                                from "$lib/core/cache/pdfRender";
 
 function absolutePageUrl(p: string): string {
   if (p.startsWith("http")) return p;
@@ -39,9 +40,11 @@ async function getPagesForChapter(
   priorityPage = 0,
 ): Promise<string[]> {
   const chapter = seriesState.chaptersFor(mangaId).find(c => c.id === chapterId);
-  const contentPages = (count: number) =>
-    Array.from({ length: count }, (_, i) =>
-      absolutePageUrl(`/content/${mangaId}/${chapterId}/pages/${i + 1}`));
+  const contentPages = (count: number) => {
+    const segment = chapter?.pdfSource ? "pdfpage" : "pages";
+    return Array.from({ length: count }, (_, i) =>
+      absolutePageUrl(`/content/${mangaId}/${chapterId}/${segment}/${i + 1}`));
+  };
 
   if (chapter?.downloaded && chapter.pageCount && chapter.pageCount > 0) {
     return contentPages(chapter.pageCount);
@@ -90,18 +93,20 @@ export async function loadChapter(
   abortCtrl.current = ctrl;
 
   cancelQueuedFetches();
-  if (useBlob) {
+  {
     clearResolvedUrlCache();
     for (const url of readerState.pageUrls) revokeBlobUrl(url);
     for (const p of [prevPrefetch, nextPrefetch]) {
       if (p && p.chapterId !== id) {
         for (const url of p.urls) revokeBlobUrl(url);
         clearPageCache(p.chapterId);
+        clearPdfChapterCache(p.chapterId);
       }
     }
   }
 
   const outgoing = current;
+  if (outgoing && outgoing.chapterId !== id) clearPdfChapterCache(outgoing.chapterId);
 
   const pos = startPos.current;
   startPos.current = "first";

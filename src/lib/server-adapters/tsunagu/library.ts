@@ -52,6 +52,17 @@ export const library = {
 		return data.rescanLocalMedia
 	},
 
+	async renameLocalSeries(mediaId: string, newTitle: string): Promise<boolean> {
+		await gql<{ renameLocalSeries: { id: string } }>(
+			`mutation RenameLocalSeries($mediaId: ID!, $newTitle: String!) {
+				renameLocalSeries(mediaId: $mediaId, newTitle: $newTitle) { id }
+			}`,
+			{ mediaId, newTitle },
+			baseUrl()
+		)
+		return true
+	},
+
 	async deleteLocalSeries(mediaId: string): Promise<boolean> {
 		const data = await gql<{ deleteLocalSeries: boolean }>(
 			`mutation DeleteLocalSeries($mediaId: ID!) {
@@ -72,7 +83,7 @@ export const library = {
 					unreadCount downloadCount: downloadedCount downloadFolderPath
 					source { id repositoryId packageName name displayName version contentType lang iconUrl isNsfw supportsLatest apkUrl jarUrl jarPath installed enabled discoveredAt installedAt installedVersion needsUpdate }
 					chapters {
-						id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount
+						id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount pdfSource
 					}
 					readingProgress {
 						id mediaId chapterId progress completed positionSeconds durationSeconds updatedAt
@@ -131,7 +142,7 @@ export const library = {
 		const data = await gql<{ syncChapters: Chapter[] }>(
 			`mutation SyncChapters($mediaId: ID!) {
 				syncChapters(mediaId: $mediaId) {
-					id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount
+					id mediaId externalId title number scanlator sourceOrder uploadedAt completed downloaded pageCount pdfSource
 				}
 			}`,
 			{ mediaId: libraryEntryId },

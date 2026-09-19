@@ -38,6 +38,8 @@
     "dashjs": "^5.2.1",
     "hls.js": "^1.7.1",
     "jassub": "^2.5.14",
+    "mammoth": "^1.12.3",
+    "pdfjs-dist": "^6.3.289",
     "tauri-plugin-discord-rpc-api": "github:Youwes09/tauri-plugin-discord-rpc"
   }
 }

@@ -4,7 +4,7 @@ import type { Download, DownloaderStatus, DownloadStatus } from '$lib/server-ada
 const DOWNLOAD_FIELDS = `
 	id mediaId chapterId status progress downloadedBytes bytesPerSec finalSizeBytes error createdAt completedAt
 	chapter {
-		id mediaId externalId title number scanlator sourceOrder uploadedAt pageCount
+		id mediaId externalId title number scanlator sourceOrder uploadedAt pageCount pdfSource
 	}
 `
 

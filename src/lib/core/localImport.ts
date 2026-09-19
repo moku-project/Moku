@@ -1,10 +1,11 @@
 import { join, basename, dirname } from '@tauri-apps/api/path'
-import { readDir, mkdir, copyFile, rename, type DirEntry } from '@tauri-apps/plugin-fs'
+import { readDir, mkdir, copyFile, type DirEntry } from '@tauri-apps/plugin-fs'
 
 const imageExts   = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.bmp'])
-const archiveExts = new Set(['.cbz', '.zip'])
+const archiveExts = new Set(['.cbz', '.zip', '.cbr', '.rar', '.cb7', '.7z', '.cbt', '.tar', '.pdf'])
 const videoExts   = new Set(['.mp4', '.mkv', '.webm', '.m4v', '.avi', '.mov'])
-const textExts    = new Set(['.txt', '.html', '.htm', '.xhtml', '.epub', '.md'])
+const textExts    = new Set(['.txt', '.html', '.htm', '.xhtml', '.md'])
+const bookExts    = new Set(['.epub', '.docx'])
 
 // Matches backend/internal/localsource/scan.go's dirKind map — "novel" maps
 // to the same on-disk folder name as "novels".
@@ -40,7 +41,7 @@ async function detectSeriesKind(path: string, entries: DirEntry[]): Promise<Cont
       const ext = extOf(e.name)
       if (archiveExts.has(ext)) return 'manga'
       if (videoExts.has(ext)) return 'anime'
-      if (textExts.has(ext)) return 'novel'
+      if (textExts.has(ext) || bookExts.has(ext)) return 'novel'
       continue
     }
     const sub = await readDir(await join(path, e.name)).catch(() => null)
@@ -82,17 +83,34 @@ export interface ImportResult {
 // inferring content type, series and chapter/episode boundaries so the user
 // never has to get folder naming right by hand (matches the backend's
 // local-source scan layout — see backend/internal/localsource/scan.go).
+// A loose dropped file's parent folder only makes sense as the series title
+// when it actually looks like a series folder - i.e. it holds other files of
+// the same kind (sibling chapters). Otherwise the parent is just wherever the
+// user happened to drag from (Downloads, Desktop, ...), so the file's own
+// name is the better guess at a title.
+async function seriesTitleFor(path: string, name: string, isSibling: (ext: string) => boolean): Promise<string> {
+  const parent = await dirname(path)
+  const siblings = await readDir(parent).catch(() => null)
+  const hasSiblingChapters = siblings?.some(e => !e.isDirectory && e.name !== name && isSibling(extOf(e.name))) ?? false
+  return hasSiblingChapters ? await basename(parent) : stripExt(name)
+}
+
 async function importOnePath(path: string, mediaDir: string, tick: () => void): Promise<string> {
   const name = await basename(path)
   const ext = extOf(name)
 
-  // Loose files dropped directly are assumed to already live inside a
-  // series folder on disk (e.g. Downloads/One Piece/Chapter 12.cbz) — that
-  // parent folder's name becomes the series title.
   if (archiveExts.has(ext)) {
-    const parent = await dirname(path)
-    const title = await basename(parent)
+    const title = await seriesTitleFor(path, name, e => archiveExts.has(e))
     const destDir = await join(mediaDir, 'local', 'manga', title)
+    await mkdir(destDir, { recursive: true })
+    await copyFile(path, await join(destDir, name))
+    tick()
+    return title
+  }
+  if (bookExts.has(ext)) {
+    // A book file is a whole title by itself - its own name is the title.
+    const title = stripExt(name)
+    const destDir = await join(mediaDir, 'local', kindDirName.novel, title)
     await mkdir(destDir, { recursive: true })
     await copyFile(path, await join(destDir, name))
     tick()
@@ -100,8 +118,8 @@ async function importOnePath(path: string, mediaDir: string, tick: () => void): 
   }
   if (videoExts.has(ext) || textExts.has(ext)) {
     const kind: ContentKind = videoExts.has(ext) ? 'anime' : 'novel'
-    const parent = await dirname(path)
-    const title = await basename(parent)
+    const isSibling = videoExts.has(ext) ? (e: string) => videoExts.has(e) : (e: string) => textExts.has(e)
+    const title = await seriesTitleFor(path, name, isSibling)
     const destDir = await join(mediaDir, 'local', kindDirName[kind], title, stripExt(name))
     await mkdir(destDir, { recursive: true })
     await copyFile(path, await join(destDir, name))
@@ -116,10 +134,14 @@ async function importOnePath(path: string, mediaDir: string, tick: () => void): 
 
   const unitKind = detectUnitKind(entries)
   if (unitKind) {
-    // The dropped folder itself is one chapter/episode, not a series —
-    // file it under its parent folder's name.
+    // The dropped folder itself is one chapter/episode. Its parent only
+    // makes sense as the series title if it holds sibling chapter folders -
+    // otherwise it's just wherever the user dragged from, so fall back to
+    // this folder's own name.
     const parent = await dirname(path)
-    const title = await basename(parent)
+    const siblingDirs = await readDir(parent).catch(() => null)
+    const hasSiblingChapters = siblingDirs?.some(e => e.isDirectory && e.name !== name) ?? false
+    const title = hasSiblingChapters ? await basename(parent) : name
     await copyDirRecursive(path, await join(mediaDir, 'local', kindDirName[unitKind], title, name), tick)
     return title
   }
@@ -150,9 +172,4 @@ export async function importLocalPaths(paths: string[], mediaDir: string, onProg
     }
   }
   return { imported, errors }
-}
-
-export async function renameLocalSeries(mediaDir: string, kind: ContentKind, oldTitle: string, newTitle: string): Promise<void> {
-  const localRoot = await join(mediaDir, 'local', kindDirName[kind])
-  await rename(await join(localRoot, oldTitle), await join(localRoot, newTitle))
 }

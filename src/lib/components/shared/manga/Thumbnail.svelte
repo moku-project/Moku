@@ -99,16 +99,18 @@
 
 {#if showFallback}
   <div class="cover-fallback {cls}" role="img" aria-label={alt}>
-    <FallbackIcon size="34%" weight="fill" />
+    <FallbackIcon size="34cqmin" weight="fill" />
   </div>
 {:else}
   <img src={resolved} {alt} class={cls} {loading} {decoding} onerror={handleError} {...rest} />
 {/if}
 
 <style>
+  /* No width/height: Svelte's scoping always outranks a caller's single-class
+     sizing rule (e.g. .row-thumb), so setting a size here would override it. */
   .cover-fallback {
     display: flex; align-items: center; justify-content: center;
-    width: 100%; height: 100%;
+    container-type: size;
     background: var(--bg-raised);
     color: var(--text-faint);
   }

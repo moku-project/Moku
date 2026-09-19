@@ -98,6 +98,12 @@ export class TauriAdapter implements PlatformAdapter {
     return typeof result === 'string' ? result : null
   }
 
+  async pickImportPaths(directory: boolean): Promise<string[]> {
+    const result = await open({ directory, multiple: true })
+    if (!result) return []
+    return Array.isArray(result) ? result : [result]
+  }
+
   async checkPathExists(path: string): Promise<boolean> {
     return invoke('check_path_exists', { path })
   }

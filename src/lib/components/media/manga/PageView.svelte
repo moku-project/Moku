@@ -672,7 +672,7 @@
   onmousedown={onInspectMouseDown}
   onpointerdown={onPointerDown}
   onwheel={(e) => {
-    if (e.ctrlKey || style !== "longstrip") e.preventDefault();
+    if (e.ctrlKey) e.preventDefault();
     handleWheel(e);
   }}
   onkeydown={(e) => {
@@ -734,7 +734,7 @@
 {/snippet}
 
 <style>
-  .viewer { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; -webkit-overflow-scrolling: touch; position: relative; touch-action: pan-x pan-y; zoom: calc(1 / var(--ui-zoom, 1)); user-select: none; -webkit-user-select: none; }
+  .viewer { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; align-items: safe center; justify-content: safe center; -webkit-overflow-scrolling: touch; position: relative; touch-action: pan-x pan-y; zoom: calc(1 / var(--ui-zoom, 1)); user-select: none; -webkit-user-select: none; }
   .viewer.strip { justify-content: flex-start; padding: var(--sp-4) 0; }
   .viewer:focus { outline: none; }
   .viewer.inspect-active { cursor: grab; overflow: hidden; }

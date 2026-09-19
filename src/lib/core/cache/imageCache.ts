@@ -1,6 +1,7 @@
 import { platformService } from "$lib/platform-service";
 import { authHeaders } from "$lib/state/auth.svelte";
 import { appState } from "$lib/state/app.svelte";
+import { isPdfPageUrl, renderPdfPage } from "$lib/core/cache/pdfRender";
 
 const cache    = new Map<string, string>();
 const inflight = new Map<string, Promise<string>>();
@@ -23,9 +24,10 @@ function isServerUrl(url: string): boolean {
 }
 
 async function doFetch(url: string, gen: number): Promise<string> {
-  const headers = isServerUrl(url) ? authHeaders() : {};
   if (gen !== generation) throw new DOMException("Cancelled", "AbortError");
-  const blob    = await platformService.fetchImage(url, headers);
+  const blob = isPdfPageUrl(url)
+    ? await renderPdfPage(url)
+    : await platformService.fetchImage(url, isServerUrl(url) ? authHeaders() : {});
   if (gen !== generation) throw new DOMException("Cancelled", "AbortError");
   const blobUrl = URL.createObjectURL(blob);
   cache.set(url, blobUrl);

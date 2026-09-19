@@ -103,6 +103,7 @@ function mapChapter(
 		downloaded: c.downloaded ?? (c.download?.status === 'DONE'),
 		bookmarked: false,
 		pageCount: c.pageCount ?? 0,
+		pdfSource: c.pdfSource ?? false,
 		pages: [],
 		mangaId,
 		uploadDate: c.uploadedAt,

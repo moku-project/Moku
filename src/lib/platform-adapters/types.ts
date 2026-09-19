@@ -83,6 +83,7 @@ export interface PlatformAdapter {
   writeFile(path: string, data: Uint8Array): Promise<void>
   pickFolder():                            Promise<string | null>
   pickFile(extensions?: string[]):         Promise<string | null>
+  pickImportPaths(directory: boolean):     Promise<string[]>
   checkPathExists(path: string):           Promise<boolean>
   createDirectory(path: string):           Promise<void>
   openPath(path: string):                  Promise<void>

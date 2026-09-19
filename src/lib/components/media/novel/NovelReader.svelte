@@ -40,6 +40,9 @@
     activeSeg ? `Ch. ${activeSeg.chapterNumber}${activeSeg.name ? ` — ${activeSeg.name}` : ""}` : "",
   );
   const pctExact = $derived(st.scrollPct * 100);
+  // One line's box height (in rem) is fontScale * lineHeight; add a small buffer so
+  // ascenders/descenders on the boundary lines are never clipped by the guide edges.
+  const guideHeightRem = $derived(st.fontScale * st.lineHeight * st.readingGuideLines + 0.2);
   const readout  = $derived(`${Math.round(pctExact)}%`);
 
   trackHistory(() => pctExact);
@@ -103,6 +106,36 @@
     }
   }
 
+  let prepending = $state(false);
+
+  // With a reading guide fixed at mid-screen, the only way to actually bring the
+  // opening lines of a chapter up to the guide is to keep scrolling past its start —
+  // so scrolling up past the top of what's loaded pulls the previous chapter in,
+  // preserving scroll position so the content doesn't jump.
+  async function prependPrev() {
+    if (prepending) return;
+    const list = seriesState.readerChapterList;
+    const first = st.segments[0];
+    if (!first) return;
+    const i = list.findIndex(c => c.id === first.chapterId);
+    const prev = i > 0 ? list[i - 1] : null;
+    if (!prev || st.hasSegment(prev.id)) return;
+    const el = scrollEl;
+    prepending = true;
+    try {
+      const seg = await fetchSegment(prev.id, prev.chapterNumber, prev.name);
+      if (seg && el) {
+        const prevHeight    = el.scrollHeight;
+        const prevScrollTop = el.scrollTop;
+        st.segments = [seg, ...st.segments];
+        await tick();
+        el.scrollTop = prevScrollTop + (el.scrollHeight - prevHeight);
+      }
+    } finally {
+      prepending = false;
+    }
+  }
+
   function syncActiveSegment() {
     const el = scrollEl;
     if (!el || !st.segments.length) return;
@@ -137,6 +170,7 @@
     if (activeSec) {
       const within = (el.scrollTop + el.clientHeight - activeSec.offsetTop) / Math.max(1, activeSec.offsetHeight);
       const frac = Math.max(0, Math.min(1, within));
+      st.scrollPct = frac;
       reportProg(currentId, frac, { completed: frac >= 0.98 });
       if (frac >= 0.98 && !markedRead.has(currentId)) markChapterRead(currentId, markedRead);
     }
@@ -152,16 +186,43 @@
     const el = scrollEl;
     if (!el) return;
     const max = el.scrollHeight - el.clientHeight;
-    st.scrollPct = max > 0 ? el.scrollTop / max : 0;
     syncActiveSegment();
     if (max - el.scrollTop < 1500) void appendNext();
+    if (el.scrollTop < 1500) void prependPrev();
   }
 
   function seek(toPct: number) {
     const el = scrollEl;
     if (!el) return;
-    el.scrollTo({ top: ((el.scrollHeight - el.clientHeight) * toPct) / 100 });
+    const activeSec = el.querySelector<HTMLElement>(`[data-cid="${chapter?.id ?? ""}"]`);
+    if (!activeSec) return;
+    const frac = toPct / 100;
+    el.scrollTo({ top: frac * activeSec.offsetHeight + activeSec.offsetTop - el.clientHeight });
   }
+
+  let autoScrollPaused     = false;
+  let autoScrollPauseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function pauseAutoScroll() {
+    autoScrollPaused = true;
+    if (autoScrollPauseTimer) clearTimeout(autoScrollPauseTimer);
+    autoScrollPauseTimer = setTimeout(() => { autoScrollPaused = false; }, 2500);
+  }
+
+  function onWheel(e: WheelEvent) {
+    if (!e.ctrlKey) pauseAutoScroll();
+  }
+
+  $effect(() => {
+    if (!settingsState.settings.autoScroll || !scrollEl) return;
+    let rafId: number;
+    const tick = () => {
+      if (!autoScrollPaused && scrollEl) scrollEl.scrollTop += (settingsState.settings.autoScrollSpeed ?? 5) * 0.5;
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  });
 
   const bar = createBarReveal();
 
@@ -192,6 +253,8 @@
     role="presentation"
     bind:this={scrollEl}
     onscroll={onScroll}
+    onwheel={onWheel}
+    onpointerdown={pauseAutoScroll}
     onclick={bar.onClick}
     ondblclick={bar.onDblClick}
   >
@@ -211,6 +274,7 @@
       {:else if st.error}
         <p class="notice">{st.error}</p>
       {:else}
+        {#if prepending}<p class="notice appending">Loading previous chapter…</p>{/if}
         {#each st.segments as seg (seg.chapterId)}
           <section data-cid={seg.chapterId} class="seg">
             <p class="seg-head">Ch. {seg.chapterNumber}{seg.name ? ` — ${seg.name}` : ""}</p>
@@ -224,6 +288,10 @@
         {#if st.appending}<p class="notice appending">Loading next chapter…</p>{/if}
       {/if}
     </article>
+
+    {#if st.readingGuide}
+      <div class="reading-guide" style="height:{guideHeightRem}rem" aria-hidden="true"></div>
+    {/if}
   </div>
 
   <MediaChrome
@@ -286,6 +354,19 @@
   .notice > :global(p) { margin: 0 0 0.6em; }
   .notice-title { color: var(--text-secondary); font-weight: var(--weight-medium); }
   .appending { text-align: center; opacity: 0.6; }
+
+  .reading-guide {
+    --rg-border: color-mix(in srgb, currentColor 22%, transparent);
+    position: fixed;
+    left: 0; right: 0; top: 50%;
+    transform: translateY(-50%);
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    border-top: 1px solid var(--rg-border);
+    border-bottom: 1px solid var(--rg-border);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+  .novel-dark .reading-guide { mix-blend-mode: screen; }
 
   .novel-paper { background: #f5f2e9; color: #2b2622; }
   .novel-sepia { background: #efe3c8; color: #4a3c28; }

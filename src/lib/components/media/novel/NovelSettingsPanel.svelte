@@ -3,12 +3,14 @@
   import { seriesState } from "$lib/state/series.svelte";
   import { novelReaderState, type NovelFont, type NovelTheme } from "$lib/state/novelReader.svelte";
   import { platformService } from "$lib/platform-service";
+  import { settingsState, updateSettings } from "$lib/state/settings.svelte";
   import MediaSettingsPanel from "$lib/components/media/shared/MediaSettingsPanel.svelte";
 
   interface Props { onClose: () => void }
   let { onClose }: Props = $props();
 
   const st = novelReaderState;
+  const autoScroll = $derived(settingsState.settings.autoScroll ?? false);
 
   let systemFonts: string[] = $state([]);
   onMount(async () => {
@@ -83,6 +85,47 @@
         <button aria-label="Wider" onclick={() => st.bumpWidth(2)}>+</button>
       </div>
     </div>
+  </div>
+
+  <div class="msp-group">
+    <p class="msp-label">Scrolling</p>
+    <div class="msp-row">
+      <span>Auto scroll</span>
+      <button class="msp-toggle" class:on={autoScroll}
+        role="switch" aria-checked={autoScroll} aria-label="Auto scroll"
+        onclick={() => updateSettings({ autoScroll: !autoScroll })}
+      ><span class="msp-toggle-knob"></span></button>
+    </div>
+    {#if autoScroll}
+      <div class="msp-row">
+        <span>Scroll speed</span>
+        <input class="msp-slider" type="range" min={1} max={30} step={1}
+          value={settingsState.settings.autoScrollSpeed ?? 5}
+          oninput={(e) => updateSettings({ autoScrollSpeed: Number(e.currentTarget.value) })} />
+        <span class="msp-readout">{settingsState.settings.autoScrollSpeed ?? 5}</span>
+      </div>
+    {/if}
+  </div>
+
+  <div class="msp-group">
+    <p class="msp-label">Reading guide</p>
+    <div class="msp-row">
+      <span>Guide bar</span>
+      <button class="msp-toggle" class:on={st.readingGuide}
+        role="switch" aria-checked={st.readingGuide} aria-label="Reading guide"
+        onclick={() => st.setReadingGuide(!st.readingGuide)}
+      ><span class="msp-toggle-knob"></span></button>
+    </div>
+    {#if st.readingGuide}
+      <div class="msp-row">
+        <span>Thickness</span>
+        <div class="msp-stepper">
+          <button aria-label="Fewer lines" onclick={() => st.bumpGuideLines(-1)}>−</button>
+          <span class="msp-val">{st.readingGuideLines} {st.readingGuideLines === 1 ? "line" : "lines"}</span>
+          <button aria-label="More lines" onclick={() => st.bumpGuideLines(1)}>+</button>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <div class="msp-group">

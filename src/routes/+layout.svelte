@@ -307,25 +307,27 @@
 {/if}
 
 {#if showApp}
-	{#if strippedLayout}
-		{@render children()}
-	{:else}
-		<div class="frame">
-			{#if showTitleBar}
-				<TitleBar onClose={() => platformService.close()} />
-			{/if}
-			<div class="padding" class:padding-web={!showTitleBar}>
-				<div class="shell">
-					<div class="body">
-						<Sidebar />
-						<main class="main">
-							{@render children()}
-						</main>
+	<div class="app-root">
+		{#if showTitleBar}
+			<TitleBar forceOverlay={strippedLayout} />
+		{/if}
+		{#if strippedLayout}
+			{@render children()}
+		{:else}
+			<div class="frame">
+				<div class="padding" class:padding-web={!showTitleBar}>
+					<div class="shell">
+						<div class="body">
+							<Sidebar />
+							<main class="main">
+								{@render children()}
+							</main>
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 {/if}
 
 {#if app.settingsOpen}
@@ -350,11 +352,20 @@
 {/if}
 
 <style>
-	.frame {
+	.app-root {
 		display: flex;
 		flex-direction: column;
 		width: 100%;
 		height: 100%;
+		overflow: hidden;
+	}
+
+	.frame {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		width: 100%;
+		min-height: 0;
 		box-sizing: border-box;
 		overflow: hidden;
 	}

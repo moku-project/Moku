@@ -26,5 +26,6 @@ export function chapterNav() {
     goPrev() { open(adjacent().prev); },
     goNext() { open(adjacent().next); },
     close() { history.back(); },
+    open,
   };
 }

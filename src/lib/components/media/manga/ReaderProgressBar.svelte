@@ -1,90 +1,114 @@
 <script lang="ts">
-  import { ArrowLeft, ArrowRight }           from "phosphor-svelte";
-  import { readerState }                     from "$lib/state/mangaReader.svelte";
-  import type { Chapter }                    from "$lib/types";
+  import { ArrowLeft, ArrowRight } from "phosphor-svelte";
+  import { onDestroy }             from "svelte";
+  import type { Chapter }          from "$lib/types";
 
   interface Props {
-    style:                string;
-    loading:              boolean;
-    rtl:                  boolean;
-    sliderPage:           number;
-    sliderMax:            number;
-    sliderPct:            number;
-    lastPage:             number;
-    displayChapter:       Chapter | null;
-    adjacent:             { prev: Chapter | null; next: Chapter | null };
-    uiVisible:            boolean;
-    barPosition:          "top" | "left" | "right";
-    onGoPrev:             () => void;
-    onGoNext:             () => void;
-    onJumpToPage:         (page: number, commit?: boolean) => void;
+    style:        string;
+    loading:      boolean;
+    rtl:          boolean;
+    sliderPage:   number;
+    sliderMax:    number;
+    lastPage:     number;
+    pageGroups?:  number[][];
+    adjacent:     { prev: Chapter | null; next: Chapter | null };
+    uiVisible:    boolean;
+    barPosition:  "top" | "left" | "right";
+    onGoPrev:     () => void;
+    onGoNext:     () => void;
+    onJumpToPage: (page: number, commit?: boolean) => void;
   }
 
   const {
-    style, loading, rtl, sliderPage, sliderMax, sliderPct, lastPage,
-    displayChapter, adjacent, uiVisible,
+    style, loading, rtl, sliderPage, sliderMax, lastPage,
+    pageGroups = [],
+    adjacent, uiVisible,
     barPosition,
     onGoPrev, onGoNext, onJumpToPage,
   }: Props = $props();
 
   const isVertical = $derived(barPosition === "left" || barPosition === "right");
+  const slots = $derived(Array.from({ length: Math.max(0, sliderMax) }, (_, i) => i + 1));
 
-  const hPct = $derived(`--pct:${sliderPct}%`);
+  let dragging  = $state(false);
+  let hoverSlot = $state<number | null>(null);
 
-  function sliderValToPage(raw: number): number {
-    return rtl ? sliderMax - raw + 1 : raw;
+  function slotLabel(slot: number): string {
+    if (style === "double" && pageGroups[slot - 1]) {
+      const g = pageGroups[slot - 1];
+      const span = g.length === 1 ? `${g[0]}` : `${g[0]}–${g[g.length - 1]}`;
+      return lastPage > 0 ? `${span} / ${lastPage}` : span;
+    }
+    return `${slot} / ${sliderMax}`;
   }
 
-  function pageToSliderVal(page: number): number {
-    return rtl ? sliderMax - page + 1 : page;
+  function jump(slot: number, commit: boolean) {
+    onJumpToPage(slot, commit);
   }
 
-  function handleH(e: Event) {
-    onJumpToPage(sliderValToPage(Number((e.target as HTMLInputElement).value)), false);
-  }
-
-  function handleHCommit(e: Event) {
-    onJumpToPage(sliderValToPage(Number((e.target as HTMLInputElement).value)), true);
-  }
-
-  let trackEl = $state<HTMLDivElement | null>(null);
-  let dragging = $state(false);
-  let pendingPage = 0;
-
-  function pctFromPointer(clientY: number): number {
-    if (!trackEl) return 0;
-    const rect = trackEl.getBoundingClientRect();
-    return Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-  }
-
-  function pageFromPct(pct: number): number {
-    return Math.round(1 + pct * (sliderMax - 1));
-  }
-
-  function handleTrackPointerDown(e: PointerEvent) {
+  function onSegDown(e: PointerEvent, slot: number) {
     if (e.button !== 0) return;
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragging    = true;
-    readerState.sliderDragging = true;
-    pendingPage = pageFromPct(pctFromPointer(e.clientY));
-    onJumpToPage(pendingPage, false);
+    dragging = true;
+    hoverSlot = slot;
+    jump(slot, false);
   }
 
-  function handleTrackPointerMove(e: PointerEvent) {
-    if (!dragging) return;
-    pendingPage = pageFromPct(pctFromPointer(e.clientY));
-    onJumpToPage(pendingPage, false);
+  function onSegEnter(slot: number) {
+    hoverSlot = slot;
+    if (dragging) jump(slot, false);
   }
 
-  function handleTrackPointerUp(e: PointerEvent) {
+  function onSegLeave(slot: number) {
+    if (dragging) return;
+    if (hoverSlot === slot) hoverSlot = null;
+  }
+
+  function onSegClick(slot: number) {
+    if (dragging) return;
+    jump(slot, true);
+  }
+
+  function endDrag() {
     if (!dragging) return;
     dragging = false;
-    readerState.sliderDragging = false;
-    readerState.sliderHover    = false;
-    onJumpToPage(pendingPage, true);
+    if (hoverSlot != null) jump(hoverSlot, true);
   }
+
+  function onWinUp() { endDrag(); }
+
+  $effect(() => {
+    if (!dragging) return;
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  });
+
+  onDestroy(() => { dragging = false; });
 </script>
+
+{#snippet segment(slot: number)}
+  <button
+    type="button"
+    class="seg"
+    class:done={slot < sliderPage}
+    class:current={slot === sliderPage}
+    disabled={loading}
+    onpointerdown={(e) => onSegDown(e, slot)}
+    onpointerenter={() => onSegEnter(slot)}
+    onpointerleave={() => onSegLeave(slot)}
+    onclick={() => onSegClick(slot)}
+  >
+    <span class="cell"></span>
+    {#if hoverSlot === slot}
+      <span class="tip-box" class:tip-v={isVertical} class:tip-right={barPosition === "right"}>
+        {slotLabel(slot)}
+      </span>
+    {/if}
+  </button>
+{/snippet}
 
 {#if !isVertical}
   <div class="bottombar" class:hidden={!uiVisible}>
@@ -94,28 +118,10 @@
     </button>
 
     {#if sliderMax > 1}
-      <div
-        class="slider-wrap"
-        onmouseenter={() => readerState.sliderHover = true}
-        onmouseleave={() => readerState.sliderHover = false}
-      >
-        <input
-          type="range"
-          class="h-range"
-          style={hPct}
-          min={1}
-          max={sliderMax}
-          value={pageToSliderVal(sliderPage)}
-          oninput={handleH}
-          onchange={handleHCommit}
-          onmousedown={() => readerState.sliderDragging = true}
-          onmouseup={() => readerState.sliderDragging = false}
-        />
-        {#if readerState.sliderHover || readerState.sliderDragging}
-          <div class="slider-tooltip" style="left:{sliderPct}%">
-            {sliderPage} / {sliderMax}
-          </div>
-        {/if}
+      <div class="track" class:rtl>
+        {#each slots as slot (slot)}
+          {@render segment(slot)}
+        {/each}
       </div>
     {/if}
 
@@ -128,36 +134,10 @@
 {:else}
   <div class="vbar-progress" class:hidden={!uiVisible}>
     {#if sliderMax > 1}
-      <div
-        class="vslider-wrap"
-        bind:this={trackEl}
-        role="slider"
-        aria-valuenow={sliderPage}
-        aria-valuemin={1}
-        aria-valuemax={sliderMax}
-        tabindex="0"
-        onmouseenter={() => readerState.sliderHover = true}
-        onmouseleave={() => { if (!dragging) readerState.sliderHover = false; }}
-        onpointerdown={handleTrackPointerDown}
-        onpointermove={handleTrackPointerMove}
-        onpointerup={handleTrackPointerUp}
-        onpointercancel={handleTrackPointerUp}
-      >
-        <div class="vtrack">
-          <div class="vtrack-fill" style="height:{sliderPct}%"></div>
-        </div>
-
-        <div class="vthumb" style="top:{sliderPct}%" class:dragging></div>
-
-        {#if readerState.sliderHover || readerState.sliderDragging}
-          <div
-            class="vslider-tooltip"
-            class:tooltip-right={barPosition === "right"}
-            style="top:{sliderPct}%"
-          >
-            {sliderPage} / {sliderMax}
-          </div>
-        {/if}
+      <div class="vtrack" class:rtl>
+        {#each slots as slot (slot)}
+          {@render segment(slot)}
+        {/each}
       </div>
     {/if}
   </div>
@@ -183,25 +163,14 @@
   .nav-btn:hover:not(:disabled) { background: var(--bg-raised); color: var(--text-primary); }
   .nav-btn:disabled { opacity: 0.25; cursor: default; }
 
-  .slider-wrap { flex: 1; position: relative; display: flex; align-items: center; height: 34px; }
-
-  .h-range { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; background: transparent; cursor: pointer; position: relative; z-index: 2; margin: 0; padding: 0; }
-  .h-range::-webkit-slider-runnable-track { height: 3px; background: linear-gradient(to right, var(--accent-fg) var(--pct, 0%), var(--border-strong) var(--pct, 0%)); border-radius: 2px; transition: height 0.15s ease, background 0.05s linear; }
-  .h-range:hover::-webkit-slider-runnable-track,
-  .h-range:active::-webkit-slider-runnable-track { height: 5px; }
-  .h-range::-moz-range-track { height: 3px; background: var(--border-strong); border-radius: 2px; transition: height 0.15s ease; }
-  .h-range::-moz-range-progress { height: 3px; background: var(--accent-fg); border-radius: 2px; transition: height 0.15s ease; }
-  .h-range:hover::-moz-range-track, .h-range:active::-moz-range-track { height: 5px; }
-  .h-range:hover::-moz-range-progress, .h-range:active::-moz-range-progress { height: 5px; }
-  .h-range::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent-fg); box-shadow: 0 0 0 2px rgba(0,0,0,0.5); margin-top: -4.5px; transition: transform var(--t-fast); }
-  .h-range:hover::-webkit-slider-thumb,
-  .h-range:active::-webkit-slider-thumb { transform: scale(1.3); }
-  .h-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--accent-fg); box-shadow: 0 0 0 2px rgba(0,0,0,0.5); border: none; transition: transform var(--t-fast); }
-  .h-range:hover::-moz-range-thumb,
-  .h-range:active::-moz-range-thumb { transform: scale(1.3); }
-
-  .slider-tooltip { position: absolute; bottom: calc(100% + 2px); transform: translateX(-50%); background: var(--bg-raised); border: 1px solid var(--border-base); border-radius: var(--radius-sm); padding: 2px 6px; font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-secondary); white-space: nowrap; pointer-events: none; z-index: 10; letter-spacing: var(--tracking-wide); }
-
+  .track {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    height: 34px;
+    min-width: 0;
+  }
+  .track.rtl { flex-direction: row-reverse; }
 
   .vbar-progress {
     display: flex;
@@ -216,60 +185,59 @@
   }
   .vbar-progress.hidden { opacity: 0; }
 
-  .vslider-wrap {
+  .vtrack {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     min-height: 0;
-    position: relative;
-    display: flex;
-    justify-content: center;
     pointer-events: all;
-    cursor: pointer;
-    touch-action: none;
   }
-  .vslider-wrap:focus { outline: none; }
+  .vtrack.rtl { flex-direction: column-reverse; }
 
-  .vtrack {
-    width: 5px;
-    height: 100%;
-    border-radius: 3px;
-    background: var(--border-strong);
+  .seg {
     position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-    transition: width 0.15s ease;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .vslider-wrap:hover .vtrack { width: 7px; }
+  .seg:disabled { cursor: default; }
+  .vtrack .seg { width: 100%; }
 
-  .vtrack-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    border-radius: 3px;
-    background: var(--accent);
-    transition: height 0.05s linear;
-  }
-
-  .vthumb {
-    position: absolute;
-    left: 50%;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
-    transform: translate(-50%, -50%);
+  .cell {
+    display: block;
+    width: calc(100% - 1px);
+    height: 3px;
+    border-radius: 1px;
+    background: var(--border-strong);
     pointer-events: none;
-    transition: transform var(--t-fast);
+    transition: height 0.15s ease, width 0.15s ease, background var(--t-fast);
   }
-  .vslider-wrap:hover .vthumb,
-  .vthumb.dragging { transform: translate(-50%, -50%) scale(1.3); }
+  .track:hover .cell { height: 5px; }
+  .seg.done .cell,
+  .seg.current .cell { background: var(--accent-fg); }
 
-  .vslider-tooltip {
+  .vtrack .cell {
+    width: 5px;
+    height: calc(100% - 1px);
+  }
+  .vtrack:hover .cell { width: 7px; }
+  .vtrack .seg.done .cell,
+  .vtrack .seg.current .cell { background: var(--accent); }
+
+  .tip-box {
     position: absolute;
-    left: calc(100% + 8px);
-    transform: translateY(-50%);
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
     background: var(--bg-raised);
     border: 1px solid var(--border-base);
     border-radius: var(--radius-sm);
@@ -282,5 +250,14 @@
     z-index: 10;
     letter-spacing: var(--tracking-wide);
   }
-  .vslider-tooltip.tooltip-right { left: auto; right: calc(100% + 8px); }
+  .tip-box.tip-v {
+    bottom: auto;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .tip-box.tip-v.tip-right {
+    left: auto;
+    right: calc(100% + 8px);
+  }
 </style>

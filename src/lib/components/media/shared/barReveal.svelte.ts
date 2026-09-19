@@ -1,5 +1,6 @@
 import { settingsState } from "$lib/state/settings.svelte";
 import { mediaViewState } from "$lib/state/mediaView.svelte";
+import { chromeState } from "$lib/state/chrome.svelte";
 
 interface BarRevealOptions {
   edgePx?: number;
@@ -22,7 +23,9 @@ export function createBarReveal(opts: BarRevealOptions = {}) {
   function show() {
     mediaViewState.uiVisible = true;
     clearHide();
-    if (!tapMode()) hideTimer = setTimeout(() => { mediaViewState.uiVisible = false; }, hideMs);
+    if (!tapMode()) hideTimer = setTimeout(() => {
+      if (!mediaViewState.holdUi && !chromeState.titlebarRevealed) mediaViewState.uiVisible = false;
+    }, hideMs);
   }
 
   function hide() {

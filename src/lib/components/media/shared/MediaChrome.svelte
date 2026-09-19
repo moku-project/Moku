@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { X, CaretLeft, CaretRight, GearSix, ArrowsOut, ArrowsIn, Minus, DotsThree } from "phosphor-svelte";
+  import { X, CaretLeft, CaretRight, CaretDown, GearSix, ArrowsOut, ArrowsIn, DotsThree } from "phosphor-svelte";
   import { fly } from "svelte/transition";
   import { cubicIn, cubicOut } from "svelte/easing";
   import { mediaViewState } from "$lib/state/mediaView.svelte";
   import { app } from "$lib/state/app.svelte";
-  import { platformService } from "$lib/platform-service";
+  import { onDestroy } from "svelte";
   import type { Snippet } from "svelte";
+  import type { Chapter } from "$lib/types";
+  import ChapterPicker from "$lib/components/media/shared/ChapterPicker.svelte";
 
   interface Props {
     title:         string;
@@ -17,6 +19,9 @@
     onNext:        () => void;
     onClose:       () => void;
     onOpenPreview?: () => void;
+    chapters?:      Chapter[];
+    currentChapterId?: string | null;
+    onSelectChapter?: (ch: Chapter) => void;
     endControls?:   Snippet;
     slider?:        Snippet;
     bottomStart?:   Snippet;
@@ -27,20 +32,52 @@
   let {
     title, chapterLabel, readout = null,
     hasPrev, hasNext, onPrev, onNext, onClose, onOpenPreview,
+    chapters = [], currentChapterId = null, onSelectChapter,
     endControls, slider, bottomStart, bottomEnd, showBottomBar = true,
   }: Props = $props();
 
   const hidden  = $derived(!mediaViewState.uiVisible);
-  const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
-  let menuOpen = $state(false);
+  let menuOpen   = $state(false);
+  let pickerOpen = $state(false);
+
+  const canPickChapter = $derived(!!onSelectChapter && chapters.length > 0);
 
   function closeMenu() { menuOpen = false; }
+  function closePicker() { pickerOpen = false; }
+
+  function togglePicker() {
+    if (!canPickChapter) return;
+    pickerOpen = !pickerOpen;
+    if (pickerOpen) menuOpen = false;
+  }
+
+  function pickChapter(ch: Chapter) {
+    pickerOpen = false;
+    if (ch.id === currentChapterId) return;
+    onSelectChapter?.(ch);
+  }
 
   $effect(() => {
-    if (!menuOpen) return;
-    const off = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest(".actions-wrap")) menuOpen = false; };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); menuOpen = false; } };
+    mediaViewState.holdUi = pickerOpen || menuOpen;
+    if (pickerOpen || menuOpen) mediaViewState.uiVisible = true;
+  });
+
+  onDestroy(() => { mediaViewState.holdUi = false; });
+
+  $effect(() => {
+    if (!menuOpen && !pickerOpen) return;
+    const off = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (menuOpen && !t.closest(".actions-wrap")) menuOpen = false;
+      if (pickerOpen && !t.closest(".ch-pick-wrap")) pickerOpen = false;
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      if (pickerOpen) { pickerOpen = false; return; }
+      if (menuOpen) menuOpen = false;
+    };
     document.addEventListener("mousedown", off);
     document.addEventListener("keydown", esc, true);
     return () => {
@@ -63,23 +100,40 @@
     </button>
 
     <div class="ch-hover-wrap">
-      <div class="ch-pill">
-        <span class="ch-marquee-track" onwheel={(e) => { e.stopPropagation(); (e.currentTarget as HTMLElement).scrollLeft += e.deltaY; }}>
-          {#if onOpenPreview}
-            <button class="ch-marquee-content ch-preview-btn" data-tip="Series details" onclick={onOpenPreview}>
-              <span class="ch-title">{title}</span>
-              <span class="ch-sep">/</span>
-              <span class="ch-name">{chapterLabel}</span>
-            </button>
-          {:else}
-            <span class="ch-marquee-content">
-              <span class="ch-title">{title}</span>
-              <span class="ch-sep">/</span>
-              <span class="ch-name">{chapterLabel}</span>
-            </span>
+      {#if onOpenPreview}
+        <button class="ch-title-btn" data-tip="Series details" onclick={onOpenPreview}>{title}</button>
+      {:else}
+        <span class="ch-title">{title}</span>
+      {/if}
+      <span class="ch-sep">/</span>
+      {#if canPickChapter}
+        <div class="ch-pick-wrap">
+          <button
+            class="ch-name-btn"
+            class:active={pickerOpen}
+            title="Select chapter"
+            aria-expanded={pickerOpen}
+            onclick={togglePicker}
+          >
+            <span class="ch-name">{chapterLabel}</span>
+            <CaretDown size={10} weight="bold" />
+          </button>
+          {#if pickerOpen}
+            <div class="ch-picker-pop" role="presentation" onclick={(e) => e.stopPropagation()}
+              in:fly={{ y: -6, duration: 150, easing: cubicOut }}
+              out:fly={{ y: -6, duration: 110, easing: cubicIn }}>
+              <ChapterPicker
+                {chapters}
+                currentId={currentChapterId}
+                onSelect={pickChapter}
+                onClose={closePicker}
+              />
+            </div>
           {/if}
-        </span>
-      </div>
+        </div>
+      {:else}
+        <span class="ch-name ch-name-static">{chapterLabel}</span>
+      {/if}
       {#if readout}<span class="ch-page">{readout}</span>{/if}
     </div>
 
@@ -115,15 +169,6 @@
               <ArrowsOut size={13} weight="regular" /><span>Fullscreen</span>
             {/if}
           </button>
-          {#if isTauri}
-            <div class="action-divider"></div>
-            <button class="action-row" onclick={() => { closeMenu(); platformService.minimize(); }}>
-              <Minus size={13} weight="regular" /><span>Minimize</span>
-            </button>
-            <button class="action-row action-row-danger" onclick={() => { closeMenu(); platformService.close(); }}>
-              <X size={13} weight="regular" /><span>Close window</span>
-            </button>
-          {/if}
         </div>
       {/if}
     </div>
@@ -157,20 +202,43 @@
     position: fixed; z-index: 40;
     display: flex; align-items: center;
     border-radius: var(--radius-lg);
+    user-select: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .bar {
+    isolation: isolate;
+    overflow: visible;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--frost-bg);
+    border: 1px solid var(--frost-border);
+    box-shadow: var(--frost-shadow);
+    backdrop-filter: var(--frost-blur);
+    -webkit-backdrop-filter: var(--frost-blur);
+    pointer-events: none;
+  }
+  .bottombar {
     background: var(--frost-bg);
     border: 1px solid var(--frost-border);
     backdrop-filter: var(--frost-blur); -webkit-backdrop-filter: var(--frost-blur);
     box-shadow: var(--frost-shadow);
-    user-select: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
   }
   .bar-top {
-    top: var(--sp-3); left: var(--sp-3); right: var(--sp-3);
+    top: calc(var(--sp-3) + var(--titlebar-slide)); left: var(--sp-3); right: var(--sp-3);
     flex-direction: row; gap: 2px; padding: 0 var(--sp-2); height: 44px;
+    transition: opacity 0.2s ease, transform 0.2s ease, top 0.2s ease;
   }
   .bar.hidden { opacity: 0; pointer-events: none; transform: translateY(-8px); }
 
-  .bar-start { display: flex; align-items: center; gap: 2px; flex-shrink: 0; overflow: hidden; min-width: 0; }
+  .bar-start { display: flex; align-items: center; gap: 2px; flex-shrink: 1; overflow: visible; min-width: 0; }
   .bar-end   { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
   .bar-drag-gap { flex: 1; height: 100%; cursor: grab; }
   .bar-drag-gap:active { cursor: grabbing; }
@@ -202,23 +270,46 @@
   :global(.bottombar [data-tip]:hover)::after { top: auto; bottom: calc(100% + 6px); }
   @keyframes tip-in { from { opacity: 0; transform: translate(-50%, 2px) } to { opacity: 1; transform: translate(-50%, 0) } }
 
-  .ch-hover-wrap { position: relative; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); }
-  .ch-pill {
-    display: flex; align-items: center; font-size: var(--text-sm);
-    color: var(--text-muted); overflow: hidden; white-space: nowrap; min-width: 0;
-    padding: 3px 6px; border-radius: var(--radius-md); border: 1px solid transparent;
-    transition: border-color var(--t-fast), background var(--t-fast);
+  .ch-hover-wrap { position: relative; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); overflow: visible; font-size: var(--text-sm); }
+  .ch-title-btn, .ch-name-btn {
+    background: none; border: none; cursor: pointer; padding: 3px 6px;
+    font-size: inherit; font-family: inherit;
+    border-radius: var(--radius-md); border: 1px solid transparent;
+    min-width: 0;
+    transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast), opacity var(--t-fast);
   }
-  .ch-hover-wrap:hover .ch-pill { border-color: var(--border-dim); background: var(--bg-raised); }
-  .ch-marquee-track { overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: none; }
-  .ch-marquee-track::-webkit-scrollbar { display: none; }
-  .ch-marquee-content { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
-  .ch-preview-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: inherit; font-family: inherit; border-radius: var(--radius-sm); transition: opacity var(--t-fast); }
-  .ch-preview-btn:hover { opacity: 0.7; }
-  .ch-title { color: var(--text-secondary); font-weight: var(--weight-medium); }
+  .ch-title-btn, .ch-title {
+    color: var(--text-secondary); font-weight: var(--weight-medium);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 22ch; flex-shrink: 1;
+  }
+  .ch-name-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--text-muted); flex-shrink: 1;
+  }
+  .ch-title-btn:hover, .ch-name-btn:hover, .ch-name-btn.active {
+    border-color: var(--border-dim);
+    background: var(--bg-raised);
+    color: var(--text-primary);
+  }
+  .ch-name-btn :global(svg) { flex-shrink: 0; transition: transform var(--t-fast); }
+  .ch-name-btn.active :global(svg) { transform: rotate(180deg); }
   .ch-sep   { color: var(--text-faint); flex-shrink: 0; }
-  .ch-name  { color: var(--text-muted); }
+  .ch-name  {
+    color: inherit;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 28ch;
+  }
+  .ch-name-static { color: var(--text-muted); }
   .ch-page  { font-family: var(--font-ui); font-size: var(--text-xs); font-variant-numeric: tabular-nums; color: var(--text-faint); flex-shrink: 0; white-space: nowrap; }
+
+  .ch-pick-wrap { position: relative; min-width: 0; display: flex; align-items: center; overflow: visible; }
+  .ch-picker-pop {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    background: var(--bg-surface); border: 1px solid var(--border-base);
+    border-radius: var(--radius-md); box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    overflow: hidden; z-index: 50;
+  }
 
   .actions-wrap { position: relative; }
   .actions-popover {
@@ -236,8 +327,6 @@
     transition: background var(--t-fast), color var(--t-fast);
   }
   .action-row:hover { background: var(--bg-raised); color: var(--text-primary); }
-  .action-row-danger:hover { color: var(--color-error); background: color-mix(in srgb, var(--color-error) 10%, transparent); }
-  .action-divider { height: 1px; background: var(--border-dim); margin: 4px 0; }
 
   .bottombar {
     bottom: var(--sp-4); left: 50%; transform: translateX(-50%);

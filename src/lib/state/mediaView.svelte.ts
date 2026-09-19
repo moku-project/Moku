@@ -14,10 +14,12 @@ class MediaViewState {
   isFullscreen = $state(false);
   loading      = $state(true);
   error        = $state<string | null>(null);
+  holdUi       = $state(false);
 
   reset() {
     this.loading = true;
     this.error   = null;
+    this.holdUi  = false;
   }
 
   toggleUi()  { this.uiVisible = !this.uiVisible; }

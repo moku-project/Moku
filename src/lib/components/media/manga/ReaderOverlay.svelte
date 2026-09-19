@@ -83,9 +83,9 @@
 
 <style>
   .resume-banner { position: fixed; left: 50%; translate: -50% 0; display: flex; align-items: center; gap: var(--sp-2); background: var(--frost-bg); border: 1px solid var(--frost-border); backdrop-filter: var(--frost-blur); -webkit-backdrop-filter: var(--frost-blur); border-radius: var(--radius-lg); padding: 6px var(--sp-3); font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-secondary); z-index: 39; box-shadow: var(--frost-shadow); animation: bannerIn 0.2s cubic-bezier(0.16,1,0.3,1) both; white-space: nowrap; cursor: pointer; }
-  .resume-banner-top   { top: calc(var(--sp-3) + 44px + var(--sp-2)); }
+  .resume-banner-top   { top: calc(var(--sp-3) + 44px + var(--sp-2) + var(--titlebar-slide)); }
   .resume-banner-left,
-  .resume-banner-right { top: var(--sp-3); }
+  .resume-banner-right { top: calc(var(--sp-3) + var(--titlebar-slide)); }
   .resume-banner.fading { animation: bannerOut 1s ease forwards; }
   @keyframes bannerIn  { from { opacity: 0; translate: -50% -6px; scale: 0.97; } to { opacity: 1; translate: -50% 0; scale: 1; } }
   @keyframes bannerOut { from { opacity: 1; translate: -50% 0;  scale: 1;    } to { opacity: 0; translate: -50% -4px; scale: 0.97; } }

@@ -62,6 +62,13 @@ export const TOUR_STEPS: TourStep[] = [
     route:     '/extensions',
   },
   {
+    selector:  '[data-tour="local-source"]',
+    title:     'Or use your own files',
+    body:      'Already have manga or anime on disk? Local Source reads straight from a folder you pick — no extension needed.',
+    placement: 'bottom',
+    route:     '/extensions',
+  },
+  {
     selector:  '[data-tour="settings-btn"]',
     title:     'Settings',
     body:      'Reader and player options, content filtering, themes, server config and backups.',

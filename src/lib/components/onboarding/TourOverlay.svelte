@@ -46,6 +46,18 @@
     if (next) rect = next
   }
 
+  // MutationObserver/ResizeObserver can fire many times per frame (e.g. unrelated
+  // DOM churn elsewhere in the app) — coalesce to at most one measure per frame.
+  let measureQueued = false
+  function scheduleMeasure() {
+    if (measureQueued) return
+    measureQueued = true
+    requestAnimationFrame(() => {
+      measureQueued = false
+      measure()
+    })
+  }
+
   $effect(() => {
     if (!tourState.active || !step) { rect = null; return }
 
@@ -77,14 +89,14 @@
 
       const els = Array.from(document.querySelectorAll(step.selector))
       if (els.length) {
-        ro = new ResizeObserver(measure)
+        ro = new ResizeObserver(scheduleMeasure)
         for (const el of els) ro.observe(el)
         ro.observe(document.body)
       }
-      mo = new MutationObserver(measure)
+      mo = new MutationObserver(scheduleMeasure)
       mo.observe(document.body, { attributes: true, childList: true, subtree: true })
-      window.addEventListener('resize', measure)
-      document.addEventListener('scroll', measure, true)
+      window.addEventListener('resize', scheduleMeasure)
+      document.addEventListener('scroll', scheduleMeasure, true)
     }
 
     setup()
@@ -94,8 +106,8 @@
       if (pollTimer) clearInterval(pollTimer)
       ro?.disconnect()
       mo?.disconnect()
-      window.removeEventListener('resize', measure)
-      document.removeEventListener('scroll', measure, true)
+      window.removeEventListener('resize', scheduleMeasure)
+      document.removeEventListener('scroll', scheduleMeasure, true)
     }
   })
 
@@ -118,13 +130,16 @@
   const vw = $derived(viewport.w / zoom)
   const vh = $derived(viewport.h / zoom)
 
-  const TOOLTIP_W = 232
+  const TOOLTIP_W_MAX = 232
   const TOOLTIP_H_EST = 150
   const MARGIN = 14
 
+  // Shrink to fit narrow windows instead of overflowing past the viewport edge.
+  const TOOLTIP_W = $derived(Math.max(160, Math.min(TOOLTIP_W_MAX, vw - MARGIN * 2)))
+
   const tooltipStyle = $derived((() => {
     if (!box) {
-      return `left:${Math.max(MARGIN, (vw - TOOLTIP_W) / 2)}px; top:${Math.max(MARGIN, (vh - TOOLTIP_H_EST) / 2)}px;`
+      return `left:${Math.max(MARGIN, (vw - TOOLTIP_W) / 2)}px; top:${Math.max(MARGIN, (vh - TOOLTIP_H_EST) / 2)}px; width:${TOOLTIP_W}px;`
     }
     const placement = step?.placement ?? 'bottom'
 
@@ -134,17 +149,13 @@
     left = Math.min(Math.max(left, MARGIN), Math.max(MARGIN, vw - TOOLTIP_W - MARGIN))
     top  = Math.min(Math.max(top,  MARGIN), Math.max(MARGIN, vh - TOOLTIP_H_EST - MARGIN))
 
-    return `left:${left}px; top:${top}px;`
+    return `left:${left}px; top:${top}px; width:${TOOLTIP_W}px;`
   })())
 </script>
 
 {#if tourState.active && step}
   <div class="frame" transition:fade={{ duration: 280 }}>
     {#if box}
-      <div class="panel" style="left:0px; top:0px; width:{vw}px; height:{box.t}px;"></div>
-      <div class="panel" style="left:0px; top:{box.t + box.h}px; width:{vw}px; height:{Math.max(0, vh - (box.t + box.h))}px;"></div>
-      <div class="panel" style="left:0px; top:{box.t}px; width:{box.l}px; height:{box.h}px;"></div>
-      <div class="panel" style="left:{box.l + box.w}px; top:{box.t}px; width:{Math.max(0, vw - (box.l + box.w))}px; height:{box.h}px;"></div>
       <div class="ring" style="left:{box.l}px; top:{box.t}px; width:{box.w}px; height:{box.h}px;"></div>
     {:else}
       <div class="panel" style="inset:0;"></div>
@@ -166,26 +177,27 @@
   .frame  { position: fixed; inset: 0; z-index: 10500; pointer-events: none; }
   .panel  {
     position: fixed; background: rgba(8,9,11,0.62); pointer-events: none;
-    transition: left 0.34s cubic-bezier(0.16,1,0.3,1), top 0.34s cubic-bezier(0.16,1,0.3,1),
-                width 0.34s cubic-bezier(0.16,1,0.3,1), height 0.34s cubic-bezier(0.16,1,0.3,1);
   }
+  /* A single element does the whole dark overlay + cutout via box-shadow spread,
+     instead of 4 separately-animated mask panels — cuts reflow cost by 4x. */
   .ring   {
     position: fixed; border-radius: 8px;
     border: 1.5px solid var(--accent-fg);
-    box-shadow: 0 0 0 3px rgba(107,143,107,0.18), 0 0 24px rgba(107,143,107,0.15);
+    box-shadow: 0 0 0 3px rgba(107,143,107,0.18), 0 0 24px rgba(107,143,107,0.15), 0 0 0 9999px rgba(8,9,11,0.62);
     pointer-events: none;
-    transition: left 0.34s cubic-bezier(0.16,1,0.3,1), top 0.34s cubic-bezier(0.16,1,0.3,1),
-                width 0.34s cubic-bezier(0.16,1,0.3,1), height 0.34s cubic-bezier(0.16,1,0.3,1);
+    will-change: left, top, width, height;
+    transition: left 0.5s cubic-bezier(0.16,1,0.3,1), top 0.5s cubic-bezier(0.16,1,0.3,1),
+                width 0.5s cubic-bezier(0.16,1,0.3,1), height 0.5s cubic-bezier(0.16,1,0.3,1);
   }
 
   .tooltip {
     position: fixed;
-    width: 232px;
     pointer-events: auto;
     background: var(--bg-surface); border: 1px solid var(--border-base);
     border-radius: var(--radius-lg); padding: var(--sp-3) var(--sp-4) var(--sp-4);
     box-shadow: 0 20px 48px rgba(0,0,0,0.55);
-    transition: left 0.34s cubic-bezier(0.16,1,0.3,1), top 0.34s cubic-bezier(0.16,1,0.3,1);
+    will-change: left, top;
+    transition: left 0.5s cubic-bezier(0.16,1,0.3,1), top 0.5s cubic-bezier(0.16,1,0.3,1);
   }
 
   .tooltip-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }

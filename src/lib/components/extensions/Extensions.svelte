@@ -465,7 +465,7 @@
     {:else}
       <div class="list" bind:this={listEl} onscroll={onListScroll}>
         {#if showLocal}
-          <button type="button" class="local-row" onclick={() => libraryTarget = { pkgName: '__local__', extensionName: 'Local Source', iconUrl: '' }} title="Open local source">
+          <button type="button" class="local-row" data-tour="local-source" onclick={() => libraryTarget = { pkgName: '__local__', extensionName: 'Local Source', iconUrl: '' }} title="Open local source">
             <div class="local-icon">
               <HardDrives size={18} weight="bold" />
             </div>

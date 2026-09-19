@@ -379,7 +379,7 @@
     try {
       await tsunagu.exportMihonBackup()
       await loadDbBackups()
-      toast({ kind: 'success', title: 'Library exported', body: 'Manga and light novels only — anime titles are not included.' })
+      toast({ kind: 'success', title: 'Library exported', body: 'Manga and light novels only.' })
     } catch (e) {
       toast({ kind: 'error', title: 'Export failed', body: e instanceof Error ? e.message : String(e) })
     } finally { exportingMihon = false }

@@ -262,7 +262,7 @@
       <label class="s-row">
         <div class="s-row-info">
           <span class="s-label">Per-source overrides</span>
-          <span class="s-desc">Force-allow an NSFW-flagged source, or always block one — still subject to the content level above.</span>
+          <span class="s-desc">Force-allow or always block a specific source.</span>
         </div>
         <button
           role="switch"

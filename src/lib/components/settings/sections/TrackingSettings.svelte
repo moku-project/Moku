@@ -122,7 +122,7 @@
               <p class="s-desc">MyAnimeList sync is not available yet.</p>
 
             {:else if !t.configured}
-              <p class="s-desc">No OAuth client configured for {t.name} — an operator needs to set <code>TSUNAGU_ANILIST_CLIENT_ID</code>.</p>
+              <p class="s-desc">No OAuth client configured for {t.name}. Set <code>TSUNAGU_ANILIST_CLIENT_ID</code>.</p>
 
             {:else if t.isLoggedIn}
               <div class="trk-actions">

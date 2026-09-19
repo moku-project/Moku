@@ -44,7 +44,7 @@
       <label class="s-row">
         <div class="s-row-info">
           <span class="s-label">Video upscaling</span>
-          <span class="s-desc">Anime4K-style WebGL sharpening pass on the transport bar — known to render incorrectly on Linux.</span>
+          <span class="s-desc">Known to render incorrectly on Linux.</span>
         </div>
         <button role="switch" aria-checked={settingsState.settings.videoUpscaleExperimental ?? false} aria-label="Video upscaling"
           class="s-toggle" class:on={settingsState.settings.videoUpscaleExperimental ?? false}

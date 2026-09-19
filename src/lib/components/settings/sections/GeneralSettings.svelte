@@ -39,8 +39,8 @@
     if (canon !== LANG_ALL && !KNOWN_LANGS.includes(canon)) {
       const suggestion = closestLang(canon)
       langHint = suggestion
-        ? `Uncommon code — did you mean ${langBadge(suggestion)}?`
-        : 'Uncommon code — kept as entered.'
+        ? `Uncommon code. Did you mean ${langBadge(suggestion)}?`
+        : 'Uncommon code, kept as entered.'
     }
   }
 
@@ -89,7 +89,7 @@
       <label class="s-row">
         <div class="s-row-info">
           <span class="s-label">Auto-start bundled server</span>
-          <span class="s-desc">Launch and manage Tsunagu automatically — turn off to run your own server instead.</span>
+          <span class="s-desc">Launch and manage Tsunagu automatically.</span>
         </div>
         <button role="switch" aria-checked={settingsState.settings.serverAutoStart ?? true} aria-label="Auto-start bundled server"
           class="s-toggle" class:on={settingsState.settings.serverAutoStart ?? true}
@@ -173,7 +173,7 @@
         <div class="s-row-info">
           <span class="s-label">Preferred source language</span>
           <span class="s-desc">
-            {displayLang(currentLang)} — pre-selects this language in Search and source grouping.
+            {displayLang(currentLang)}, pre-selected in Search and source grouping.
             {#if langHint}<br><span style="color:var(--color-error)">{langHint}</span>{/if}
           </span>
         </div>

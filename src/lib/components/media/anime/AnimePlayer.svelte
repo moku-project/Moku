@@ -963,6 +963,9 @@
     onNext={nav.goNext}
     onClose={nav.close}
     onOpenPreview={() => { if (manga) setPreviewManga(manga); }}
+    chapters={seriesState.readerChapterList}
+    currentChapterId={chapter?.id ?? null}
+    onSelectChapter={(ch) => nav.open(ch)}
     showBottomBar={false}
   >
     {#snippet endControls()}
@@ -1327,7 +1330,7 @@
 
   .cc-menu.nm-menu {
     position: fixed;
-    top: calc(var(--sp-3) + 44px + var(--sp-2));
+    top: calc(var(--sp-3) + 44px + var(--sp-2) + var(--titlebar-slide));
     right: var(--sp-3);
     left: auto;
     width: 272px;

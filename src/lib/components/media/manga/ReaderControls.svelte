@@ -3,16 +3,18 @@
     X, CaretLeft, CaretRight, CaretUp, CaretDown,
     MagnifyingGlassMinus, MagnifyingGlassPlus,
     Bookmark, Download, GearSix, Sliders,
-    ArrowsOut, ArrowsIn, Minus,
+    ArrowsOut, ArrowsIn,
   } from "phosphor-svelte";
   import { readerState, ZOOM_STEP, ZOOM_MIN, ZOOM_MAX } from "$lib/state/mangaReader.svelte";
   import { tsunagu }           from "$lib/server-adapters/tsunagu";
   import { platformService }   from "$lib/platform-service";
   import { fly }               from "svelte/transition";
   import { cubicOut, cubicIn } from "svelte/easing";
+  import { onDestroy }         from "svelte";
   import type { Chapter }      from "$lib/types";
   import type { Snippet }      from "svelte";
   import type { ReaderSettings } from "$lib/state/mangaReader.svelte";
+  import ChapterPicker         from "$lib/components/media/shared/ChapterPicker.svelte";
 
   interface Props {
     displayChapter:       Chapter | null;
@@ -33,6 +35,7 @@
     onApplySettings:      (patch: Partial<ReaderSettings>) => void;
     onSettingsOpen:       () => void;
     onOpenPreview:        () => void;
+    onJumpToPage:         (page: number) => void;
     perMangaEnabled:      boolean;
   }
 
@@ -44,7 +47,7 @@
     barPosition, progressBar,
     onCaptureZoomAnchor, onRestoreZoomAnchor,
     onMaybeMarkRead, onToggleBookmark,
-    onClampZoom, onApplySettings, onSettingsOpen, onOpenPreview,
+    onClampZoom, onApplySettings, onSettingsOpen, onOpenPreview, onJumpToPage,
     perMangaEnabled,
   }: Props = $props();
 
@@ -86,29 +89,97 @@
     onRestoreZoomAnchor();
   }
 
-  const isTauri = platformService.platform === "tauri";
-
   async function toggleFullscreen() {
     await platformService.toggleFullscreen();
   }
 
   function closeAllPopovers() {
+    readerState.actionsOpen       = false;
+    readerState.zoomOpen          = false;
+    readerState.dlOpen            = false;
+    readerState.chapterPickerOpen = false;
+  }
+
+  let pageDraft   = $state("");
+  let pageInputEl = $state<HTMLInputElement | null>(null);
+
+  const pageInputCh = $derived(Math.max(2, String(visibleChunkLastPage || 1).length + 1));
+
+  $effect(() => {
+    if (!readerState.pageInputFocused) pageDraft = String(readerState.pageNumber);
+  });
+
+  $effect(() => {
+    if (!readerState.chapterPickerOpen) return;
+    const off = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest(".ch-pick-wrap")) readerState.chapterPickerOpen = false;
+    };
+    document.addEventListener("mousedown", off);
+    return () => document.removeEventListener("mousedown", off);
+  });
+
+  function toggleChapterPicker() {
+    if (readerState.chapterPickerOpen) {
+      readerState.chapterPickerOpen = false;
+      return;
+    }
+    readerState.zoomOpen = false;
     readerState.actionsOpen = false;
-    readerState.zoomOpen    = false;
-    readerState.dlOpen      = false;
+    readerState.dlOpen = false;
+    readerState.chapterPickerOpen = true;
   }
 
-  let chapterHover      = $state(false);
-  let chapterHoverTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function showChapterPopover() {
-    if (chapterHoverTimer) clearTimeout(chapterHoverTimer);
-    chapterHover = true;
+  function pickChapter(ch: Chapter) {
+    readerState.chapterPickerOpen = false;
+    if (ch.id === displayChapter?.id) return;
+    readerState.openReader(ch);
   }
 
-  function hideChapterPopover() {
-    chapterHoverTimer = setTimeout(() => { chapterHover = false; }, 120);
+  function onPageFocus() {
+    readerState.pageInputFocused = true;
+    pageDraft = String(readerState.pageNumber);
+    queueMicrotask(() => pageInputEl?.select());
   }
+
+  function commitPage() {
+    readerState.pageInputFocused = false;
+    const n = parseInt(pageDraft.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(n) || n < 1) {
+      pageDraft = String(readerState.pageNumber);
+      return;
+    }
+    const page = Math.min(visibleChunkLastPage || n, n);
+    if (page === readerState.pageNumber) return;
+    onJumpToPage(page);
+  }
+
+  function onPageInput(e: Event) {
+    const raw = (e.currentTarget as HTMLInputElement).value.replace(/\D/g, "");
+    if (!raw) { pageDraft = ""; return; }
+    const n = parseInt(raw, 10);
+    const max = visibleChunkLastPage || n;
+    pageDraft = String(Math.min(n, max));
+  }
+
+  function onPageKey(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      commitPage();
+      pageInputEl?.blur();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      pageDraft = String(readerState.pageNumber);
+      readerState.pageInputFocused = false;
+      pageInputEl?.blur();
+    }
+  }
+
+  onDestroy(() => {
+    readerState.chapterPickerOpen = false;
+    readerState.pageInputFocused = false;
+  });
 </script>
 
 <div
@@ -132,35 +203,104 @@
       {#if isVertical}<CaretUp size={13} weight="regular" />{:else}<CaretLeft size={13} weight="regular" />{/if}
     </button>
 
-    <div
-      class="ch-hover-wrap"
-      onmouseenter={showChapterPopover}
-      onmouseleave={hideChapterPopover}
-      role="presentation"
-    >
-      <div class="ch-pill">
-        {#if isVertical}
-          <span class="ch-info">&#xE2CE;</span>
-        {:else}
-          <span class="ch-marquee-track" onwheel={(e) => { e.stopPropagation(); (e.currentTarget as HTMLElement).scrollLeft += e.deltaY; }}>
-              <button class="ch-marquee-content ch-preview-btn" onclick={onOpenPreview}>
-                <span class="ch-title">{readerState.activeManga?.title}</span>
-                <span class="ch-sep">/</span>
-                <span class="ch-name">{displayChapter?.name}</span>
-              </button>
-            </span>
-        {/if}
-      </div>
-      {#if !isVertical}
-        <span class="ch-page">{readerState.pageNumber}<span class="ch-page-sep">/</span>{visibleChunkLastPage}</span>
-      {/if}
-
-      {#if chapterHover && isVertical}
-        <div class="ch-popover ch-popover-{popoverSide}">
-          <span class="ch-pop-title">{readerState.activeManga?.title}</span>
-          <span class="ch-pop-sep">/</span>
-          <span class="ch-pop-name">{displayChapter?.name}</span>
-          <span class="ch-pop-page">{readerState.pageNumber} / {visibleChunkLastPage}</span>
+    <div class="ch-hover-wrap">
+      {#if isVertical}
+        <div class="ch-pick-wrap">
+          <button
+            class="icon-btn ch-info-btn"
+            class:active={readerState.chapterPickerOpen}
+            onclick={toggleChapterPicker}
+            title="Select chapter"
+            aria-label="Select chapter"
+            aria-expanded={readerState.chapterPickerOpen}
+          >&#xE2CE;</button>
+          {#if readerState.chapterPickerOpen}
+            <div class="popover ch-picker-pop popover-{popoverSide}" role="presentation" onclick={(e) => e.stopPropagation()}>
+              <div class="ch-picker-page">
+                <span>Page</span>
+                <input
+                  class="ch-page-input"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="Go to page"
+                  bind:this={pageInputEl}
+                  value={pageDraft}
+                  disabled={!visibleChunkLastPage}
+                  style="width:{pageInputCh}ch"
+                  onfocus={onPageFocus}
+                  onblur={commitPage}
+                  oninput={onPageInput}
+                  onkeydown={onPageKey}
+                />
+                <span class="ch-page-sep">/</span>
+                <span>{visibleChunkLastPage}</span>
+              </div>
+              <ChapterPicker
+                chapters={readerState.activeChapterList}
+                currentId={displayChapter?.id ?? null}
+                onSelect={pickChapter}
+                onClose={() => { readerState.chapterPickerOpen = false; }}
+              />
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <button class="ch-title-btn" title="Series details" onclick={onOpenPreview}>
+          {readerState.activeManga?.title}
+        </button>
+        <span class="ch-sep">/</span>
+        <div class="ch-pick-wrap">
+          <button
+            class="ch-name-btn"
+            class:active={readerState.chapterPickerOpen}
+            title="Select chapter"
+            aria-expanded={readerState.chapterPickerOpen}
+            onclick={toggleChapterPicker}
+          >
+            <span class="ch-name">{displayChapter?.name}</span>
+            <CaretDown size={10} weight="bold" />
+          </button>
+          {#if readerState.chapterPickerOpen}
+            <div class="popover ch-picker-pop popover-{popoverSide}" role="presentation" onclick={(e) => e.stopPropagation()}>
+              <ChapterPicker
+                chapters={readerState.activeChapterList}
+                currentId={displayChapter?.id ?? null}
+                onSelect={pickChapter}
+                onClose={() => { readerState.chapterPickerOpen = false; }}
+              />
+            </div>
+          {/if}
+        </div>
+        <div
+          class="ch-page"
+          class:editing={readerState.pageInputFocused}
+          role="group"
+          title="Go to page"
+          onclick={() => { if (!visibleChunkLastPage) return; pageInputEl?.focus(); }}
+        >
+          <input
+            class="ch-page-input"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Go to page"
+            bind:this={pageInputEl}
+            value={pageDraft}
+            disabled={!visibleChunkLastPage}
+            style="width:{pageInputCh}ch"
+            onfocus={onPageFocus}
+            onblur={commitPage}
+            oninput={onPageInput}
+            onkeydown={onPageKey}
+            onclick={(e) => e.stopPropagation()}
+          />
+          <span class="ch-page-sep">/</span>
+          <span class="ch-page-max">{visibleChunkLastPage}</span>
         </div>
       {/if}
     </div>
@@ -189,7 +329,7 @@
       <button class="icon-btn zoom-step-btn" onclick={() => adjustZoom(-ZOOM_STEP)} title="Zoom out" disabled={zoom <= ZOOM_MIN}>
         <MagnifyingGlassMinus size={13} weight="regular" />
       </button>
-      <button class="zoom-pct-btn" onclick={() => { readerState.zoomOpen = !readerState.zoomOpen; readerState.actionsOpen = false; }} title="Adjust zoom">
+      <button class="zoom-pct-btn" onclick={() => { readerState.zoomOpen = !readerState.zoomOpen; readerState.actionsOpen = false; readerState.chapterPickerOpen = false; }} title="Adjust zoom">
         {zoomPct}%
       </button>
       <button class="icon-btn zoom-step-btn" onclick={() => adjustZoom(ZOOM_STEP)} title="Zoom in" disabled={zoom >= ZOOM_MAX}>
@@ -231,7 +371,7 @@
       <button
         class="icon-btn"
         class:active={readerState.actionsOpen}
-        onclick={() => { readerState.actionsOpen = !readerState.actionsOpen; readerState.zoomOpen = false; }}
+        onclick={() => { readerState.actionsOpen = !readerState.actionsOpen; readerState.zoomOpen = false; readerState.chapterPickerOpen = false; }}
         title="More actions"
       >
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -271,16 +411,6 @@
               <span>Fullscreen</span>
             {/if}
           </button>
-          {#if isTauri}
-            <button class="action-row" onclick={() => { readerState.actionsOpen = false; platformService.minimize(); }}>
-              <Minus size={13} weight="regular" />
-              <span>Minimize</span>
-            </button>
-            <button class="action-row action-row-danger" onclick={() => { readerState.actionsOpen = false; platformService.close(); }}>
-              <X size={13} weight="regular" />
-              <span>Close window</span>
-            </button>
-          {/if}
         </div>
       {/if}
 
@@ -323,26 +453,41 @@
     gap: 2px;
     position: fixed;
     z-index: 40;
+    isolation: isolate;
     border-radius: var(--radius-lg);
-    background: var(--frost-bg);
-    border: 1px solid var(--frost-border);
-    backdrop-filter: var(--frost-blur);
-    -webkit-backdrop-filter: var(--frost-blur);
-    box-shadow: var(--frost-shadow);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, top 0.2s ease;
     overflow: visible;
     user-select: none;
+  }
+  .bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--frost-bg);
+    border: 1px solid var(--frost-border);
+    box-shadow: var(--frost-shadow);
+    backdrop-filter: var(--frost-blur);
+    -webkit-backdrop-filter: var(--frost-blur);
+    pointer-events: none;
   }
   .bar.hidden { opacity: 0; pointer-events: none; }
 
   .bar-top {
     flex-direction: row;
     gap: 2px;
-    top: var(--sp-3);
+    top: calc(var(--sp-3) + var(--titlebar-slide));
     left: var(--sp-3);
     right: var(--sp-3);
     padding: 0 var(--sp-2);
     height: 44px;
+    transition: opacity 0.2s ease, transform 0.2s ease, top 0.2s ease;
   }
   .bar-top.hidden { transform: translateY(-8px); }
 
@@ -351,7 +496,7 @@
     justify-content: space-between;
     padding: var(--sp-3) 0;
     width: 44px;
-    top: var(--sp-3);
+    top: calc(var(--sp-3) + var(--titlebar-slide));
     bottom: var(--sp-3);
     gap: 0;
   }
@@ -369,7 +514,7 @@
     gap: 2px;
     flex-shrink: 0;
   }
-  .bar-top .bar-start { overflow: hidden; min-width: 0; }
+  .bar-top .bar-start { overflow: visible; min-width: 0; flex-shrink: 1; }
   .bar-left .bar-start,  .bar-left .bar-end,
   .bar-right .bar-start, .bar-right .bar-end { flex-direction: column; }
 
@@ -413,38 +558,43 @@
     display: flex;
     align-items: center;
     gap: var(--sp-2);
+    overflow: visible;
   }
 
-  .ch-pill {
-    display: flex;
-    align-items: center;
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    overflow: hidden;
-    white-space: nowrap;
+  .ch-title-btn, .ch-name-btn {
+    background: none; border: none; cursor: pointer; padding: 3px 6px;
+    font-size: var(--text-sm); font-family: inherit;
+    border-radius: var(--radius-md); border: 1px solid transparent;
     min-width: 0;
-    padding: 3px 6px;
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-    transition: border-color var(--t-fast), background var(--t-fast);
+    transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
   }
-  .ch-hover-wrap:hover .ch-pill {
+  .ch-title-btn {
+    color: var(--text-secondary); font-weight: var(--weight-medium);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 22ch; flex-shrink: 1;
+  }
+  .ch-name-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--text-muted); flex-shrink: 1;
+  }
+  .ch-title-btn:hover, .ch-name-btn:hover, .ch-name-btn.active {
     border-color: var(--border-dim);
     background: var(--bg-raised);
+    color: var(--text-primary);
   }
-  .bar-left .ch-pill, .bar-right .ch-pill {
-    width: 30px; height: 30px; justify-content: center; padding: 0; border: none;
-  }
-  .ch-info { font-size: 15px; line-height: 1; color: var(--text-faint); flex-shrink: 0; }
-
-  .ch-marquee-track { overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: none; }
-  .ch-marquee-track::-webkit-scrollbar { display: none; }
-  .ch-marquee-content { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
-  .ch-preview-btn { background: none; border: none; cursor: pointer; padding: 0; font-size: inherit; font-family: inherit; border-radius: var(--radius-sm); transition: opacity var(--t-fast); }
-  .ch-preview-btn:hover { opacity: 0.7; }
-  .ch-title { color: var(--text-secondary); font-weight: var(--weight-medium); }
+  .ch-name-btn :global(svg) { flex-shrink: 0; transition: transform var(--t-fast); }
+  .ch-name-btn.active :global(svg) { transform: rotate(180deg); }
   .ch-sep   { color: var(--text-faint); flex-shrink: 0; }
-  .ch-name  { color: var(--text-muted); }
+  .ch-name  {
+    color: inherit;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 28ch;
+  }
+
+  .ch-pick-wrap { position: relative; min-width: 0; display: flex; align-items: center; overflow: visible; }
+  .bar-left .ch-pick-wrap, .bar-right .ch-pick-wrap { justify-content: center; }
+
+  .ch-info-btn { font-size: 15px; line-height: 1; color: var(--text-faint); }
 
   .ch-page {
     font-family: var(--font-ui);
@@ -456,29 +606,43 @@
     display: flex;
     align-items: center;
     gap: 3px;
+    padding: 3px 7px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: text;
+    transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+  }
+  .ch-page:hover, .ch-page.editing {
+    border-color: var(--border-dim);
+    background: var(--bg-raised);
+    color: var(--text-primary);
   }
   .ch-page-sep { color: var(--border-strong); }
-
-  .ch-popover {
-    position: absolute;
-    background: var(--bg-raised);
-    border: 1px solid var(--border-base);
-    border-radius: var(--radius-lg);
-    padding: var(--sp-2) var(--sp-3);
-    display: flex; align-items: center; gap: var(--sp-2);
-    white-space: nowrap;
-    z-index: 100;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    font-size: var(--text-sm);
-    pointer-events: none;
-    animation: scaleIn 0.1s ease both;
+  .ch-page.editing .ch-page-sep, .ch-page:hover .ch-page-sep { color: var(--text-faint); }
+  .ch-page-max { pointer-events: none; }
+  .ch-page-input {
+    font-family: var(--font-ui);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: var(--tracking-wide);
+    color: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
+    text-align: right;
+    outline: none;
+    cursor: text;
+    min-width: 1.5ch;
   }
-  .ch-popover-right { left: calc(100% + 8px); top: 50%; translate: 0 -50%; transform-origin: left center; }
-  .ch-popover-left  { right: calc(100% + 8px); top: 50%; translate: 0 -50%; transform-origin: right center; }
-  .ch-pop-title { color: var(--text-secondary); font-weight: var(--weight-medium); }
-  .ch-pop-sep   { color: var(--text-faint); }
-  .ch-pop-name  { color: var(--text-muted); }
-  .ch-pop-page  { font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-faint); letter-spacing: var(--tracking-wide); font-variant-numeric: tabular-nums; }
+  .ch-page-input:disabled { opacity: 0.4; cursor: default; }
+
+  .ch-picker-pop { padding: 0; overflow: hidden; }
+  .ch-picker-page {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: 8px 10px 6px;
+    border-bottom: 1px solid var(--border-dim);
+    font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-muted);
+  }
 
   .zoom-cluster {
     position: relative;
@@ -541,6 +705,9 @@
   .actions-wrap .popover-bottom { left: auto; right: 0; translate: none; transform-origin: top right; }
   .actions-wrap .popover-right  { top: auto; bottom: 0; translate: none; transform-origin: bottom left; }
   .actions-wrap .popover-left   { top: auto; bottom: 0; translate: none; transform-origin: bottom right; }
+  .ch-pick-wrap .popover-bottom { left: 0; translate: none; transform-origin: top left; }
+  .ch-pick-wrap .popover-right  { top: 0; translate: none; transform-origin: top left; }
+  .ch-pick-wrap .popover-left   { top: 0; translate: none; transform-origin: top right; }
 
   .zoom-popover { padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); min-width: 200px; }
   .zoom-row { display: flex; align-items: center; gap: var(--sp-2); }
@@ -589,7 +756,6 @@
     transition: background var(--t-fast), color var(--t-fast);
   }
   .action-row:hover { background: var(--bg-overlay); color: var(--text-primary); }
-  .action-row.action-row-danger:hover { background: color-mix(in srgb, #c0392b 15%, transparent); color: var(--color-error, #e57373); }
 
   .action-divider { height: 1px; background: var(--border-dim); margin: var(--sp-1) 0; }
 

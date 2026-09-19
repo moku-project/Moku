@@ -93,8 +93,11 @@
   --tracking-wider:   0.1em;
 
   --z-reader:   50;
+  --z-chrome:   60;
   --z-modal:    100;
   --z-settings: 150;
+
+  --titlebar-slide: 0px;
 }
 
 *, *::before, *::after {

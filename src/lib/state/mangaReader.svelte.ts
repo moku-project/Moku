@@ -2,6 +2,7 @@ import type { Manga, Chapter }      from "$lib/types";
 import type { MangaPrefs, ReaderSettings, ReaderPreset } from "$lib/types/settings";
 import { settingsState, updateSettings }                 from "$lib/state/settings.svelte";
 import { seriesState } from "$lib/state/series.svelte";
+import { chromeState } from "$lib/state/chrome.svelte";
 import { DEFAULT_MANGA_PREFS } from "$lib/types/settings";
 import { goto }                                          from "$app/navigation";
 
@@ -47,18 +48,24 @@ class ReaderState {
   uiVisible        = $state(true);
   isFullscreen     = $state(false);
 
-  dlOpen           = $state(false);
-  zoomOpen         = $state(false);
-  winOpen          = $state(false);
-  presetOpen       = $state(false);
-  actionsOpen      = $state(false);
+  dlOpen             = $state(false);
+  zoomOpen           = $state(false);
+  winOpen            = $state(false);
+  presetOpen         = $state(false);
+  actionsOpen        = $state(false);
+  chapterPickerOpen  = $state(false);
+  pageInputFocused   = $state(false);
+
+  readonly holdUi = $derived(
+    this.chapterPickerOpen || this.pageInputFocused || this.winOpen ||
+    this.zoomOpen || this.actionsOpen || this.dlOpen || this.presetOpen ||
+    chromeState.titlebarRevealed
+  );
   nextN            = $state(5);
   dlBusy           = $state(false);
 
   turning          = $state(false);
   turnDir          = $state<1 | -1>(1);
-  sliderDragging   = $state(false);
-  sliderHover      = $state(false);
 
   resumePage       = $state(0);
   resumeDismissed  = $state(false);
@@ -116,11 +123,12 @@ class ReaderState {
   }
 
   closeAllPopovers(): boolean {
-    if (this.zoomOpen)    { this.zoomOpen    = false; return true; }
-    if (this.dlOpen)      { this.dlOpen      = false; return true; }
-    if (this.winOpen)     { this.winOpen     = false; return true; }
-    if (this.presetOpen)  { this.presetOpen  = false; return true; }
-    if (this.actionsOpen) { this.actionsOpen = false; return true; }
+    if (this.chapterPickerOpen) { this.chapterPickerOpen = false; return true; }
+    if (this.zoomOpen)          { this.zoomOpen          = false; return true; }
+    if (this.dlOpen)            { this.dlOpen            = false; return true; }
+    if (this.winOpen)           { this.winOpen           = false; return true; }
+    if (this.presetOpen)        { this.presetOpen        = false; return true; }
+    if (this.actionsOpen)       { this.actionsOpen       = false; return true; }
     return false;
   }
 

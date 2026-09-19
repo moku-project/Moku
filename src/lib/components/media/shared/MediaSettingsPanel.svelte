@@ -68,12 +68,12 @@
     overflow: hidden;
   }
   .msp.pos-top {
-    top: calc(var(--sp-3) + 44px + var(--sp-2));
+    top: calc(var(--sp-3) + 44px + var(--sp-2) + var(--titlebar-slide));
     bottom: calc(var(--sp-4) + 54px + var(--sp-2));
   }
-  .msp.pos-left  { top: var(--sp-3); bottom: var(--sp-3); }
+  .msp.pos-left  { top: calc(var(--sp-3) + var(--titlebar-slide)); bottom: var(--sp-3); }
   .msp.pos-right {
-    top: var(--sp-3); bottom: var(--sp-3);
+    top: calc(var(--sp-3) + var(--titlebar-slide)); bottom: var(--sp-3);
     right: calc(var(--sp-3) + 44px + var(--sp-2));
   }
 

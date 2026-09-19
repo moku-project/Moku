@@ -4,19 +4,27 @@
   import { platform } from '@tauri-apps/plugin-os'
   import { invoke } from '@tauri-apps/api/core'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
+  import { chromeState } from '$lib/state/chrome.svelte'
+  import { readerState } from '$lib/state/mangaReader.svelte'
+  import { mediaViewState } from '$lib/state/mediaView.svelte'
 
-  const { }: {} = $props()
+  interface Props {
+    forceOverlay?: boolean
+  }
 
-  const win       = getCurrentWindow()
-  const os        = platform()
-  const isMac     = os === 'macos'
-  const isWindows = os === 'windows'
+  let { forceOverlay = false }: Props = $props()
+
+  const win   = getCurrentWindow()
+  const os    = platform()
+  const isMac = os === 'macos'
 
   let isFullscreen    = $state(false)
   let closeDialogOpen = $state(false)
   let closeRemember   = $state(false)
+  let revealed        = $state(false)
+  let hideTimer: ReturnType<typeof setTimeout> | null = null
 
-  const showControls = $derived(settingsState.settings.windowControls ?? true)
+  const overlay = $derived(forceOverlay || isFullscreen)
 
   onMount(() => {
     let unlistenResize: (() => void) | undefined
@@ -34,6 +42,39 @@
     return () => {
       unlistenResize?.()
       unlistenClose?.()
+      if (hideTimer) clearTimeout(hideTimer)
+      chromeState.titlebarRevealed = false
+      document.documentElement.style.setProperty('--titlebar-slide', '0px')
+    }
+  })
+
+  function reveal() {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+    revealed = true
+    chromeState.titlebarRevealed = true
+    readerState.uiVisible = true
+    mediaViewState.uiVisible = true
+  }
+
+  function scheduleHide() {
+    if (closeDialogOpen) return
+    if (hideTimer) clearTimeout(hideTimer)
+    hideTimer = setTimeout(() => {
+      revealed = false
+      chromeState.titlebarRevealed = false
+      hideTimer = null
+    }, 280)
+  }
+
+  $effect(() => {
+    const slide = overlay && revealed ? 'var(--titlebar-height)' : '0px'
+    document.documentElement.style.setProperty('--titlebar-slide', slide)
+  })
+
+  $effect(() => {
+    if (!overlay) {
+      revealed = false
+      chromeState.titlebarRevealed = false
     }
   })
 
@@ -50,6 +91,7 @@
     if (action === 'tray') { await doHide(); return }
     if (action === 'quit') { await doQuit(); return }
     closeDialogOpen = true
+    reveal()
   }
 
   async function confirmClose(choice: 'tray' | 'quit') {
@@ -65,47 +107,49 @@
   }
 </script>
 
-{#if showControls}
-  {#if !isFullscreen}
-    <div class="bar" data-tauri-drag-region>
-      {#if isMac}<div class="mac-spacer"></div>{/if}
-      <span class="title" data-tauri-drag-region>Moku</span>
-      {#if !isMac}
-        <div class="controls">
-          <button onclick={() => win.minimize()} title="Minimize" aria-label="Minimize">
-            <svg width="10" height="1" viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" stroke-width="1.5" /></svg>
-          </button>
-          <button onclick={() => win.toggleMaximize()} title="Maximize" aria-label="Maximize">
-            <svg width="9" height="9" viewBox="0 0 9 9"><rect x="0.75" y="0.75" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
-          </button>
-          <button class="close" onclick={handleCloseRequested} title="Close" aria-label="Close">
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-              <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          </button>
-        </div>
-      {/if}
-    </div>
-  {:else if isWindows}
-    <div class="fullscreen-controls">
-      <button onclick={() => win.setFullscreen(false)} title="Exit Fullscreen" aria-label="Exit Fullscreen">
-        <svg width="10" height="10" viewBox="0 0 10 10">
-          <polyline points="1,4 1,1 4,1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="6,1 9,1 9,4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="9,6 9,9 6,9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="4,9 1,9 1,6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button class="close" onclick={handleCloseRequested} title="Close" aria-label="Close">
-        <svg width="10" height="10" viewBox="0 0 10 10">
-          <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-          <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-        </svg>
-      </button>
-    </div>
+<div class="wrap" class:overlay>
+  {#if overlay}
+    <div class="hit" aria-hidden="true" onmouseenter={reveal} onmouseleave={scheduleHide}></div>
   {/if}
-{/if}
+  <div
+    class="bar"
+    class:overlay-bar={overlay}
+    class:revealed={overlay && revealed}
+    data-tauri-drag-region
+    onmouseenter={overlay ? reveal : undefined}
+    onmouseleave={overlay ? scheduleHide : undefined}
+  >
+    {#if isMac}<div class="mac-spacer"></div>{/if}
+    <span class="title" data-tauri-drag-region>Moku</span>
+    {#if !isMac}
+      <div class="controls">
+        <button onclick={() => win.minimize()} title="Minimize" aria-label="Minimize">
+          <svg width="10" height="1" viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" stroke-width="1.5" /></svg>
+        </button>
+        <button onclick={() => overlay && isFullscreen ? win.setFullscreen(false) : win.toggleMaximize()}
+          title={overlay && isFullscreen ? "Exit fullscreen" : "Maximize"}
+          aria-label={overlay && isFullscreen ? "Exit fullscreen" : "Maximize"}>
+          {#if overlay && isFullscreen}
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <polyline points="1,4 1,1 4,1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="6,1 9,1 9,4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="9,6 9,9 6,9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="4,9 1,9 1,6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          {:else}
+            <svg width="9" height="9" viewBox="0 0 9 9"><rect x="0.75" y="0.75" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+          {/if}
+        </button>
+        <button class="close" onclick={handleCloseRequested} title="Close" aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    {/if}
+  </div>
+</div>
 
 {#if closeDialogOpen}
   <div
@@ -146,26 +190,58 @@
 {/if}
 
 <style>
-  .bar { display: flex; align-items: center; justify-content: space-between; height: var(--titlebar-height); padding: 0 6px 0 var(--sp-4); background: transparent; flex-shrink: 0; user-select: none; -webkit-app-region: drag; }
+  .wrap { flex-shrink: 0; }
+  .wrap.overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: var(--z-chrome);
+    height: var(--titlebar-height);
+    pointer-events: none;
+  }
+
+  .hit {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 14px;
+    pointer-events: auto;
+  }
+
+  .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: var(--titlebar-height);
+    padding: 0 6px 0 var(--sp-4);
+    background: transparent;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-app-region: drag;
+  }
+  .bar.overlay-bar {
+    pointer-events: none;
+    background: var(--frost-bg);
+    border-bottom: 1px solid var(--frost-border);
+    backdrop-filter: var(--frost-blur);
+    -webkit-backdrop-filter: var(--frost-blur);
+    transform: translateY(-100%);
+    transition: transform 0.2s ease;
+  }
+  .bar.overlay-bar.revealed {
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
   .mac-spacer { width: 70px; flex-shrink: 0; -webkit-app-region: drag; }
   .title { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-faint); letter-spacing: var(--tracking-wider); text-transform: uppercase; opacity: 0.5; -webkit-app-region: drag; }
   .controls { display: flex; align-items: center; gap: 2px; -webkit-app-region: no-drag; }
 
-  .controls button,
-  .fullscreen-controls button {
+  .controls button {
     display: flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: var(--radius-sm);
     color: var(--text-faint);
     transition: color var(--t-base), background var(--t-base);
     -webkit-app-region: no-drag;
   }
-  .controls button:hover,
-  .fullscreen-controls button:hover { color: var(--text-muted); background: rgba(255,255,255,0.06); }
-  .controls .close:hover,
-  .fullscreen-controls .close:hover { color: #fff; background: #c0392b; }
-
-  .fullscreen-controls { position: fixed; top: 0; right: 0; z-index: 9999; display: flex; align-items: center; gap: 2px; padding: 4px; opacity: 0; transition: opacity 0.2s ease; -webkit-app-region: no-drag; }
-  .fullscreen-controls:hover { opacity: 1; }
+  .controls button:hover { color: var(--text-muted); background: rgba(255,255,255,0.06); }
+  .controls .close:hover { color: #fff; background: #c0392b; }
 
   .close-backdrop {
     position: fixed; inset: 0;

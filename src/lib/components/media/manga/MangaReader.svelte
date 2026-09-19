@@ -123,9 +123,6 @@
     return lastPage || 1;
   });
 
-  const sliderPctRaw = $derived(sliderMax > 1 ? ((sliderPage - 1) / (sliderMax - 1)) * 100 : 0);
-  const sliderPct    = $derived(rtl ? 100 - sliderPctRaw : sliderPctRaw);
-
   const perMangaEnabled = $derived(
     readerState.activeManga?.id != null &&
     !!(settingsState.settings.mangaReaderSettings ?? {})[readerState.activeManga.id]
@@ -153,7 +150,7 @@
     if (hideTimer) clearTimeout(hideTimer);
     if (!tapToToggleBar) {
       hideTimer = setTimeout(() => {
-        if (!readerState.winOpen) readerState.uiVisible = false;
+        if (!readerState.holdUi) readerState.uiVisible = false;
       }, 3000);
     }
   }
@@ -421,7 +418,7 @@
   });
 
   $effect(() => {
-    if (readerState.winOpen) {
+    if (readerState.holdUi) {
       readerState.uiVisible = true;
       if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     }
@@ -545,6 +542,7 @@
     onApplySettings={applySettings}
     onSettingsOpen={() => { app.setSettingsOpen(true); }}
     onOpenPreview={() => { if (readerState.activeManga) setPreviewManga(readerState.activeManga); }}
+    onJumpToPage={(p) => primedJump(p)}
     {perMangaEnabled}
   />
 
@@ -639,13 +637,14 @@
     <ReaderProgressBar
       {style}
       loading={readerState.loading}
-      {rtl} {sliderPage} {sliderMax} {sliderPct} {lastPage}
-      {displayChapter} {adjacent}
+      {rtl} {sliderPage} {sliderMax} {lastPage}
+      pageGroups={readerState.pageGroups}
+      {adjacent}
       uiVisible={readerState.uiVisible}
       {barPosition}
       onGoPrev={goPrev}
       onGoNext={goNext}
-      onJumpToPage={(p, commit) => primedJump(p, commit)}
+      onJumpToPage={(p, commit) => jumpSliderSlot(p, commit)}
     />
   {/snippet}
 
@@ -653,13 +652,14 @@
     <ReaderProgressBar
       {style}
       loading={readerState.loading}
-      {rtl} {sliderPage} {sliderMax} {sliderPct} {lastPage}
-      {displayChapter} {adjacent}
+      {rtl} {sliderPage} {sliderMax} {lastPage}
+      pageGroups={readerState.pageGroups}
+      {adjacent}
       uiVisible={readerState.uiVisible}
       {barPosition}
       onGoPrev={goPrev}
       onGoNext={goNext}
-      onJumpToPage={(p, commit) => primedJump(p, commit)}
+      onJumpToPage={(p, commit) => jumpSliderSlot(p, commit)}
     />
   {/if}
 </div>

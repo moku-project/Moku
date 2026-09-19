@@ -578,7 +578,7 @@
   }
 </script>
 
-<div class="root" role="presentation" oncontextmenu={(e) => e.preventDefault()}>
+<div class="root" role="presentation">
 
   <SeriesHeader
     {isLocal}

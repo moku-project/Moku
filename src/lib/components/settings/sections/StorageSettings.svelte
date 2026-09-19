@@ -411,10 +411,10 @@
 
   async function importBackupFile() {
     if (importingFile) return
-    const path = await platformService.pickFile(['tachibk'])
-    if (!path) return
-    importingFile = true
     try {
+      const path = await platformService.pickFile(['tachibk'])
+      if (!path) return
+      importingFile = true
       const bytes    = await platformService.readFile(path)
       const filename = path.split(/[\\/]/).pop() || 'backup.tachibk'
       const form = new FormData()

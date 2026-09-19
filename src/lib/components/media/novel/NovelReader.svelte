@@ -3,7 +3,7 @@
   import { goto } from "$app/navigation";
   import { TextT, BookmarkSimple } from "phosphor-svelte";
   import { seriesState, setPreviewManga } from "$lib/state/series.svelte";
-  import { settingsState } from "$lib/state/settings.svelte";
+  import { settingsState, updateSettings } from "$lib/state/settings.svelte";
   import { novelReaderState, resolvedNovelFont, type NovelSegment } from "$lib/state/novelReader.svelte";
   import { mediaViewState } from "$lib/state/mediaView.svelte";
   import { chapterNav } from "$lib/components/media/shared/useChapterNav";
@@ -136,11 +136,22 @@
     }
   }
 
+  let cachedSections: HTMLElement[] = [];
+  let cachedForSegments: unknown = null;
+
+  function getSections(el: HTMLElement): HTMLElement[] {
+    if (cachedForSegments !== st.segments) {
+      cachedSections = Array.from(el.querySelectorAll<HTMLElement>("[data-cid]"));
+      cachedForSegments = st.segments;
+    }
+    return cachedSections;
+  }
+
   function syncActiveSegment() {
     const el = scrollEl;
     if (!el || !st.segments.length) return;
     const centre = el.scrollTop + el.clientHeight / 2;
-    const sections = Array.from(el.querySelectorAll<HTMLElement>("[data-cid]"));
+    const sections = getSections(el);
     let currentId = st.segments[0].chapterId;
     for (const sec of sections) {
       if (sec.offsetTop <= centre) currentId = sec.dataset.cid!;
@@ -182,13 +193,26 @@
     }
   }
 
+  let syncScheduled = false;
+  let lastSyncTime  = 0;
+  const SYNC_INTERVAL_MS = 100;
+
   function onScroll() {
     const el = scrollEl;
     if (!el) return;
     const max = el.scrollHeight - el.clientHeight;
-    syncActiveSegment();
     if (max - el.scrollTop < 1500) void appendNext();
     if (el.scrollTop < 1500) void prependPrev();
+
+    if (syncScheduled) return;
+    syncScheduled = true;
+    requestAnimationFrame(() => {
+      syncScheduled = false;
+      const now = performance.now();
+      if (now - lastSyncTime < SYNC_INTERVAL_MS) return;
+      lastSyncTime = now;
+      syncActiveSegment();
+    });
   }
 
   function seek(toPct: number) {
@@ -226,7 +250,10 @@
 
   const bar = createBarReveal();
 
-  const onKey = createMediaKeyHandler({ close: nav.close, next: nav.goNext, prev: nav.goPrev });
+  const onKey = createMediaKeyHandler({
+    close: nav.close, next: nav.goNext, prev: nav.goPrev,
+    toggleAutoScroll: () => updateSettings({ autoScroll: !(settingsState.settings.autoScroll ?? false) }),
+  });
 
   onMount(() => { window.addEventListener("keydown", onKey); bar.show(); loadInitial(); });
   onDestroy(() => { window.removeEventListener("keydown", onKey); bar.destroy(); });

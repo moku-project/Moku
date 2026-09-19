@@ -710,7 +710,7 @@
     <div
       class="page-stage"
       class:turning={turning && transition !== "flip"}
-      style="--turn-x:{transition === 'slide' ? `${turnDir * 40}%` : '0'};--turn-deg:0deg;--turn-op:{transition === 'none' ? 1 : ((transition === 'flip' && !readerState.boundaryFading) ? 1 : (turning ? 0 : 1))};--turn-speed:0.1s"
+      style="--turn-x:{transition === 'slide' ? `${turnDir * (rtl ? -1 : 1) * 40}%` : '0'};--turn-deg:0deg;--turn-op:{transition === 'none' ? 1 : ((transition === 'flip' && !readerState.boundaryFading) ? 1 : (turning ? 0 : 1))};--turn-speed:0.1s"
     >
       {#if style === "double"}
         <DoubleViewer

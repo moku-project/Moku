@@ -12,6 +12,7 @@
   import { PushPin, PushPinSlash, ArrowRight } from "phosphor-svelte";
   import type { Manga, Source } from "$lib/types";
   import { canonicalLang, langBadge, LANG_ALL } from "$lib/core/lang";
+  import { longPress } from "$lib/core/ui/touchscreen";
 
   interface Props {
     allSources:           Source[];
@@ -158,6 +159,12 @@
   }
   function closeCtx() { ctx_source = null; }
 
+  function sourceLongPress(node: HTMLElement, src: Source) {
+    return longPress(node, {
+      onLongPress(e) { ctx_x = e.clientX; ctx_y = e.clientY; ctx_source = src; },
+    });
+  }
+
   function togglePinnedSource(id: string) {
     const current = settingsState.settings.pinnedSourceIds ?? [];
     const next = current.includes(id) ? current.filter((x: string) => x !== id) : [...current, id];
@@ -193,6 +200,7 @@
             class:splitItemActive={src_activeSource?.id === localSource.id}
             onclick={() => srcSelectSource(localSource)}
             oncontextmenu={(e) => openCtx(e, localSource)}
+            use:sourceLongPress={localSource}
           >
             <div class="localSourceIcon">
               <svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
@@ -212,6 +220,7 @@
               class:splitItemActive={src_activeSource?.id === src.id}
               onclick={() => srcSelectSource(src)}
               oncontextmenu={(e) => openCtx(e, src)}
+              use:sourceLongPress={src}
             >
               <ExtensionIcon src={src.iconUrl} alt="" size={20} class="splitSourceIcon" />
               <span class="splitItemLabel">{src.name}</span>
@@ -231,6 +240,7 @@
             class:splitItemActive={src_activeSource?.id === src.id}
             onclick={() => srcSelectSource(src)}
             oncontextmenu={(e) => openCtx(e, src)}
+            use:sourceLongPress={src}
           >
             <ExtensionIcon src={src.iconUrl} alt="" size={20} class="splitSourceIcon" />
             <span class="splitItemLabel">{src.name}</span>

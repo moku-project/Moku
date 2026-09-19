@@ -32,6 +32,7 @@ export const platformService = {
   readFile:        (path: string)                          => get().readFile(path),
   writeFile:       (path: string, data: Uint8Array)        => get().writeFile(path, data),
   pickFolder:      ()                                      => get().pickFolder(),
+  pickFile:        (extensions?: string[])                 => get().pickFile(extensions),
   checkPathExists: (path: string)                          => get().checkPathExists(path),
   createDirectory: (path: string)                          => get().createDirectory(path),
   openPath:        (path: string)                          => get().openPath(path),

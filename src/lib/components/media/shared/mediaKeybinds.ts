@@ -1,9 +1,10 @@
 import { mediaViewState } from "$lib/state/mediaView.svelte";
 
 export interface MediaKeyActions {
-  close:   () => void;
-  next:    () => void;
-  prev:    () => void;
+  close:            () => void;
+  next:              () => void;
+  prev:              () => void;
+  toggleAutoScroll?: () => void;
 }
 
 export function createMediaKeyHandler(actions: MediaKeyActions): (e: KeyboardEvent) => void {
@@ -17,6 +18,7 @@ export function createMediaKeyHandler(actions: MediaKeyActions): (e: KeyboardEve
       case "ArrowLeft":  case "PageUp":   case "p": e.preventDefault(); actions.prev(); break;
       case "f":                               e.preventDefault(); mediaViewState.toggleFullscreen(); break;
       case "h": case "Tab":                   e.preventDefault(); mediaViewState.toggleUi(); break;
+      case "s":                               e.preventDefault(); actions.toggleAutoScroll?.(); break;
     }
   };
 }

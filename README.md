@@ -15,6 +15,8 @@
 
 Moku is a fast, minimal manga, novel and anime reader. It's a lightweight Tauri frontend for the [Tsunagu](https://github.com/moku-project/Tsunagu) backend — no Electron overhead. The desktop builds bundle Tsunagu and manage it for you.
 
+Need more information? Check out the website/docs: https://moku-project.github.io/
+
 ---
 
 ## Screenshots

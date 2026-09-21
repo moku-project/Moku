@@ -1,20 +1,19 @@
 # Maintainer: Moku Project <https://github.com/moku-project/Moku>
 
-# Builds the Moku desktop app (Tauri) from the latest git commit.
-#
-# Moku is only the frontend. The Tsunagu backend is a separate program; install
-# a `tsunagu` package (or set TSUNAGU_BIN yourself) or the app has nothing to
-# talk to. The /usr/bin/moku wrapper points TSUNAGU_BIN at /usr/bin/tsunagu when
-# it exists and you haven't set it.
+# Builds Moku (Tauri desktop app) from the latest tagged release, bundled
+# with the Tsunagu backend as a hard dependency so the app works out of the
+# box. For a backend-less build (e.g. pointing at a remote/self-hosted
+# Tsunagu instance) see moku-nobackend-git instead.
 
-pkgname=moku-git
-pkgver=0.11.5
+pkgname=moku
+pkgver=0.13.1
 pkgrel=1
-pkgdesc='Reader and player for manga, light novels, and anime (Tsunagu frontend)'
+pkgdesc='Reader and player for manga, light novels, and anime, bundled with the Tsunagu backend'
 arch=('x86_64' 'aarch64')
 url='https://github.com/moku-project/Moku'
 license=('MIT')
 depends=(
+  'tsunagu'
   'webkit2gtk-4.1'
   'gtk3'
   'glib-networking'
@@ -25,27 +24,19 @@ depends=(
   'gst-libav'
   'hicolor-icon-theme'
 )
-makedepends=('git' 'rust' 'nodejs' 'pnpm' 'pkgconf')
+makedepends=('rust' 'nodejs' 'pnpm' 'pkgconf')
 optdepends=(
-  'tsunagu: backend server — required for Moku to do anything'
   'gst-plugins-bad: extra video/audio codecs'
   'gst-plugins-ugly: extra video/audio codecs'
 )
 provides=('moku')
-conflicts=('moku')
-source=("$pkgname::git+https://github.com/moku-project/Moku.git")
+conflicts=('moku-git' 'moku-nobackend-git')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/moku-project/Moku/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 options=('!lto')
 
-pkgver() {
-  cd "$pkgname"
-  git describe --long --tags --abbrev=7 2>/dev/null \
-    | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' \
-    || printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
-}
-
 prepare() {
-  cd "$pkgname"
+  cd "Moku-$pkgver"
   export CARGO_HOME="$srcdir/cargo-home"
   pnpm install --frozen-lockfile
   # package.json's "prepare" script swallows failures (`|| echo ''`), so a
@@ -58,26 +49,25 @@ prepare() {
 }
 
 build() {
-  cd "$pkgname"
+  cd "Moku-$pkgver"
   export CARGO_HOME="$srcdir/cargo-home"
   export CARGO_NET_OFFLINE=true
   export RUSTUP_TOOLCHAIN=stable
-  # No bundling, and null out the sidecar resources — a clean git checkout has
-  # no src-tauri/resources/tsunagu, and the config parser rejects the missing
-  # path otherwise (mirrors nix/moku.nix).
+  # No bundling, and null out the sidecar resources - a clean checkout has no
+  # src-tauri/resources/tsunagu, and the config parser rejects the missing
+  # path otherwise (mirrors nix/moku.nix). The real tsunagu binary comes from
+  # the tsunagu package dependency instead, via the wrapper below.
   pnpm exec tauri build --no-bundle --config '{"bundle":{"resources":null}}'
 }
 
 package() {
-  cd "$pkgname"
+  cd "Moku-$pkgver"
 
   install -Dm755 src-tauri/target/release/moku "$pkgdir/usr/lib/moku/moku"
 
   install -Dm755 /dev/stdin "$pkgdir/usr/bin/moku" <<'EOF'
 #!/bin/sh
-if [ -z "${TSUNAGU_BIN:-}" ] && [ -x /usr/bin/tsunagu ]; then
-	export TSUNAGU_BIN=/usr/bin/tsunagu
-fi
+export TSUNAGU_BIN="${TSUNAGU_BIN:-/usr/bin/tsunagu}"
 exec /usr/lib/moku/moku "$@"
 EOF
 

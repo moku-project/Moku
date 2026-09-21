@@ -1,0 +1,116 @@
+# Maintainer: Moku Project <https://github.com/moku-project/Moku>
+
+# Builds Moku (Tauri desktop app) from the latest git commit. Split package:
+#   - moku-git            bundled with the Tsunagu backend (tsunagu-git dep)
+#   - moku-nobackend-git  no bundled backend, for a remote/separate Tsunagu
+# Both build identically; they only differ in dependencies and the wrapper's
+# TSUNAGU_BIN default. For the latest tagged release instead of git, see
+# ../moku/PKGBUILD.
+
+pkgbase=moku-git
+pkgname=('moku-git' 'moku-nobackend-git')
+pkgver=0.13.1.r0.g0000000
+pkgrel=1
+arch=('x86_64' 'aarch64')
+url='https://github.com/moku-project/Moku'
+license=('MIT')
+makedepends=('git' 'rust' 'nodejs' 'pnpm' 'pkgconf')
+source=("$pkgbase::git+https://github.com/moku-project/Moku.git")
+sha256sums=('SKIP')
+options=('!lto')
+
+pkgver() {
+  cd "$pkgbase"
+  git describe --long --tags --abbrev=7 2>/dev/null \
+    | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' \
+    || printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+prepare() {
+  cd "$pkgbase"
+  export CARGO_HOME="$srcdir/cargo-home"
+  pnpm install --frozen-lockfile
+  # package.json's "prepare" script swallows failures (`|| echo ''`), so a
+  # sandboxed/scriptless install can silently skip it and leave
+  # .svelte-kit/tsconfig.json missing, which breaks the later vite build.
+  # Run it explicitly so a real failure here is loud.
+  pnpm exec svelte-kit sync
+  cargo fetch --locked --manifest-path src-tauri/Cargo.toml \
+    --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgbase"
+  export CARGO_HOME="$srcdir/cargo-home"
+  export CARGO_NET_OFFLINE=true
+  export RUSTUP_TOOLCHAIN=stable
+  # No bundling, and null out the sidecar resources - a clean git checkout has
+  # no src-tauri/resources/tsunagu, and the config parser rejects the missing
+  # path otherwise (mirrors nix/moku.nix). The real tsunagu binary comes from
+  # the depends'd tsunagu(-git) package instead, via each package's wrapper.
+  pnpm exec tauri build --no-bundle --config '{"bundle":{"resources":null}}'
+}
+
+# Shared install steps for both split packages. $1 is the wrapper script body.
+_package_common() {
+  cd "$pkgbase"
+
+  install -Dm755 src-tauri/target/release/moku "$pkgdir/usr/lib/moku/moku"
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/moku" <<< "$1"
+
+  install -Dm644 packaging/io.github.MokuProject.Moku.desktop \
+    "$pkgdir/usr/share/applications/io.github.MokuProject.Moku.desktop"
+  install -Dm644 packaging/io.github.MokuProject.Moku.metainfo.xml \
+    "$pkgdir/usr/share/metainfo/io.github.MokuProject.Moku.metainfo.xml"
+
+  install -Dm644 src-tauri/icons/32x32.png \
+    "$pkgdir/usr/share/icons/hicolor/32x32/apps/io.github.MokuProject.Moku.png"
+  install -Dm644 src-tauri/icons/64x64.png \
+    "$pkgdir/usr/share/icons/hicolor/64x64/apps/io.github.MokuProject.Moku.png"
+  install -Dm644 src-tauri/icons/128x128.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/io.github.MokuProject.Moku.png"
+  install -Dm644 src-tauri/icons/128x128@2x.png \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/io.github.MokuProject.Moku.png"
+
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+package_moku-git() {
+  pkgdesc='Reader and player for manga, light novels, and anime, bundled with the Tsunagu backend (latest commit)'
+  depends=(
+    'tsunagu-git'
+    'webkit2gtk-4.1' 'gtk3' 'glib-networking' 'libappindicator-gtk3' 'openssl'
+    'gst-plugins-base' 'gst-plugins-good' 'gst-libav' 'hicolor-icon-theme'
+  )
+  optdepends=(
+    'gst-plugins-bad: extra video/audio codecs'
+    'gst-plugins-ugly: extra video/audio codecs'
+  )
+  provides=('moku')
+  conflicts=('moku' 'moku-nobackend-git')
+
+  _package_common '#!/bin/sh
+export TSUNAGU_BIN="${TSUNAGU_BIN:-/usr/bin/tsunagu}"
+exec /usr/lib/moku/moku "$@"'
+}
+
+package_moku-nobackend-git() {
+  pkgdesc='Reader and player for manga, light novels, and anime, without a bundled Tsunagu backend'
+  depends=(
+    'webkit2gtk-4.1' 'gtk3' 'glib-networking' 'libappindicator-gtk3' 'openssl'
+    'gst-plugins-base' 'gst-plugins-good' 'gst-libav' 'hicolor-icon-theme'
+  )
+  optdepends=(
+    'tsunagu: backend server — required for Moku to do anything, unless pointed at a remote one'
+    'gst-plugins-bad: extra video/audio codecs'
+    'gst-plugins-ugly: extra video/audio codecs'
+  )
+  provides=('moku')
+  conflicts=('moku' 'moku-git')
+
+  _package_common '#!/bin/sh
+if [ -z "${TSUNAGU_BIN:-}" ] && [ -x /usr/bin/tsunagu ]; then
+	export TSUNAGU_BIN=/usr/bin/tsunagu
+fi
+exec /usr/lib/moku/moku "$@"'
+}

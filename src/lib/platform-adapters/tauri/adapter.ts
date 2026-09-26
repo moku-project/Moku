@@ -98,6 +98,16 @@ export class TauriAdapter implements PlatformAdapter {
     return typeof result === 'string' ? result : null
   }
 
+  async importMihonBackupFile(): Promise<Uint8Array | null> {
+    try {
+      const bytes = await invoke<number[]>('import_mihon_backup')
+      return new Uint8Array(bytes)
+    } catch (e) {
+      if (String(e).includes('Cancelled')) return null
+      throw e
+    }
+  }
+
   async pickImportPaths(directory: boolean): Promise<string[]> {
     const result = await open({ directory, multiple: true })
     if (!result) return []

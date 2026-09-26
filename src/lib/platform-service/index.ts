@@ -33,6 +33,7 @@ export const platformService = {
   writeFile:       (path: string, data: Uint8Array)        => get().writeFile(path, data),
   pickFolder:      ()                                      => get().pickFolder(),
   pickFile:        (extensions?: string[])                 => get().pickFile(extensions),
+  importMihonBackupFile: ()                                => get().importMihonBackupFile(),
   pickImportPaths: (directory: boolean)                    => get().pickImportPaths(directory),
   checkPathExists: (path: string)                          => get().checkPathExists(path),
   createDirectory: (path: string)                          => get().createDirectory(path),

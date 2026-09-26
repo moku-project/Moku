@@ -49,6 +49,22 @@ pub async fn import_app_data(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
 }
 
 #[tauri::command]
+pub async fn import_mihon_backup(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
+    use tauri_plugin_dialog::DialogExt;
+
+    // Pick + read in one round trip — a separate JS readFile() call hit fs scope errors.
+    let path = app
+        .dialog()
+        .file()
+        .set_title("Open Tachiyomi/Mihon backup")
+        .add_filter("Backup", &["tachibk"])
+        .blocking_pick_file()
+        .ok_or("Cancelled")?;
+
+    std::fs::read(PathBuf::from(path.to_string())).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn auto_backup_app_data(app: tauri::AppHandle, bytes: Vec<u8>) -> Result<(), String> {
     let dir = backup_dir(&app);
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;

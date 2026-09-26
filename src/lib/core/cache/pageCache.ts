@@ -85,6 +85,10 @@ export function preloadImage(url: string, useBlob: boolean): void {
   resolveUrl(url, useBlob).then(src => { new Image().src = src; }).catch(() => {});
 }
 
+export function clearResolvedUrl(url: string): void {
+  resolvedUrlCache.delete(url);
+}
+
 export function clearResolvedUrlCache(): void {
   for (const promise of resolvedUrlCache.values()) {
     promise.then(blobUrl => { if (blobUrl) revokeBlobUrl(blobUrl); }).catch(() => {});

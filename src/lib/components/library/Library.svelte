@@ -24,7 +24,6 @@
   const SIDEBAR_W      = 52
   const TITLEBAR_H     = 36
   const CTX_FOLDER_CAP = 4
-  const DT_TAB         = 'application/x-moku-tab'
   const COMPLETED_NAME = 'Completed'
 
   let tabsEl: HTMLDivElement = $state() as HTMLDivElement
@@ -338,33 +337,16 @@
     ]
   }
 
-  function onTabDragStart(e: DragEvent, id: string) {
-    activeDragKind = 'tab'; dragTabId = id
-    e.dataTransfer!.effectAllowed = 'move'
-    e.dataTransfer!.setData(DT_TAB, id)
-    e.dataTransfer!.setData('text/plain', `tab:${id}`)
-  }
+  // Pointer-based reordering, not HTML5 drag-and-drop: Tauri's window-level
+  // native file-drop handling (needed for dragging folders in from the OS to
+  // import) intercepts HTML5 drag gestures webview-wide, which showed a
+  // "not allowed" cursor for this in-app reorder instead of actually dragging.
+  const TAB_DRAG_THRESHOLD = 4
 
-  function onTabDragOver(e: DragEvent, id: string, idx: number) {
-    if (activeDragKind !== 'tab' || dragTabId === null || dragTabId === id) return
-    e.preventDefault(); e.dataTransfer!.dropEffect = 'move'
-    dragOverTabId = id
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    dragInsertIdx = e.clientX < rect.left + rect.width / 2 ? idx : idx + 1
-  }
-
-  function onTabDragLeave() { dragOverTabId = null }
-
-  async function onTabDrop(e: DragEvent, dropId: string) {
-    e.preventDefault(); dragOverTabId = null
-    const insertAt = dragInsertIdx; dragInsertIdx = -1
-    if (activeDragKind !== 'tab' || dragTabId === null || dragTabId === dropId) { dragTabId = null; return }
-    const dragStrId = dragTabId; dragTabId = null; activeDragKind = null
-
+  async function commitTabDrop(dragStrId: string, insertAt: number) {
     const tabs    = [...libraryState.allTabIds]
     const fromIdx = tabs.indexOf(dragStrId)
-    const dropIdx = tabs.indexOf(dropId)
-    if (fromIdx < 0 || dropIdx < 0) return
+    if (fromIdx < 0) return
 
     const visibleDrop = libraryState.visibleTabIds[insertAt] ?? null
     const destIdx     = visibleDrop ? tabs.indexOf(visibleDrop) : tabs.length
@@ -382,7 +364,37 @@
     } catch (e) { console.error(e) }
   }
 
-  function onTabDragEnd() { activeDragKind = null; dragTabId = null; dragOverTabId = null; dragInsertIdx = -1 }
+  function onTabPointerDown(e: PointerEvent, id: string, idx: number) {
+    if (e.button !== 0) return
+    const startX = e.clientX, startY = e.clientY
+    let engaged = false
+
+    function move(ev: PointerEvent) {
+      if (!engaged) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < TAB_DRAG_THRESHOLD) return
+        engaged = true
+        activeDragKind = 'tab'; dragTabId = id
+      }
+      const el = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>('[data-tab-id]')
+      if (!el || el.dataset.tabId === id) { dragOverTabId = null; dragInsertIdx = -1; return }
+      const overIdx = Number(el.dataset.tabIdx)
+      dragOverTabId = el.dataset.tabId!
+      const rect = el.getBoundingClientRect()
+      dragInsertIdx = ev.clientX < rect.left + rect.width / 2 ? overIdx : overIdx + 1
+    }
+
+    function up() {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      if (engaged && dragInsertIdx >= 0) commitTabDrop(id, dragInsertIdx)
+      activeDragKind = null; dragTabId = null; dragOverTabId = null; dragInsertIdx = -1
+    }
+
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
 </script>
 
 <div
@@ -433,11 +445,7 @@
       onViewModeChange={(mode) => libraryState.setViewMode(mode)}
       refreshingLibrary={libraryState.refreshing}
       onRefreshLibrary={runLibraryRefresh}
-      onTabDragStart={onTabDragStart}
-      onTabDragOver={onTabDragOver}
-      onTabDragLeave={onTabDragLeave}
-      onTabDrop={onTabDrop}
-      onTabDragEnd={onTabDragEnd}
+      onTabPointerDown={onTabPointerDown}
       onTabContextMenu={openTabCtx}
     />
 

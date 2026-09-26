@@ -2,7 +2,8 @@
   import { tick }              from "svelte";
   import { readerState }       from "$lib/state/mangaReader.svelte";
   import { settingsState }     from "$lib/state/settings.svelte";
-  import { getCachedAspect }   from "$lib/components/media/manga/lib/pageLoader";
+  import { getCachedAspect, clearResolvedUrl } from "$lib/components/media/manga/lib/pageLoader";
+  import { revokeBlobUrl }     from "$lib/core/cache/imageCache";
 
   export interface StripPage {
     chapterId:   string;
@@ -37,12 +38,14 @@
   let centerIdx   = $state(0);
   const aspectMap = new Map<number, number>();
 
-  function scheduleRevoke(src: string) {
-    if (!src || !src.startsWith("blob:")) return;
-    revokeQueue.push(src);
+  // keyed by the page's original url, not the blob src, so eviction reaches
+  // the shared imageCache/pageCache maps and doesn't leak one entry per page
+  function scheduleRevoke(pageUrl: string) {
+    if (!pageUrl) return;
+    revokeQueue.push(pageUrl);
     requestAnimationFrame(() => {
       const url = revokeQueue.shift();
-      if (url) { try { URL.revokeObjectURL(url); } catch {} }
+      if (url) { clearResolvedUrl(url); revokeBlobUrl(url); }
     });
   }
 
@@ -57,7 +60,7 @@
         _resolvedSrc[idx] = src;
         _version++;
       } else {
-        scheduleRevoke(src);
+        scheduleRevoke(page.url);
       }
     });
   }
@@ -70,10 +73,9 @@
       const slot = containerEl.querySelectorAll<HTMLElement>(".strip-slot")[idx];
       slot?.style.setProperty("--aspect", String(aspect));
     }
-    const oldSrc = _resolvedSrc[idx];
-    if (oldSrc) {
+    if (_resolvedSrc[idx]) {
       delete _resolvedSrc[idx];
-      scheduleRevoke(oldSrc);
+      scheduleRevoke(flatPages[idx].url);
     }
     _version++;
   }

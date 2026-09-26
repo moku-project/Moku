@@ -14,23 +14,26 @@ export function isLocalServer(): boolean {
 }
 
 export function canOpenFolder(): boolean {
-  return platformService.isSupported('filesystem') && isLocalServer()
+  return platformService.isSupported('filesystem')
 }
 
-function checkCanOpenFolder(): boolean {
+// Paths always come from the server, which may not share a filesystem with
+// this client (remote server, container, etc.) — rather than pre-guessing
+// that from the server URL, just try, and if it fails hand back the path so
+// the user can find it themselves.
+async function tryOpenPath(path: string): Promise<void> {
   if (!platformService.isSupported('filesystem')) {
     addToast({ kind: 'info', title: 'Desktop only', body: 'Opening folders requires the desktop app.' })
-    return false
+    return
   }
-  if (!isLocalServer()) {
-    addToast({ kind: 'info', title: 'Remote server', body: 'Folder access is unavailable when connected to a remote server.' })
-    return false
+  try {
+    await platformService.openPath(path)
+  } catch {
+    addToast({ kind: 'error', title: 'Could not open path', body: path })
   }
-  return true
 }
 
 export async function openMangaFolder(manga: Manga): Promise<void> {
-  if (!checkCanOpenFolder()) return
   if (!manga.downloadFolderPath) {
     const hasDownloads = (manga.downloadCount ?? 0) > 0
     addToast(hasDownloads
@@ -38,11 +41,10 @@ export async function openMangaFolder(manga: Manga): Promise<void> {
       : { kind: 'info', title: 'Nothing downloaded', body: 'No chapters have been downloaded for this series yet.' })
     return
   }
-  await platformService.openPath(manga.downloadFolderPath).catch(console.error)
+  await tryOpenPath(manga.downloadFolderPath)
 }
 
 export async function openCustomFolder(path: string): Promise<void> {
-  if (!checkCanOpenFolder()) return
   if (!path?.trim()) return
-  await platformService.openPath(path).catch(console.error)
+  await tryOpenPath(path)
 }

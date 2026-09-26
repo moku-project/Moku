@@ -120,27 +120,43 @@
     }
   }
 
-  function onDragStart(e: DragEvent, id: string) {
-    dragId = id
-    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id) }
-  }
+  // Pointer-based reordering, not HTML5 drag-and-drop: Tauri's window-level
+  // native file-drop handling (needed for dragging folders in from the OS to
+  // import) intercepts HTML5 drag gestures webview-wide, which showed a
+  // "not allowed" cursor for this in-app reorder instead of actually dragging.
+  const DRAG_THRESHOLD = 4
 
-  function onDragOver(e: DragEvent, id: string) {
-    e.preventDefault()
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-    if (dragId === id) return
-    dragOverId = id
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    dropPosition = e.clientY < rect.top + rect.height / 2 ? 'above' : 'below'
-  }
+  function onPointerDown(e: PointerEvent, id: string) {
+    if (e.button !== 0) return
+    const startX = e.clientX, startY = e.clientY
+    let engaged = false
 
-  function onDrop(e: DragEvent, id: string) {
-    e.preventDefault()
-    if (dragId !== null && dragId !== id) applyReorder(dragId, id)
-    dragId = null; dragOverId = null; dropPosition = null
-  }
+    function move(ev: PointerEvent) {
+      if (!engaged) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return
+        engaged = true
+        dragId = id
+      }
+      const el = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest<HTMLElement>('[data-folder-id]')
+      const overId = el?.dataset.folderId
+      if (!overId || overId === id) { dragOverId = null; dropPosition = null; return }
+      dragOverId = overId
+      const rect = el!.getBoundingClientRect()
+      dropPosition = ev.clientY < rect.top + rect.height / 2 ? 'above' : 'below'
+    }
 
-  function onDragEnd() { dragId = null; dragOverId = null; dropPosition = null }
+    function up() {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      if (engaged && dragOverId !== null) applyReorder(id, dragOverId)
+      dragId = null; dragOverId = null; dropPosition = null
+    }
+
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+  }
 
   function focusInput(node: HTMLElement) { node.focus() }
 
@@ -175,15 +191,11 @@
               <div
                 class="s-folder-row"
                 role="listitem"
+                data-folder-id={id}
                 class:dragging={dragId === id}
                 class:drop-above={dragOverId === id && dragId !== id && dropPosition === 'above'}
                 class:drop-below={dragOverId === id && dragId !== id && dropPosition === 'below'}
-                draggable="true"
-                ondragstart={(e) => onDragStart(e, id)}
-                ondragover={(e) => onDragOver(e, id)}
-                ondragleave={() => { if (dragOverId === id) { dragOverId = null; dropPosition = null } }}
-                ondrop={(e) => onDrop(e, id)}
-                ondragend={onDragEnd}
+                onpointerdown={(e) => onPointerDown(e, id)}
               >
                 {#if isCompleted && f}
                   <span class="s-folder-icon">
@@ -221,9 +233,7 @@
                       onblur={commitEdit} use:focusInput />
                     <button class="s-btn-icon" onclick={commitEdit} title="Save">✓</button>
                   {:else}
-                    <div class="s-folder-identity" role="button" tabindex="0" draggable="true"
-                      ondragstart={(e) => onDragStart(e, id)}
-                      ondragend={onDragEnd}
+                    <div class="s-folder-identity" role="button" tabindex="0"
                       onkeydown={(e) => e.key === 'Enter' && startEdit(f)}>
                       <span class="s-folder-icon">
                         <FolderSimple size={14} weight="light" />

@@ -40,11 +40,7 @@
     onViewModeChange:    (mode: LibraryViewMode) => void;
     refreshingLibrary:   boolean;
     onRefreshLibrary:    () => void;
-    onTabDragStart:      (e: DragEvent, id: string) => void;
-    onTabDragOver:       (e: DragEvent, id: string, idx: number) => void;
-    onTabDragLeave:      () => void;
-    onTabDrop:           (e: DragEvent, id: string) => void;
-    onTabDragEnd:        () => void;
+    onTabPointerDown:    (e: PointerEvent, id: string, idx: number) => void;
     onTabContextMenu:    (e: MouseEvent, id: string) => void;
   }
 
@@ -57,8 +53,7 @@
     onSearchChange, onTabChange, onSortChange, onSortDirToggle, onStatusChange,
     onFilterToggle, onFiltersClear, onSortPanelToggle, onFilterPanelToggle,
     onViewModeChange, refreshingLibrary, onRefreshLibrary,
-    onTabDragStart, onTabDragOver, onTabDragLeave, onTabDrop, onTabDragEnd,
-    onTabContextMenu,
+    onTabPointerDown, onTabContextMenu,
   }: Props = $props();
 
   let wheelTimer: ReturnType<typeof setTimeout> | null = null
@@ -120,13 +115,10 @@
           class="tab"
           class:active={tab === id}
           class:tab-dragging={isDraggable && dragTabId === id}
-          draggable={isDraggable}
+          data-tab-id={id}
+          data-tab-idx={idx}
           onclick={() => onTabChange(id)}
-          ondragstart={isDraggable ? (e) => onTabDragStart(e, id) : undefined}
-          ondragover={isDraggable ? (e) => onTabDragOver(e, id, idx) : undefined}
-          ondragleave={isDraggable ? onTabDragLeave : undefined}
-          ondrop={isDraggable ? (e) => onTabDrop(e, id) : undefined}
-          ondragend={isDraggable ? onTabDragEnd : undefined}
+          onpointerdown={isDraggable ? (e) => onTabPointerDown(e, id, idx) : undefined}
           oncontextmenu={(e) => onTabContextMenu(e, id)}
         >
           {#if id === "library"}<Books size={11} weight="bold" />

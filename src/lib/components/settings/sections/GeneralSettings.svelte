@@ -20,6 +20,18 @@
   let triggerIdleTimeout = $state<HTMLButtonElement>(null!)
   $effect(() => { if (triggerIdleTimeout) registerTrigger('idle-timeout', triggerIdleTimeout) })
 
+  let triggerDefaultView = $state<HTMLButtonElement>(null!)
+  $effect(() => { if (triggerDefaultView) registerTrigger('default-view', triggerDefaultView) })
+
+  const DEFAULT_VIEW_OPTIONS: [string, string][] = [
+    ['home',       'Home'],
+    ['library',    'Library'],
+    ['browse',     'Browse'],
+    ['downloads',  'Downloads'],
+    ['recent',     'Recent'],
+    ['extensions', 'Extensions'],
+  ]
+
   const currentLang = $derived(canonicalLang(settingsState.settings.preferredExtensionLang ?? LANG_ALL))
 
   let langDraft = $state(langBadge(settingsState.settings.preferredExtensionLang ?? LANG_ALL))
@@ -98,6 +110,28 @@
         </button>
       </label>
 
+    </div>
+  </div>
+
+  <div class="s-section">
+    <p class="s-section-title">Startup</p>
+    <div class="s-section-body">
+      <div class="s-row">
+        <div class="s-row-info"><span class="s-label">Default view</span><span class="s-desc">Which view Moku opens to on launch</span></div>
+        <div class="s-select">
+          <button bind:this={triggerDefaultView} class="s-select-btn" onclick={() => toggleSelect('default-view')}>
+            <span>{DEFAULT_VIEW_OPTIONS.find(([v]) => v === (settingsState.settings.defaultView ?? 'home'))?.[1]}</span>
+            <svg class="s-select-caret" class:open={selectOpen === 'default-view'} width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6" fill="currentColor"/></svg>
+          </button>
+          {#if selectOpen === 'default-view' || closingSelect === 'default-view'}
+            <div use:selectPortal={getTrigger('default-view')} class="s-select-menu" class:anims class:closing={closingSelect === 'default-view'}>
+              {#each DEFAULT_VIEW_OPTIONS as [v, l]}
+                <button class="s-select-option" class:active={(settingsState.settings.defaultView ?? 'home') === v} onclick={() => { updateSettings({ defaultView: v as typeof settingsState.settings.defaultView }); toggleSelect('default-view') }}>{l}</button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
     </div>
   </div>
 

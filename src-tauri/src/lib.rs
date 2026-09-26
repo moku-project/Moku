@@ -95,6 +95,7 @@ pub fn run() {
             commands::system::list_system_fonts,
             commands::backup::export_app_data,
             commands::backup::import_app_data,
+            commands::backup::import_mihon_backup,
             commands::backup::auto_backup_app_data,
             commands::backup::get_auto_backup_dir,
             commands::storage::load_store,

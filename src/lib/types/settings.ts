@@ -213,6 +213,7 @@ export interface Settings {
 	systemThemeDark?: string
 	systemThemeLight?: string
 	closeAction?: 'ask' | 'tray' | 'quit'
+	defaultView?: 'home' | 'library' | 'browse' | 'downloads' | 'recent' | 'extensions'
 	windowControls: boolean
 	overlayBars?: boolean
 	tapToToggleBar?: boolean
@@ -315,5 +316,6 @@ export const DEFAULT_SETTINGS: Settings = {
 	hasOnboarded: false,
 	chapterViewMode: 'list',
 	libraryViewMode: 'grid',
+	defaultView: 'home',
 	contentTypeFilter: 'all',
 }

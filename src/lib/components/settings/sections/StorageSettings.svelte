@@ -326,6 +326,32 @@
   let importingMihon   = $state<string | null>(null)
   let importingFile    = $state(false)
 
+  let autoBackupIntervalHours = $state<number | null>(null)
+  let autoBackupRetention     = $state<number | null>(null)
+  let autoBackupBusy          = $state(false)
+  let autoBackupRestartNote   = $state(false)
+
+  async function loadAutoBackupSettings() {
+    try {
+      const all = await tsunagu.serverSettings()
+      autoBackupIntervalHours = Number(all.find(s => s.key === 'backup_interval_hours')?.value ?? 24)
+      autoBackupRetention     = Number(all.find(s => s.key === 'backup_retention_count')?.value ?? 7)
+    } catch { autoBackupIntervalHours = null; autoBackupRetention = null }
+  }
+
+  async function setAutoBackupSetting(key: 'backup_interval_hours' | 'backup_retention_count', value: number) {
+    if (autoBackupBusy) return
+    autoBackupBusy = true
+    try {
+      const r = await tsunagu.updateServerSetting(key, String(value))
+      if (key === 'backup_interval_hours') autoBackupIntervalHours = Number(r.setting.value)
+      else autoBackupRetention = Number(r.setting.value)
+      if (r.restartRequired) autoBackupRestartNote = true
+    } catch (e) {
+      toast({ kind: 'error', title: 'Auto-backup setting', body: e instanceof Error ? e.message : String(e) })
+    } finally { autoBackupBusy = false }
+  }
+
   async function loadServerStorage() {
     srvLoading = true; srvError = null
     try { srvStorage = await tsunagu.storageInfo() }
@@ -412,13 +438,11 @@
   async function importBackupFile() {
     if (importingFile) return
     try {
-      const path = await platformService.pickFile(['tachibk'])
-      if (!path) return
+      const bytes = await platformService.importMihonBackupFile()
+      if (!bytes) return
       importingFile = true
-      const bytes    = await platformService.readFile(path)
-      const filename = path.split(/[\\/]/).pop() || 'backup.tachibk'
       const form = new FormData()
-      form.append('file', new Blob([bytes]), filename)
+      form.append('file', new Blob([bytes]), 'backup.tachibk')
       const res = await fetch(`${getServerUrl()}/api/backups/import-file`, {
         method:  'POST',
         headers: authHeaders(),
@@ -524,7 +548,7 @@
     } finally { formatMigrating = false }
   }
 
-  $effect(() => { untrack(() => { loadBackupList(); fetchStorage(); loadServerStorage(); loadDbBackups(); loadMangaFormat() }) })
+  $effect(() => { untrack(() => { loadBackupList(); fetchStorage(); loadServerStorage(); loadDbBackups(); loadMangaFormat(); loadAutoBackupSettings() }) })
 </script>
 
 <div class="s-panel">
@@ -810,6 +834,47 @@
           <button class="s-btn s-btn-accent" onclick={makeDbBackup} disabled={backingUp}>{backingUp ? 'Backing up…' : 'Back up now'}</button>
         </div>
 
+        {#if autoBackupIntervalHours !== null}
+          <div class="s-row">
+            <div class="s-row-info">
+              <span class="s-label">Automatic backups</span>
+              <span class="s-desc">{autoBackupIntervalHours === 0 ? 'Disabled' : `Every ${autoBackupIntervalHours}h, keeping the last ${autoBackupRetention}`}</span>
+            </div>
+            <div class="s-stepper">
+              <button class="s-step-btn" disabled={autoBackupBusy || autoBackupIntervalHours <= 0}
+                onclick={() => setAutoBackupSetting('backup_interval_hours', Math.max(0, autoBackupIntervalHours! - 1))}>−</button>
+              <input type="number" min="0" step="1" class="s-slider-val" style="width:52px"
+                value={autoBackupIntervalHours}
+                oninput={(e) => { const n = parseInt(e.currentTarget.value, 10); if (!isNaN(n) && n >= 0) setAutoBackupSetting('backup_interval_hours', n) }} />
+              <span class="s-slider-unit">h</span>
+              <button class="s-step-btn" disabled={autoBackupBusy}
+                onclick={() => setAutoBackupSetting('backup_interval_hours', autoBackupIntervalHours! + 1)}>+</button>
+            </div>
+          </div>
+
+          {#if autoBackupIntervalHours > 0}
+            <div class="s-row">
+              <div class="s-row-info">
+                <span class="s-label">Keep last</span>
+                <span class="s-desc">Older automatic backups are pruned beyond this count.</span>
+              </div>
+              <div class="s-stepper">
+                <button class="s-step-btn" disabled={autoBackupBusy || (autoBackupRetention ?? 1) <= 1}
+                  onclick={() => setAutoBackupSetting('backup_retention_count', Math.max(1, autoBackupRetention! - 1))}>−</button>
+                <input type="number" min="1" step="1" class="s-slider-val" style="width:52px"
+                  value={autoBackupRetention}
+                  oninput={(e) => { const n = parseInt(e.currentTarget.value, 10); if (!isNaN(n) && n >= 1) setAutoBackupSetting('backup_retention_count', n) }} />
+                <button class="s-step-btn" disabled={autoBackupBusy}
+                  onclick={() => setAutoBackupSetting('backup_retention_count', (autoBackupRetention ?? 1) + 1)}>+</button>
+              </div>
+            </div>
+          {/if}
+
+          {#if autoBackupRestartNote}
+            <div class="s-banner s-banner-info">Takes effect after Tsunagu restarts.</div>
+          {/if}
+        {/if}
+
         {#if dbBackupsErr}<div class="s-banner s-banner-error">{dbBackupsErr}</div>{/if}
 
         {#each dbBackups.filter(b => b.kind === 'sqlite') as b (b.name)}
@@ -819,7 +884,7 @@
               <span class="s-desc">{fmtBytes(b.bytes)} · {new Date(b.createdAt).toLocaleString()}</span>
             </div>
             <div class="s-btn-row">
-              <button class="s-btn" onclick={() => platformService.openPath(b.path)}>Reveal</button>
+              <button class="s-btn" onclick={() => openCustomFolder(b.path)}>Reveal</button>
               <button class="s-btn s-btn-danger" disabled={deletingBk === b.name} onclick={() => deleteDbBackup(b.name)}>
                 {deletingBk === b.name ? '…' : 'Delete'}
               </button>
@@ -856,7 +921,7 @@
               <span class="s-desc">{fmtBytes(b.bytes)} · {new Date(b.createdAt).toLocaleString()}</span>
             </div>
             <div class="s-btn-row">
-              <button class="s-btn" onclick={() => platformService.openPath(b.path)}>Reveal</button>
+              <button class="s-btn" onclick={() => openCustomFolder(b.path)}>Reveal</button>
               <button class="s-btn s-btn-accent" disabled={importingMihon === b.name} onclick={() => importMihon(b.name)}>
                 {importingMihon === b.name ? 'Importing…' : 'Import'}
               </button>
@@ -905,7 +970,7 @@
               <span class="s-label">Auto-backup location</span>
               <span class="s-desc">Pre-update snapshots are kept here (last 5).</span>
             </div>
-            <button class="s-btn" onclick={() => platformService.openPath(appDataBackupDir!)}>Open folder</button>
+            <button class="s-btn" onclick={() => openCustomFolder(appDataBackupDir!)}>Open folder</button>
           </div>
         {/if}
 

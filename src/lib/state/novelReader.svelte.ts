@@ -29,11 +29,12 @@ interface NovelPrefs {
   theme:       NovelTheme;
   readingGuide: boolean;
   readingGuideLines: number;
+  paged: boolean;
 }
 const DEFAULTS: NovelPrefs = {
   fontFamily: "serif", systemFont: null, fontScale: 1, lineHeight: 1.7,
   paraSpacing: 1.1, pageWidth: 42, textAlign: "left", theme: "paper",
-  readingGuide: false, readingGuideLines: 3,
+  readingGuide: false, readingGuideLines: 3, paged: false,
 };
 const RG_LINES_MIN = 1, RG_LINES_MAX = 8;
 
@@ -57,6 +58,7 @@ class NovelReaderState {
   error       = $state<string | null>(null);
 
   scrollPct  = $state(0);
+  pageLabel  = $state("0%");
 
   fontFamily  = $state<NovelFont>(DEFAULTS.fontFamily);
   systemFont  = $state<string | null>(DEFAULTS.systemFont);
@@ -68,6 +70,7 @@ class NovelReaderState {
   theme       = $state<NovelTheme>(DEFAULTS.theme);
   readingGuide = $state(DEFAULTS.readingGuide);
   readingGuideLines = $state(DEFAULTS.readingGuideLines);
+  paged       = $state(DEFAULTS.paged);
 
   constructor() {
     if (typeof localStorage === "undefined") return;
@@ -83,6 +86,7 @@ class NovelReaderState {
       this.theme       = p.theme       ?? DEFAULTS.theme;
       this.readingGuide = p.readingGuide ?? DEFAULTS.readingGuide;
       this.readingGuideLines = p.readingGuideLines ?? DEFAULTS.readingGuideLines;
+      this.paged       = p.paged       ?? DEFAULTS.paged;
     } catch { }
   }
 
@@ -92,7 +96,7 @@ class NovelReaderState {
       localStorage.setItem(LS_KEY, JSON.stringify({
         fontFamily: this.fontFamily, systemFont: this.systemFont, fontScale: this.fontScale, lineHeight: this.lineHeight,
         paraSpacing: this.paraSpacing, pageWidth: this.pageWidth, textAlign: this.textAlign, theme: this.theme,
-        readingGuide: this.readingGuide, readingGuideLines: this.readingGuideLines,
+        readingGuide: this.readingGuide, readingGuideLines: this.readingGuideLines, paged: this.paged,
       } satisfies NovelPrefs));
     } catch { }
   }
@@ -107,6 +111,7 @@ class NovelReaderState {
   setTheme(t: NovelTheme)               { this.theme      = t; this.#persist(); }
   setReadingGuide(v: boolean)           { this.readingGuide = v; this.#persist(); }
   bumpGuideLines(d: number)             { this.readingGuideLines = Math.min(RG_LINES_MAX, Math.max(RG_LINES_MIN, this.readingGuideLines + d)); this.#persist(); }
+  setPaged(v: boolean)                  { this.paged = v; this.#persist(); }
   cycleTheme() {
     const order: NovelTheme[] = ["paper", "sepia", "dark"];
     this.setTheme(order[(order.indexOf(this.theme) + 1) % order.length]);
@@ -123,6 +128,7 @@ class NovelReaderState {
     this.appending   = false;
     this.error       = null;
     this.scrollPct   = 0;
+    this.pageLabel   = "0%";
   }
 }
 

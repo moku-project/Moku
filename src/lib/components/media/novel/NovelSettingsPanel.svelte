@@ -90,6 +90,14 @@
   <div class="msp-group">
     <p class="msp-label">Scrolling</p>
     <div class="msp-row">
+      <span>Paged</span>
+      <button class="msp-toggle" class:on={st.paged}
+        role="switch" aria-checked={st.paged} aria-label="Paged reading"
+        onclick={() => st.setPaged(!st.paged)}
+      ><span class="msp-toggle-knob"></span></button>
+    </div>
+    {#if !st.paged}
+    <div class="msp-row">
       <span>Auto scroll</span>
       <button class="msp-toggle" class:on={autoScroll}
         role="switch" aria-checked={autoScroll} aria-label="Auto scroll"
@@ -104,6 +112,7 @@
           oninput={(e) => updateSettings({ autoScrollSpeed: Number(e.currentTarget.value) })} />
         <span class="msp-readout">{settingsState.settings.autoScrollSpeed ?? 5}</span>
       </div>
+    {/if}
     {/if}
   </div>
 

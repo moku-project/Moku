@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from "svelte";
+  import { onMount, onDestroy, tick, untrack } from "svelte";
   import { goto } from "$app/navigation";
   import { TextT, BookmarkSimple } from "phosphor-svelte";
   import { seriesState, setPreviewManga } from "$lib/state/series.svelte";
@@ -43,7 +43,7 @@
   // One line's box height (in rem) is fontScale * lineHeight; add a small buffer so
   // ascenders/descenders on the boundary lines are never clipped by the guide edges.
   const guideHeightRem = $derived(st.fontScale * st.lineHeight * st.readingGuideLines + 0.2);
-  const readout  = $derived(`${Math.round(pctExact)}%`);
+  const readout  = $derived(st.pageLabel);
 
   trackHistory(() => pctExact);
 
@@ -79,13 +79,14 @@
     const c = chapter;
     if (!c || !mediaId) return;
     st.reset();
+    anchor = null;
     const seg = await fetchSegment(c.id, c.chapterNumber, c.name);
     st.unsupported = seg == null;
     st.segments    = seg ? [seg] : [];
     st.loading     = false;
     mediaViewState.loading = false;
     await tick();
-    scrollEl?.scrollTo(0, 0);
+    if (scrollEl) jumpTo(scrollEl, 0);
     st.scrollPct = 0;
   }
 
@@ -125,15 +126,70 @@
     try {
       const seg = await fetchSegment(prev.id, prev.chapterNumber, prev.name);
       if (seg && el) {
-        const prevHeight    = el.scrollHeight;
-        const prevScrollTop = el.scrollTop;
+        const axis = st.paged ? "scrollLeft" : "scrollTop";
+        const size = st.paged ? "scrollWidth" : "scrollHeight";
+        const prevPos  = el[axis];
+        const prevSize = el[size];
         st.segments = [seg, ...st.segments];
         await tick();
-        el.scrollTop = prevScrollTop + (el.scrollHeight - prevHeight);
+        el[axis] = prevPos + (el[size] - prevSize);
       }
     } finally {
       prepending = false;
     }
+  }
+
+  // Page mode lays each chapter out as CSS columns so a page is one column wide.
+  const PAGE_SIDE = 24;
+  let geo = $state({ textW: 0, step: 0 });
+
+  function measure() {
+    const el = scrollEl;
+    if (!el) return;
+    const rem   = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const textW = Math.max(1, Math.min(st.pageWidth * rem, el.clientWidth - 2 * PAGE_SIDE));
+    geo = { textW, step: textW + 2 * PAGE_SIDE };
+  }
+
+  function pageOrigin(el: HTMLElement): number {
+    return (el.clientWidth - geo.textW) / 2;
+  }
+
+  function along(el: HTMLElement, node: HTMLElement): number {
+    if (!st.paged) return node.offsetTop;
+    return node.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
+  }
+
+  function pageOf(el: HTMLElement, x: number): number {
+    if (!geo.step) return 0;
+    return Math.max(0, Math.floor((x - pageOrigin(el) + 1) / geo.step));
+  }
+
+  function pageCount(el: HTMLElement): number {
+    if (!geo.step) return 1;
+    return Math.ceil((el.scrollWidth - el.clientWidth) / geo.step) + 1;
+  }
+
+  function curPage(el: HTMLElement): number {
+    return geo.step ? Math.round(el.scrollLeft / geo.step) : 0;
+  }
+
+  function goPage(el: HTMLElement, page: number, smooth = false) {
+    if (!geo.step) return;
+    const max  = el.scrollWidth - el.clientWidth;
+    const left = Math.min(Math.max(0, page) * geo.step, max);
+    el.scrollTo({ left, behavior: smooth ? "smooth" : "auto" });
+  }
+
+  function jumpTo(el: HTMLElement, pos: number) {
+    if (st.paged) goPage(el, pageOf(el, pos));
+    else el.scrollTop = pos;
+  }
+
+  function turnPage(dir: 1 | -1) {
+    const el = scrollEl;
+    if (!el || !st.paged) return;
+    goPage(el, curPage(el) + dir, true);
   }
 
   let cachedSections: HTMLElement[] = [];
@@ -147,14 +203,43 @@
     return cachedSections;
   }
 
+  // Anchored by paragraph index, not pixels, so the position survives reflow.
+  let anchor: { cid: string; pIdx: number } | null = null;
+  let layoutStamp = 0;
+
+  async function relayout() {
+    const el = scrollEl;
+    if (!el) return;
+    layoutStamp = performance.now();
+    measure();
+    await tick();
+    if (!anchor) return;
+    const p = el.querySelector(`[data-cid="${anchor.cid}"]`)?.querySelectorAll<HTMLElement>("p")[anchor.pIdx];
+    if (!p) return;
+    jumpTo(el, along(el, p) - (st.paged ? 0 : el.clientHeight / 2));
+  }
+
+  $effect(() => {
+    void [st.fontScale, st.lineHeight, st.paraSpacing, st.pageWidth, st.fontFamily, st.systemFont, st.textAlign, st.paged];
+    untrack(() => { void relayout(); });
+  });
+
+  $effect(() => {
+    const el = scrollEl;
+    if (!el) return;
+    const ro = new ResizeObserver(() => { void relayout(); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+
   function syncActiveSegment() {
     const el = scrollEl;
     if (!el || !st.segments.length) return;
-    const centre = el.scrollTop + el.clientHeight / 2;
+    const line = st.paged ? el.scrollLeft + el.clientWidth / 2 : el.scrollTop + el.clientHeight / 2;
     const sections = getSections(el);
     let currentId = st.segments[0].chapterId;
     for (const sec of sections) {
-      if (sec.offsetTop <= centre) currentId = sec.dataset.cid!;
+      if (along(el, sec) <= line) currentId = sec.dataset.cid!;
       else break;
     }
 
@@ -177,32 +262,67 @@
       }
     }
 
-    const activeSec = sections.find(s => s.dataset.cid === currentId);
+    const activeIdx = sections.findIndex(s => s.dataset.cid === currentId);
+    const activeSec = sections[activeIdx];
     if (activeSec) {
-      const within = (el.scrollTop + el.clientHeight - activeSec.offsetTop) / Math.max(1, activeSec.offsetHeight);
-      const frac = Math.max(0, Math.min(1, within));
+      if (performance.now() - layoutStamp > 250) {
+        const ps = activeSec.querySelectorAll<HTMLElement>("p");
+        let pIdx = 0;
+        for (let i = 0; i < ps.length; i++) {
+          if (along(el, ps[i]) <= line) pIdx = i;
+          else break;
+        }
+        anchor = { cid: currentId, pIdx };
+      }
+
+      let frac: number;
+      let label: string;
+      if (st.paged) {
+        const startPage = pageOf(el, along(el, activeSec));
+        const endPage   = activeIdx + 1 < sections.length ? pageOf(el, along(el, sections[activeIdx + 1])) : pageCount(el);
+        const count = Math.max(1, endPage - startPage);
+        const cur   = Math.min(count - 1, Math.max(0, curPage(el) - startPage));
+        frac  = count <= 1 ? 1 : cur / (count - 1);
+        label = `${cur + 1} / ${count}`;
+      } else {
+        const span = activeSec.offsetHeight - el.clientHeight;
+        frac  = span <= 0 ? 1 : Math.max(0, Math.min(1, (el.scrollTop - activeSec.offsetTop) / span));
+        label = `${Math.round(frac * 100)}%`;
+      }
       st.scrollPct = frac;
+      st.pageLabel = label;
       reportProg(currentId, frac, { completed: frac >= 0.98 });
       if (frac >= 0.98 && !markedRead.has(currentId)) markChapterRead(currentId, markedRead);
     }
-    for (const sec of sections) {
+
+    const viewStart = st.paged ? el.scrollLeft : el.scrollTop;
+    sections.forEach((sec, i) => {
       const cid = sec.dataset.cid!;
-      if (sec.offsetTop + sec.offsetHeight < el.scrollTop && !markedRead.has(cid)) {
-        markChapterRead(cid, markedRead);
-      }
-    }
+      const end = st.paged
+        ? (i + 1 < sections.length ? along(el, sections[i + 1]) : Infinity)
+        : sec.offsetTop + sec.offsetHeight;
+      if (end < viewStart && !markedRead.has(cid)) markChapterRead(cid, markedRead);
+    });
   }
 
   let syncScheduled = false;
   let lastSyncTime  = 0;
   const SYNC_INTERVAL_MS = 100;
+  let snapTimer: ReturnType<typeof setTimeout> | null = null;
 
   function onScroll() {
     const el = scrollEl;
     if (!el) return;
-    const max = el.scrollHeight - el.clientHeight;
-    if (max - el.scrollTop < 1500) void appendNext();
-    if (el.scrollTop < 1500) void prependPrev();
+    const pos  = st.paged ? el.scrollLeft : el.scrollTop;
+    const end  = st.paged ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
+    const near = st.paged ? geo.step * 2 : 1500;
+    if (end - pos < near) void appendNext();
+    if (pos < near) void prependPrev();
+
+    if (st.paged) {
+      if (snapTimer) clearTimeout(snapTimer);
+      snapTimer = setTimeout(() => goPage(el, curPage(el)), 150);
+    }
 
     if (syncScheduled) return;
     syncScheduled = true;
@@ -218,10 +338,18 @@
   function seek(toPct: number) {
     const el = scrollEl;
     if (!el) return;
-    const activeSec = el.querySelector<HTMLElement>(`[data-cid="${chapter?.id ?? ""}"]`);
-    if (!activeSec) return;
+    const sections = getSections(el);
+    const idx = sections.findIndex(s => s.dataset.cid === chapter?.id);
+    if (idx === -1) return;
+    const sec  = sections[idx];
     const frac = toPct / 100;
-    el.scrollTo({ top: frac * activeSec.offsetHeight + activeSec.offsetTop - el.clientHeight });
+    if (st.paged) {
+      const startPage = pageOf(el, along(el, sec));
+      const endPage   = idx + 1 < sections.length ? pageOf(el, along(el, sections[idx + 1])) : pageCount(el);
+      goPage(el, startPage + Math.round(frac * Math.max(0, endPage - startPage - 1)), true);
+      return;
+    }
+    el.scrollTo({ top: sec.offsetTop + frac * Math.max(1, sec.offsetHeight - el.clientHeight) });
   }
 
   let autoScrollPaused     = false;
@@ -233,12 +361,30 @@
     autoScrollPauseTimer = setTimeout(() => { autoScrollPaused = false; }, 2500);
   }
 
+  let wheelAt = 0;
   function onWheel(e: WheelEvent) {
     if (!e.ctrlKey) pauseAutoScroll();
+    if (!st.paged || e.ctrlKey) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - wheelAt < 350 || Math.abs(e.deltaY) < 4) return;
+    wheelAt = now;
+    turnPage(e.deltaY > 0 ? 1 : -1);
+  }
+
+  function onPageClick(e: MouseEvent) {
+    const el = scrollEl;
+    if (st.paged && el && !window.getSelection()?.toString()) {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      if (x < 0.3) turnPage(-1);
+      else if (x > 0.7) turnPage(1);
+    }
+    bar.onClick();
   }
 
   $effect(() => {
-    if (!settingsState.settings.autoScroll || !scrollEl) return;
+    if (!settingsState.settings.autoScroll || !scrollEl || st.paged) return;
     let rafId: number;
     let remainder = 0;
     const tick = () => {
@@ -271,8 +417,19 @@
     toggleAutoScroll: () => updateSettings({ autoScroll: !(settingsState.settings.autoScroll ?? false) }),
   });
 
-  onMount(() => { window.addEventListener("keydown", onKey); bar.show(); loadInitial(); });
-  onDestroy(() => { window.removeEventListener("keydown", onKey); bar.destroy(); });
+  function onReaderKey(e: KeyboardEvent) {
+    const t = e.target as HTMLElement;
+    const typing = t?.tagName === "INPUT" || t?.tagName === "TEXTAREA";
+    if (st.paged && !typing && ["ArrowLeft", "ArrowRight", "PageUp", "PageDown"].includes(e.key)) {
+      e.preventDefault();
+      turnPage(e.key === "ArrowRight" || e.key === "PageDown" ? 1 : -1);
+      return;
+    }
+    onKey(e);
+  }
+
+  onMount(() => { window.addEventListener("keydown", onReaderKey); bar.show(); loadInitial(); });
+  onDestroy(() => { window.removeEventListener("keydown", onReaderKey); bar.destroy(); });
 
   let lastChapterId: string | null = null;
   $effect(() => {
@@ -281,8 +438,9 @@
     lastChapterId = id;
     if (st.hasSegment(id)) {
       tick().then(() => {
-        const sec = scrollEl?.querySelector<HTMLElement>(`[data-cid="${id}"]`);
-        if (sec && scrollEl) scrollEl.scrollTo({ top: sec.offsetTop });
+        const el  = scrollEl;
+        const sec = el?.querySelector<HTMLElement>(`[data-cid="${id}"]`);
+        if (sec && el) jumpTo(el, along(el, sec));
       });
     } else {
       loadInitial();
@@ -293,17 +451,19 @@
 <div class="root" class:ui-unzoom={!(settingsState.settings.readerContainerized ?? false)} role="presentation" onmousemove={bar.onMove}>
   <div
     class="novel novel-{st.theme}"
+    class:is-paged={st.paged}
     role="presentation"
     bind:this={scrollEl}
     onscroll={onScroll}
     onwheel={onWheel}
     onpointerdown={pauseAutoScroll}
-    onclick={bar.onClick}
+    onclick={onPageClick}
     ondblclick={bar.onDblClick}
   >
     <article
       class="col"
-      style="font-family: {resolvedNovelFont(st)}; font-size: {st.fontScale}rem; line-height: {st.lineHeight}; max-width: {st.pageWidth}rem; text-align: {st.textAlign}; --para-gap: {st.paraSpacing}em;"
+      class:is-paged={st.paged}
+      style="font-family: {resolvedNovelFont(st)}; font-size: {st.fontScale}rem; line-height: {st.lineHeight}; max-width: {st.pageWidth}rem; text-align: {st.textAlign}; --para-gap: {st.paraSpacing}em;{st.paged ? ` width: ${geo.textW}px; column-width: ${geo.textW}px; column-gap: ${2 * PAGE_SIDE}px;` : ''}"
     >
       {#if st.loading}
         <p class="notice">Loading…</p>
@@ -377,10 +537,20 @@
   .root { position: fixed; inset: 0; background: #000; z-index: var(--z-reader); }
 
   .novel { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .novel.is-paged { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .novel.is-paged::-webkit-scrollbar { display: none; }
   .col {
     margin: 0 auto;
     padding: calc(44px + var(--sp-8)) var(--sp-6) calc(50px + var(--sp-8));
   }
+  .col.is-paged {
+    height: 100%; box-sizing: border-box;
+    padding-left: 0; padding-right: 0;
+    column-fill: auto;
+  }
+  .col.is-paged .seg { break-before: column; }
+  .col.is-paged :global(h1), .col.is-paged :global(h2), .col.is-paged :global(h3),
+  .col.is-paged :global(h4), .col.is-paged :global(h5), .col.is-paged :global(h6) { break-after: avoid; }
   .seg { padding-bottom: var(--sp-10); }
   .seg-head {
     font-family: var(--font-ui); font-size: 0.72em; letter-spacing: var(--tracking-wider);

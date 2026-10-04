@@ -90,9 +90,7 @@ export function clearResolvedUrl(url: string): void {
 }
 
 export function clearResolvedUrlCache(): void {
-  for (const promise of resolvedUrlCache.values()) {
-    promise.then(blobUrl => { if (blobUrl) revokeBlobUrl(blobUrl); }).catch(() => {});
-  }
+  for (const url of resolvedUrlCache.keys()) revokeBlobUrl(url);
   resolvedUrlCache.clear();
   aspectCache.clear();
 }

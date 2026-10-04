@@ -38,8 +38,7 @@
   let centerIdx   = $state(0);
   const aspectMap = new Map<number, number>();
 
-  // keyed by the page's original url, not the blob src, so eviction reaches
-  // the shared imageCache/pageCache maps and doesn't leak one entry per page
+  // keyed by page url so eviction reaches the shared caches
   function scheduleRevoke(pageUrl: string) {
     if (!pageUrl) return;
     revokeQueue.push(pageUrl);

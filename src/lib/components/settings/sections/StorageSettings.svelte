@@ -11,7 +11,7 @@
   import { clearBlobCache } from '$lib/core/cache/imageCache'
   import { cache as queryCache } from '$lib/core/cache/queryCache'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
-  import { canOpenFolder, openCustomFolder, isLocalServer } from '$lib/core/filesystem'
+  import { canOpenFolder, openCustomFolder, revealFile, isLocalServer } from '$lib/core/filesystem'
   import { authHeaders } from '$lib/state/auth.svelte'
 
   const supportsFilesystem = platformService.isSupported('filesystem')
@@ -884,7 +884,7 @@
               <span class="s-desc">{fmtBytes(b.bytes)} · {new Date(b.createdAt).toLocaleString()}</span>
             </div>
             <div class="s-btn-row">
-              <button class="s-btn" onclick={() => openCustomFolder(b.path)}>Reveal</button>
+              <button class="s-btn" onclick={() => revealFile(b.path)}>Reveal</button>
               <button class="s-btn s-btn-danger" disabled={deletingBk === b.name} onclick={() => deleteDbBackup(b.name)}>
                 {deletingBk === b.name ? '…' : 'Delete'}
               </button>
@@ -921,7 +921,7 @@
               <span class="s-desc">{fmtBytes(b.bytes)} · {new Date(b.createdAt).toLocaleString()}</span>
             </div>
             <div class="s-btn-row">
-              <button class="s-btn" onclick={() => openCustomFolder(b.path)}>Reveal</button>
+              <button class="s-btn" onclick={() => revealFile(b.path)}>Reveal</button>
               <button class="s-btn s-btn-accent" disabled={importingMihon === b.name} onclick={() => importMihon(b.name)}>
                 {importingMihon === b.name ? 'Importing…' : 'Import'}
               </button>

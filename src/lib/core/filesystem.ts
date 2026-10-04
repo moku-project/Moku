@@ -48,3 +48,9 @@ export async function openCustomFolder(path: string): Promise<void> {
   if (!path?.trim()) return
   await tryOpenPath(path)
 }
+
+// Opening a file hands it to whatever app claims its extension, which is often none.
+export async function revealFile(path: string): Promise<void> {
+  const dir = path.replace(/[\\/][^\\/]*$/, '')
+  await openCustomFolder(dir || path)
+}

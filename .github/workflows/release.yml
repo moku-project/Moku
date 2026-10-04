@@ -245,9 +245,15 @@ jobs:
           [ -n "$X64" ]   && cp "$X64"   "moku-macos-x64-$V.dmg"   && gh release upload "v$V" "moku-macos-x64-$V.dmg" --clobber
 
   flatpak:
-    name: Flatpak
+    name: Flatpak (${{ matrix.arch }})
     needs: prepare
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04,   arch: x86_64,  tsunagu: amd64, bundle: "Moku-${{ inputs.version }}.flatpak" }
+          - { runner: ubuntu-24.04-arm, arch: aarch64, tsunagu: arm64, bundle: "Moku-${{ inputs.version }}-aarch64.flatpak" }
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -286,20 +292,20 @@ jobs:
         run: |
           set -euo pipefail
           gh release download "v${TSUNAGU_VERSION}" --repo moku-project/Tsunagu \
-            --pattern 'tsunagu-linux-amd64' \
+            --pattern "tsunagu-linux-${{ matrix.tsunagu }}" \
             --pattern 'sandbox.jar' \
-            --pattern 'runtime-linux-amd64.tar.gz' \
+            --pattern "runtime-linux-${{ matrix.tsunagu }}.tar.gz" \
             --pattern 'sha256sums.txt' \
             --dir tsunagu-dl --clobber
           cd tsunagu-dl
-          for f in tsunagu-linux-amd64 sandbox.jar runtime-linux-amd64.tar.gz; do
+          for f in "tsunagu-linux-${{ matrix.tsunagu }}" sandbox.jar "runtime-linux-${{ matrix.tsunagu }}.tar.gz"; do
             grep " $f\$" sha256sums.txt | sha256sum -c -
           done
           cd ..
           mkdir -p tsunagu
-          cp tsunagu-dl/tsunagu-linux-amd64 tsunagu/tsunagu-linux-amd64
-          cp tsunagu-dl/sandbox.jar         tsunagu/sandbox.jar
-          tar -xzf tsunagu-dl/runtime-linux-amd64.tar.gz -C tsunagu/
+          cp "tsunagu-dl/tsunagu-linux-${{ matrix.tsunagu }}" tsunagu/tsunagu-linux
+          cp tsunagu-dl/sandbox.jar                          tsunagu/sandbox.jar
+          tar -xzf "tsunagu-dl/runtime-linux-${{ matrix.tsunagu }}.tar.gz" -C tsunagu/
           test -f tsunagu/runtime/lib/modules
 
       - name: Install flatpak tooling
@@ -325,10 +331,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          V="${{ inputs.version }}"
+          B="${{ matrix.bundle }}"
           flatpak build-bundle --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
-            repo "Moku-${V}.flatpak" io.github.MokuProject.Moku
-          gh release upload "v$V" "Moku-${V}.flatpak" --clobber
+            repo "$B" io.github.MokuProject.Moku
+          gh release upload "v${{ inputs.version }}" "$B" --clobber
 
   linux:
     name: Linux AppImage

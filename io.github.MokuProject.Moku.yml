@@ -94,7 +94,7 @@ modules:
     buildsystem: cmake-ninja
     build-options:
       env:
-        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/lib/x86_64-linux-gnu/pkgconfig:/app/share/pkgconfig
+        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/lib/x86_64-linux-gnu/pkgconfig:/app/lib/aarch64-linux-gnu/pkgconfig:/app/share/pkgconfig
     config-opts:
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DENABLE_TESTS=OFF
@@ -108,7 +108,7 @@ modules:
     buildsystem: cmake-ninja
     build-options:
       env:
-        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/lib/x86_64-linux-gnu/pkgconfig:/app/share/pkgconfig
+        PKG_CONFIG_PATH: /app/lib/pkgconfig:/app/lib/x86_64-linux-gnu/pkgconfig:/app/lib/aarch64-linux-gnu/pkgconfig:/app/share/pkgconfig
     config-opts:
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DENABLE_TESTS=OFF
@@ -127,7 +127,7 @@ modules:
     buildsystem: simple
     build-commands:
       - mkdir -p /app/lib/moku/sandbox
-      - install -Dm755 tsunagu-linux-amd64 /app/lib/moku/tsunagu
+      - install -Dm755 tsunagu-linux /app/lib/moku/tsunagu
       - install -Dm644 sandbox.jar /app/lib/moku/sandbox/sandbox.jar
       - cp -r runtime /app/lib/moku/sandbox/runtime
       - chmod +x /app/lib/moku/sandbox/runtime/bin/java

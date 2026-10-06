@@ -23,9 +23,17 @@ pkgs.stdenv.mkDerivation {
     pkg-config
     wrapGAppsHook3
     rustPlatform.cargoSetupHook
+    removeReferencesTo
   ];
 
   buildInputs = runtimeLibs;
+
+  # Panic-location strings embed rust-src paths, which otherwise drag the whole
+  # toolchain (~2G incl. rust-docs and gcc) into the runtime closure.
+  postFixup = ''
+    find $out -type f -exec remove-references-to -t ${rustToolchain} {} +
+  '';
+  disallowedReferences = [ rustToolchain ];
 
   pnpmDeps = pkgs.fetchPnpmDeps {
     pname = "moku";

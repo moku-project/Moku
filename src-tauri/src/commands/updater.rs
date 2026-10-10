@@ -113,11 +113,12 @@ pub async fn download_and_install_update(app: tauri::AppHandle, tag: String) -> 
         let release: Release = serde_json::from_str(&resp.text().await.map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
 
+        let suffix = if cfg!(target_arch = "aarch64") { "_arm64-setup.exe" } else { "_x64-setup.exe" };
         let asset = release
             .assets
             .into_iter()
-            .find(|a| a.name.ends_with("_x64-setup.exe"))
-            .ok_or_else(|| format!("No x64-setup.exe asset found in release {tag}"))?;
+            .find(|a| a.name.ends_with(suffix))
+            .ok_or_else(|| format!("No {suffix} asset found in release {tag}"))?;
 
         let total = (asset.size > 0).then_some(asset.size);
 

@@ -83,9 +83,15 @@ jobs:
       - run: nix build --print-build-logs .#devShells.x86_64-linux.default
 
   windows:
-    name: Windows x64
+    name: Windows ${{ matrix.arch }}
     needs: prepare
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: windows-latest, arch: x64,   target: x86_64-pc-windows-msvc,  tsunagu: amd64 }
+          - { runner: windows-11-arm, arch: arm64, target: aarch64-pc-windows-msvc, tsunagu: arm64 }
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -98,7 +104,7 @@ jobs:
           echo "TSUNAGU_VERSION=$TSUNAGU_VERSION" >> "$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: x86_64-pc-windows-msvc }
+        with: { targets: "${{ matrix.target }}" }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
       - uses: pnpm/action-setup@v4
@@ -116,20 +122,20 @@ jobs:
         run: |
           set -euo pipefail
           gh release download "v${TSUNAGU_VERSION}" --repo moku-project/Tsunagu \
-            --pattern 'tsunagu-windows-amd64.exe' \
+            --pattern "tsunagu-windows-${{ matrix.tsunagu }}.exe" \
             --pattern 'sandbox.jar' \
-            --pattern 'runtime-windows-amd64.zip' \
+            --pattern "runtime-windows-${{ matrix.tsunagu }}.zip" \
             --pattern 'sha256sums.txt' \
             --dir tsunagu-dl --clobber
           cd tsunagu-dl
-          for f in tsunagu-windows-amd64.exe sandbox.jar runtime-windows-amd64.zip; do
+          for f in "tsunagu-windows-${{ matrix.tsunagu }}.exe" sandbox.jar "runtime-windows-${{ matrix.tsunagu }}.zip"; do
             grep " $f\$" sha256sums.txt | sha256sum -c -
           done
           cd ..
           mkdir -p src-tauri/resources/sandbox
-          cp tsunagu-dl/tsunagu-windows-amd64.exe src-tauri/resources/tsunagu.exe
-          cp tsunagu-dl/sandbox.jar               src-tauri/resources/sandbox/sandbox.jar
-          unzip -q tsunagu-dl/runtime-windows-amd64.zip -d src-tauri/resources/sandbox/
+          cp "tsunagu-dl/tsunagu-windows-${{ matrix.tsunagu }}.exe" src-tauri/resources/tsunagu.exe
+          cp tsunagu-dl/sandbox.jar                                   src-tauri/resources/sandbox/sandbox.jar
+          unzip -q "tsunagu-dl/runtime-windows-${{ matrix.tsunagu }}.zip" -d src-tauri/resources/sandbox/
           test -f src-tauri/resources/tsunagu.exe
           test -f src-tauri/resources/sandbox/sandbox.jar
           test -f src-tauri/resources/sandbox/runtime/bin/java.exe
@@ -137,7 +143,7 @@ jobs:
           src-tauri/resources/sandbox/runtime/bin/java.exe -version
 
       - name: Build
-        run: pnpm tauri build --target x86_64-pc-windows-msvc --config src-tauri/tauri.windows.conf.json
+        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.windows.conf.json
 
       - name: Upload to release
         shell: bash
@@ -146,10 +152,10 @@ jobs:
         run: |
           set -euo pipefail
           V="${{ inputs.version }}"
-          EXE=$(find src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis -name "*-setup.exe" | head -1)
+          EXE=$(find src-tauri/target/${{ matrix.target }}/release/bundle/nsis -name "*-setup.exe" | head -1)
           [ -n "$EXE" ] || { echo "no installer found"; exit 1; }
-          cp "$EXE" "Moku_${V}_x64-setup.exe"
-          gh release upload "v$V" "Moku_${V}_x64-setup.exe" --clobber
+          cp "$EXE" "Moku_${V}_${{ matrix.arch }}-setup.exe"
+          gh release upload "v$V" "Moku_${V}_${{ matrix.arch }}-setup.exe" --clobber
 
   macos:
     name: macOS (arm64 + x64)
@@ -337,9 +343,15 @@ jobs:
           gh release upload "v${{ inputs.version }}" "$B" --clobber
 
   linux:
-    name: Linux AppImage
+    name: Linux AppImage (${{ matrix.arch }})
     needs: prepare
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-22.04,     arch: x86_64,  target: x86_64-unknown-linux-gnu,  tsunagu: amd64 }
+          - { runner: ubuntu-22.04-arm, arch: aarch64, target: aarch64-unknown-linux-gnu, tsunagu: arm64 }
+    runs-on: ${{ matrix.runner }}
     env:
       APPIMAGE_EXTRACT_AND_RUN: "1"
       NO_STRIP: "true"
@@ -366,7 +378,7 @@ jobs:
             gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
 
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: x86_64-unknown-linux-gnu }
+        with: { targets: "${{ matrix.target }}" }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: src-tauri }
       - uses: pnpm/action-setup@v4
@@ -383,37 +395,37 @@ jobs:
         run: |
           set -euo pipefail
           gh release download "v${TSUNAGU_VERSION}" --repo moku-project/Tsunagu \
-            --pattern 'tsunagu-linux-amd64' \
+            --pattern "tsunagu-linux-${{ matrix.tsunagu }}" \
             --pattern 'sandbox.jar' \
-            --pattern 'runtime-linux-amd64.tar.gz' \
+            --pattern "runtime-linux-${{ matrix.tsunagu }}.tar.gz" \
             --pattern 'sha256sums.txt' \
             --dir tsunagu-dl --clobber
           cd tsunagu-dl
-          for f in tsunagu-linux-amd64 sandbox.jar runtime-linux-amd64.tar.gz; do
+          for f in "tsunagu-linux-${{ matrix.tsunagu }}" sandbox.jar "runtime-linux-${{ matrix.tsunagu }}.tar.gz"; do
             grep " $f\$" sha256sums.txt | sha256sum -c -
           done
           cd ..
           mkdir -p src-tauri/resources/sandbox
-          install -Dm755 tsunagu-dl/tsunagu-linux-amd64 src-tauri/resources/tsunagu
-          install -Dm644 tsunagu-dl/sandbox.jar         src-tauri/resources/sandbox/sandbox.jar
-          tar -xzf tsunagu-dl/runtime-linux-amd64.tar.gz -C src-tauri/resources/sandbox/
+          install -Dm755 "tsunagu-dl/tsunagu-linux-${{ matrix.tsunagu }}" src-tauri/resources/tsunagu
+          install -Dm644 tsunagu-dl/sandbox.jar                         src-tauri/resources/sandbox/sandbox.jar
+          tar -xzf "tsunagu-dl/runtime-linux-${{ matrix.tsunagu }}.tar.gz" -C src-tauri/resources/sandbox/
           chmod +x src-tauri/resources/sandbox/runtime/bin/java
           test -f src-tauri/resources/sandbox/runtime/lib/modules
           src-tauri/resources/sandbox/runtime/bin/java -version
 
       - name: Build
-        run: pnpm tauri build --target x86_64-unknown-linux-gnu --config src-tauri/tauri.linux.conf.json --verbose
+        run: pnpm tauri build --target ${{ matrix.target }} --config src-tauri/tauri.linux.conf.json --verbose
 
       - name: Inject bundled JRE into AppImage
         run: |
           set -euo pipefail
-          B=src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage
+          B=src-tauri/target/${{ matrix.target }}/release/bundle/appimage
           APPIMAGE=$(find "$B" -name '*.AppImage' | head -1)
           [ -n "$APPIMAGE" ] || { echo "no AppImage produced"; exit 1; }
           NAME=$(basename "$APPIMAGE")
 
           curl -fsSL -o /tmp/appimagetool \
-            https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+            https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-${{ matrix.arch }}.AppImage
           chmod +x /tmp/appimagetool
 
           cd "$B"
@@ -429,7 +441,7 @@ jobs:
           "$RT/bin/java" -version
 
           rm -f "$NAME"
-          ARCH=x86_64 /tmp/appimagetool --no-appstream squashfs-root "$NAME"
+          ARCH=${{ matrix.arch }} /tmp/appimagetool --no-appstream squashfs-root "$NAME"
           rm -rf squashfs-root
 
           test -f "$NAME"
@@ -444,8 +456,8 @@ jobs:
         run: |
           set -euo pipefail
           V="${{ inputs.version }}"
-          B=src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage
+          B=src-tauri/target/${{ matrix.target }}/release/bundle/appimage
           APPIMAGE=$(find "$B" -name '*.AppImage' | head -1)
           [ -n "$APPIMAGE" ] || { echo "no AppImage produced"; exit 1; }
-          cp "$APPIMAGE" "Moku-${V}-x86_64.AppImage"
-          gh release upload "v$V" "Moku-${V}-x86_64.AppImage" --clobber
+          cp "$APPIMAGE" "Moku-${V}-${{ matrix.arch }}.AppImage"
+          gh release upload "v$V" "Moku-${V}-${{ matrix.arch }}.AppImage" --clobber

@@ -25,6 +25,7 @@
   import { addToast }                  from '$lib/state/notifications.svelte'
   import { trackingState }             from '$lib/state/tracking.svelte'
   import { getPref, setPref }          from '$lib/state/series.svelte'
+  import { hasOverrides, loadMediaAutomation } from '$lib/state/automation.svelte'
   import { openMangaFolder }           from '$lib/core/filesystem'
   import type { Manga, Chapter } from '$lib/types'
   import type { Folder, TrackLink } from '$lib/server-adapters/types'
@@ -114,14 +115,11 @@
   })())
 
   const hasAnyAutomation = $derived(
-    get('autoDownload')                       ||
-    (get('downloadAhead') as number) > 0      ||
-    (get('maxKeepChapters') as number) > 0    ||
-    get('deleteOnRead')                       ||
-    get('pauseUpdates')                       ||
-    get('refreshInterval') !== 'global'       ||
+    (!!realMediaId && hasOverrides(realMediaId)) ||
     !!(get('preferredScanlator') as string)
   )
+
+  $effect(() => { if (realMediaId) untrack(() => loadMediaAutomation(realMediaId)) })
 
   const linkedIds = $derived(seriesState.settings.mangaLinks?.[mangaId] ?? [])
 
@@ -669,7 +667,7 @@
 </div>
 
 {#if autoOpen && manga}
-  <AutomationPanel mangaId={manga.id} {manga} onClose={() => autoOpen = false} />
+  <AutomationPanel mangaId={manga.id} mediaId={realMediaId} {manga} onClose={() => autoOpen = false} />
 {/if}
 
 {#if trackerOpen && manga && realMediaId}

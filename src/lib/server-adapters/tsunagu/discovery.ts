@@ -1,5 +1,5 @@
 import { gql, baseUrl } from './gql'
-import type { SearchResponse, SourceDetails, PreviewChapter, RecentChapter, FilterNode, FilterInput, SourcePreference, MangaInfo, LibraryUpdateStatus } from '$lib/server-adapters/types'
+import type { SearchResponse, SourceDetails, PreviewChapter, RecentChapter, FilterNode, FilterInput, SourcePreference, MangaInfo, LibraryUpdateStatus, LibraryUpdateTrigger } from '$lib/server-adapters/types'
 
 const FILTER_NODE_FRAGMENT = `
 	fragment FilterNodeFields on FilterNode {
@@ -217,10 +217,12 @@ export const discovery = {
 		}))
 	},
 
-	async startLibraryUpdate(folderId?: string): Promise<boolean> {
+	async startLibraryUpdate(folderId?: string, trigger: LibraryUpdateTrigger = 'MANUAL'): Promise<boolean> {
 		const data = await gql<{ startLibraryUpdate: boolean }>(
-			`mutation StartLibraryUpdate($folderId: ID) { startLibraryUpdate(folderId: $folderId) }`,
-			{ folderId },
+			`mutation StartLibraryUpdate($folderId: ID, $trigger: LibraryUpdateTrigger) {
+				startLibraryUpdate(folderId: $folderId, trigger: $trigger)
+			}`,
+			{ folderId, trigger },
 			baseUrl()
 		)
 		return data.startLibraryUpdate

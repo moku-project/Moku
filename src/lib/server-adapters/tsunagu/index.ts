@@ -6,6 +6,7 @@ import { downloads } from './downloads'
 import { repositories } from './repositories'
 import { extensions } from './extensions'
 import { folders } from './folders'
+import { automation } from './automation'
 import { trackers } from './trackers'
 import { serverSettings } from './serverSettings'
 import { contentFilter } from './contentFilter'
@@ -21,6 +22,7 @@ export const tsunagu = {
 	...repositories,
 	...extensions,
 	...folders,
+	...automation,
 	...trackers,
 	...serverSettings,
 	...contentFilter,

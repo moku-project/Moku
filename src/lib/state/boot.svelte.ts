@@ -132,6 +132,7 @@ function handleProbeSuccess(gen: number) {
 	boot.skipped = false
 	boot.serverProbeOk = true
 	appState.status = pinLockEnabled() ? 'locked' : 'ready'
+	import('$lib/state/automation.svelte').then(m => m.onServerConnected()).catch(() => {})
 	tsunagu.rescanLocalMedia()
 		.then(found => { if (found.length) import('$lib/state/library.svelte').then(m => m.loadLibrary(true)) })
 		.catch(() => {})

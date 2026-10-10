@@ -222,6 +222,51 @@ export interface Folder {
 	/** Content types the folder is designated for; empty means all. */
 	contentTypes: ContentType[]
 }
+export type LibraryUpdateTrigger = 'MANUAL' | 'APP_OPEN'
+export type RefreshInterval = 'DAILY' | 'WEEKLY' | 'MANUAL'
+
+export interface AutomationSettings {
+	enabled: boolean
+	enforceGlobal: boolean
+	autoDownload: boolean
+	downloadAhead: number
+	deleteOnRead: boolean
+	deleteDelayHours: number
+	maxKeepChapters: number
+	refreshInterval: RefreshInterval
+	updateOnOpen: boolean
+	configured: boolean
+	lastLibraryUpdateAt: string | null
+}
+
+export type AutomationSettingsInput = Partial<Omit<AutomationSettings, 'configured' | 'lastLibraryUpdateAt'>>
+
+export interface AutomationRules {
+	autoDownload: boolean
+	downloadAhead: number
+	deleteOnRead: boolean
+	deleteDelayHours: number
+	maxKeepChapters: number
+	pauseUpdates: boolean
+	refreshInterval: RefreshInterval
+}
+
+/** Per-series overrides; null means the global setting applies. */
+export interface MediaAutomationInput {
+	autoDownload?: boolean | null
+	downloadAhead?: number | null
+	deleteOnRead?: boolean | null
+	deleteDelayHours?: number | null
+	maxKeepChapters?: number | null
+	pauseUpdates?: boolean | null
+	refreshInterval?: RefreshInterval | null
+}
+
+export interface MediaAutomation extends Required<MediaAutomationInput> {
+	mediaId: string
+	effective: AutomationRules
+}
+
 export interface PreviewChapter {
 	externalId:  string
 	title:       string | null

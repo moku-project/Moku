@@ -1,7 +1,8 @@
 import { readerState } from "$lib/state/mangaReader.svelte";
 import { DEFAULT_MANGA_PREFS } from "$lib/types/settings";
 import { seriesState }                      from "$lib/state/series.svelte";
-import { libraryState }                     from "$lib/state/library.svelte";
+import { loadLibrary }                      from "$lib/state/library.svelte";
+import { readTriggersAutomation }           from "$lib/state/automation.svelte";
 import { settingsState }                    from "$lib/state/settings.svelte";
 import { tsunagu }                          from "$lib/server-adapters/tsunagu";
 import type { MangaPrefs }                  from "$lib/types/settings";
@@ -42,43 +43,13 @@ export function markChapterRead(id: string, markedRead: Set<string>) {
         chapters.map(c => c.id === id ? { ...c, read: true } : c),
       );
 
-      const prefs = getMangaPrefs(mangaId);
-
-
-      if (prefs.deleteOnRead) {
-        const ch = readerState.activeChapterList.find(c => c.id === id);
-        if (ch?.downloaded) {
-          const delayMs = (prefs.deleteDelayHours ?? 0) * 3_600_000;
-          const doDelete = () => tsunagu.deleteDownloads(realMediaId, [id])
-            .then(() => { if (mangaId) seriesState.markChaptersDeleted(mangaId, [id]); libraryState.patchDownloadCount(realMediaId, -1); })
-            .catch(console.error);
-          if (delayMs === 0) doDelete(); else setTimeout(doDelete, delayMs);
-        }
-      }
-
-      if (prefs.downloadAhead > 0) {
-        const list = readerState.activeChapterList;
-        const idx  = list.findIndex(c => c.id === id);
-        if (idx >= 0) {
-          const toQueue = list
-            .slice(idx + 1, idx + 1 + prefs.downloadAhead)
-            .filter(c => !c.downloaded && !c.read)
-            .map(c => c.id);
-          if (toQueue.length) tsunagu.enqueueDownloads(realMediaId, toQueue).catch(console.error);
-        }
-      }
-
-      if (prefs.maxKeepChapters > 0) {
-        const downloaded = readerState.activeChapterList
-          .filter(c => c.downloaded)
-          .sort((a, b) => a.sourceOrder - b.sourceOrder);
-        const excess = downloaded.slice(0, Math.max(0, downloaded.length - prefs.maxKeepChapters));
-        if (excess.length) {
-          const excessIds = excess.map(c => c.id);
-          tsunagu.deleteDownloads(realMediaId, excessIds)
-            .then(() => { if (mangaId) seriesState.markChaptersDeleted(mangaId, excessIds); libraryState.patchDownloadCount(realMediaId, -excessIds.length); })
-            .catch(console.error);
-        }
+      // Delete-after-read, download-ahead and max-kept rules run on the server;
+      // refetch download state once it has had a moment to act.
+      if (readTriggersAutomation(realMediaId)) {
+        setTimeout(() => {
+          seriesState.loadChapters(mangaId, { force: true, mediaId: realMediaId }).catch(console.error);
+          loadLibrary(true).catch(console.error);
+        }, 1500);
       }
     })
     .catch(e => { markedRead.delete(id); console.error(e); });

@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { X }          from "phosphor-svelte";
-  import { getPref, setPref } from "$lib/state/series.svelte";
-  import { settingsState }    from "$lib/state/settings.svelte";
+  import { onMount }    from "svelte";
+  import { X, ArrowCounterClockwise } from "phosphor-svelte";
+  import { automationState, loadAutomation, loadMediaAutomation, setMediaOverride, resetMediaAutomation, hasOverrides } from "$lib/state/automation.svelte";
   import { libraryState }     from "$lib/state/library.svelte";
   import { resolvedCover }    from "$lib/core/cover/coverResolver";
   import Thumbnail            from "$lib/components/shared/manga/Thumbnail.svelte";
-  import type { MangaPrefs }  from "$lib/state/series.svelte";
+  import type { AutomationRules, MediaAutomationInput, RefreshInterval } from "$lib/server-adapters/types";
   import type { Manga }       from "$lib/types";
 
-  let { mangaId, manga: mangaProp = null, onClose }: {
+  let { mangaId, mediaId, manga: mangaProp = null, onClose }: {
     mangaId:  string;
+    /** Server media id the rules belong to. */
+    mediaId:  string;
     manga?:   Manga | null;
     onClose:  () => void;
   } = $props();
@@ -34,15 +36,26 @@
     { value: 168, label: "1 week" },
   ];
 
-  const REFRESH_INTERVAL_OPTIONS = [
-    { value: "global", label: "Default" },
-    { value: "daily",  label: "Daily"   },
-    { value: "weekly", label: "Weekly"  },
-    { value: "manual", label: "Manual"  },
+  const REFRESH_INTERVAL_OPTIONS: { value: RefreshInterval | null; label: string }[] = [
+    { value: null,     label: "Default" },
+    { value: "DAILY",  label: "Daily"   },
+    { value: "WEEKLY", label: "Weekly"  },
+    { value: "MANUAL", label: "Manual"  },
   ];
 
-  const get = <K extends keyof MangaPrefs>(key: K): MangaPrefs[K] => getPref(mangaId, key);
-  const set = <K extends keyof MangaPrefs>(key: K, value: MangaPrefs[K]) => setPref(mangaId, key, value);
+  // Values shown are the effective rules (override or inherited global); picking
+  // one stores an override for this series on the server.
+  const ma  = $derived(automationState.overrides[mediaId]);
+  const get = <K extends keyof AutomationRules>(key: K): AutomationRules[K] | undefined => ma?.effective[key];
+  const set = <K extends keyof MediaAutomationInput>(key: K, value: MediaAutomationInput[K]) => void setMediaOverride(mediaId, key, value);
+  const custom   = $derived(hasOverrides(mediaId));
+  const disabled = $derived(automationState.settings ? !automationState.settings.enabled : false);
+  const enforced = $derived(automationState.settings?.enforceGlobal ?? false);
+
+  onMount(() => {
+    if (!automationState.settings) void loadAutomation();
+    if (mediaId) void loadMediaAutomation(mediaId);
+  });
 
   const manga    = $derived(libraryState.items.find(m => m.id === mangaId) ?? mangaProp);
   const coverSrc = $derived(manga ? resolvedCover(manga.id, manga.thumbnailUrl) : null);
@@ -69,14 +82,26 @@
       <div class="content-header">
         <div class="title-block">
           <span class="title">{manga?.title ?? "Automation"}</span>
-          <span class="subtitle">Per-series rules</span>
+          <span class="subtitle">{custom ? "Custom rules for this series" : "Using the global defaults"}</span>
         </div>
+        {#if custom}
+          <button class="reset-btn" onclick={() => resetMediaAutomation(mediaId)} title="Use the global defaults for this series">
+            <ArrowCounterClockwise size={12} /> Reset
+          </button>
+        {/if}
         <button class="close-btn" onclick={onClose} aria-label="Close">
           <X size={16} weight="light" />
         </button>
       </div>
 
       <div class="content-body">
+        {#if !mediaId}
+          <p class="notice">Add this series to your library to set automation rules.</p>
+        {:else if disabled}
+          <p class="notice">Automation is turned off in Settings → Automation, so these rules won't run.</p>
+        {:else if enforced}
+          <p class="notice">Global defaults are enforced in Settings → Automation; per-series rules are ignored.</p>
+        {/if}
 
         <p class="section-label">Downloads</p>
 
@@ -189,8 +214,8 @@
             {#each REFRESH_INTERVAL_OPTIONS as opt}
               <button
                 class="auto-chip"
-                class:auto-chip-on={get("refreshInterval") === opt.value}
-                onclick={() => set("refreshInterval", opt.value as MangaPrefs["refreshInterval"])}
+                class:auto-chip-on={(ma?.refreshInterval ?? null) === opt.value}
+                onclick={() => set("refreshInterval", opt.value)}
               >{opt.label}</button>
             {/each}
           </div>
@@ -295,6 +320,10 @@
     letter-spacing: var(--tracking-widest); color: var(--text-faint);
     text-transform: uppercase; margin: 0;
   }
+
+  .reset-btn { display: flex; align-items: center; gap: 4px; font-family: var(--font-ui); font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); padding: 3px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-dim); background: none; color: var(--text-muted); cursor: pointer; flex-shrink: 0; }
+  .reset-btn:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-raised); }
+  .notice { margin: 0; font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-muted); background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius-sm); padding: var(--sp-2) var(--sp-3); line-height: var(--leading-snug); }
 
   .divider { height: 1px; background: var(--border-dim); margin: var(--sp-1) 0; }
 

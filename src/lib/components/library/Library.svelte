@@ -178,7 +178,7 @@
       const started = await tsunagu.startLibraryUpdate()
       let status = await tsunagu.libraryUpdateStatus()
       if (!started && !status.running) {
-        addToast({ kind: 'error', title: 'Update failed', body: 'Could not start library update.' })
+        addToast({ kind: 'info', title: 'Nothing to update', body: 'Every series is paused or excluded from updates.' })
         return
       }
       while (status.running) {

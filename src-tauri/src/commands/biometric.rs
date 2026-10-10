@@ -56,7 +56,7 @@ mod windows_hello {
                 UserConsentVerifier::RequestVerificationAsync(&HSTRING::from(reason.as_str()))
                     .and_then(|op| {
                         nudge_focus(5, 250);
-                        op.get()
+                        op.join()
                     });
             let _ = tx.send(outcome);
         });
@@ -83,7 +83,7 @@ mod windows_hello {
     pub fn is_available() -> bool {
         use windows::Security::Credentials::UI::UserConsentVerifierAvailability;
         UserConsentVerifier::CheckAvailabilityAsync()
-            .and_then(|op| op.get())
+            .and_then(|op| op.join())
             .map(|a| a == UserConsentVerifierAvailability::Available)
             .unwrap_or(false)
     }

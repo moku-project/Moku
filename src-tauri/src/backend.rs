@@ -144,10 +144,7 @@ pub async fn start(app: AppHandle) -> Result<(), String> {
         cmd.env("TSUNAGU_RESOURCE_DIR", &root);
     }
     #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000);
-    }
+    cmd.creation_flags(0x0800_0000);
     #[cfg(target_os = "linux")]
     unsafe {
         cmd.pre_exec(|| {

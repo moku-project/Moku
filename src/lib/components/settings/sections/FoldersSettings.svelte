@@ -1,9 +1,15 @@
 <script lang="ts">
-  import { FolderSimple, Plus, Trash, Star, Eye, EyeSlash, ArrowsClockwise, ArrowsCounterClockwise, DownloadSimple, DotsSixVertical, CheckSquare, Lock } from 'phosphor-svelte'
+  import { FolderSimple, Plus, Trash, Star, Eye, EyeSlash, ArrowsClockwise, ArrowsCounterClockwise, DownloadSimple, DotsSixVertical, CheckSquare, Lock, ImageSquare, BookOpenText, FilmSlate } from 'phosphor-svelte'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { libraryState } from '$lib/state/library.svelte'
-  import type { Folder } from '$lib/server-adapters/types'
+  import type { ContentType, Folder } from '$lib/server-adapters/types'
+
+  const FOLDER_TYPES: { id: ContentType; label: string; icon: any }[] = [
+    { id: 'MANGA', label: 'Manga',  icon: ImageSquare  },
+    { id: 'NOVEL', label: 'Novels', icon: BookOpenText },
+    { id: 'ANIME', label: 'Anime',  icon: FilmSlate    },
+  ]
 
   let folders       = $state<Folder[]>([])
   let foldersLoading = $state(false)
@@ -89,6 +95,26 @@
     }
   }
 
+  async function toggleFolderType(f: Folder, type: ContentType) {
+    const prev = f.contentTypes ?? []
+    const next = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    const patch = (types: ContentType[]) => (x: Folder) => x.id === f.id ? { ...x, contentTypes: types } : x
+    folders = folders.map(patch(next))
+    libraryState.setFolders(libraryState.folders.map(patch(next)))
+    try {
+      await tsunagu.setFolderContentTypes(f.id, next)
+    } catch (e: any) {
+      folders = folders.map(patch(prev))
+      libraryState.setFolders(libraryState.folders.map(patch(prev)))
+      foldersError = e?.message ?? 'Failed to update folder'
+    }
+  }
+
+  function folderTitleCount(f: Folder) {
+    const n = libraryState.folderMembership[f.id]?.length ?? 0
+    return `${n} ${n === 1 ? 'title' : 'titles'}`
+  }
+
   function applyReorder(fromId: string, toId: string) {
     const allIds  = ['library', 'downloaded', ...sortedFolderIds]
     const current = settingsState.settings.libraryPinnedTabOrder ?? []
@@ -165,12 +191,26 @@
   })
 </script>
 
+{#snippet typeChips(f: Folder)}
+  {@const types = f.contentTypes ?? []}
+  <div class="s-folder-types" title={types.length ? `Shown for ${FOLDER_TYPES.filter(t => types.includes(t.id)).map(t => t.label).join(', ')}` : 'Shown for every content type'}>
+    {#each FOLDER_TYPES as t}
+      {@const on = types.includes(t.id)}
+      <button class="s-btn-icon s-type-chip" class:active={on} class:all={!types.length}
+        aria-pressed={on} onclick={() => toggleFolderType(f, t.id)}
+        title={on ? `Stop showing for ${t.label}` : `Show for ${t.label}`}>
+        <t.icon size={13} weight={on ? 'fill' : 'light'} />
+      </button>
+    {/each}
+  </div>
+{/snippet}
+
 <div class="s-panel">
   <div class="s-section">
     <p class="s-section-title">Manage Folders</p>
     <div class="s-section-body">
       <div class="s-row">
-        <span class="s-desc">Folders sync across all clients connected to this server.</span>
+        <span class="s-desc">Folders sync across all clients connected to this server. Pick content types on a folder to only show its tab for those types; with none picked it shows everywhere.</span>
       </div>
 
       {#if foldersError}
@@ -203,9 +243,10 @@
                     <DotsSixVertical size={14} weight="bold" />
                   </span>
                   <span class="s-folder-name">{f.name}</span>
-                  <span class="s-folder-count">{libraryState.counts[f.id] ?? 0} manga</span>
+                  <span class="s-folder-count">{folderTitleCount(f)}</span>
                   <span class="s-folder-badge">built-in</span>
                   <div class="s-folder-actions">
+                    {@render typeChips(f)}
                     <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? 'Show tab in library' : 'Hide tab from library'}>
                       {#if hidden}<EyeSlash size={13} weight="light" />{:else}<Eye size={13} weight="light" />{/if}
                     </button>
@@ -241,8 +282,9 @@
                       </span>
                       <button class="s-folder-name" onclick={(e) => { e.stopPropagation(); startEdit(f) }} title="Click to rename">{f.name}</button>
                     </div>
-                    <span class="s-folder-count">{libraryState.counts[f.id] ?? 0} manga</span>
+                    <span class="s-folder-count">{folderTitleCount(f)}</span>
                     <div class="s-folder-actions">
+                      {@render typeChips(f)}
                       <button class="s-btn-icon"
                         class:active={f.includeInUpdate !== false}
                         class:inactive={f.includeInUpdate === false}
@@ -350,6 +392,11 @@
     flex-shrink: 0;
     margin-left: 6px;
   }
+
+  .s-folder-types { display: flex; align-items: center; gap: 1px; margin-right: 6px; padding-right: 6px; border-right: 1px solid var(--border-dim); }
+  .s-type-chip { opacity: 0.35; }
+  .s-type-chip.all { opacity: 0.6; }
+  .s-type-chip.active, .s-type-chip:hover { opacity: 1; }
 
   .s-btn-icon.active   { color: var(--accent, #6c8ef5); }
   .s-btn-icon.inactive { color: var(--color-error, #f87171); opacity: 0.75; }

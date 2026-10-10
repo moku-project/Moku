@@ -83,8 +83,14 @@ class LibraryState {
     return this.items.filter(m => m.inLibrary && !inAnyFolder.has(m.id));
   }
 
+  // A folder with no designated content types shows under every type.
+  folderMatchesType = (f: Folder): boolean => {
+    const ct = settingsState.settings.contentTypeFilter;
+    return !ct || ct === "all" || !f.contentTypes?.length || f.contentTypes.includes(ct);
+  };
+
   get allTabIds(): string[] {
-    const folderIds = this.folders.map(f => f.id);
+    const folderIds = this.folders.filter(this.folderMatchesType).map(f => f.id);
     const BUILTIN    = ["library", "downloaded"];
     const known      = new Set([...BUILTIN, ...folderIds]);
     const ordered: string[] = [];
@@ -105,7 +111,7 @@ class LibraryState {
   get visibleFolders(): Folder[] {
     const pinned   = this.pinnedTabOrder;
     const defId    = this.defaultFolderId;
-    const folders  = this.folders.filter(f => !this.hiddenTabs.has(f.id));
+    const folders  = this.folders.filter(f => !this.hiddenTabs.has(f.id) && this.folderMatchesType(f));
     const pinOrder = (id: string) => { const i = pinned.indexOf(id); return i === -1 ? Infinity : i; };
     return [...folders].sort((a, b) => {
       if (a.id === defId) return -1;
@@ -315,7 +321,7 @@ class LibraryState {
 
   guardTab() {
     if (this.tab === "library" || this.tab === "downloaded") return;
-    if (!this.folders.some(f => f.id === this.tab)) this.tab = "library";
+    if (!this.folders.some(f => f.id === this.tab && this.folderMatchesType(f))) this.tab = "library";
   }
 }
 

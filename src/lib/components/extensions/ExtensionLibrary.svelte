@@ -6,6 +6,7 @@
   import { setPreviewManga } from "$lib/state/series.svelte";
   import { platformService } from "$lib/platform-service";
   import { addToast }        from "$lib/state/notifications.svelte";
+  import { settingsState }   from "$lib/state/settings.svelte";
 
   import { libraryByExtension, type LibraryManga, type SourceNode, type SourceLibrary } from "$lib/components/extensions/lib/extensionLibrary";
   import SourceMigrateModal  from "$lib/components/extensions/panels/SourceMigrateModal.svelte";
@@ -51,6 +52,8 @@
 
   const filtered = $derived((() => {
     let items = allManga;
+    const ct = settingsState.settings.contentTypeFilter;
+    if (isLocal && ct && ct !== "all") items = items.filter((m: any) => m.contentType === ct);
     const q = (isLocal ? searchInput : search).trim().toLowerCase();
     if (q) items = items.filter((m: any) => m.title.toLowerCase().includes(q));
     if (!isLocal) {

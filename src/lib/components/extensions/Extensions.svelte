@@ -36,13 +36,15 @@
   let browseGen      = 0;
   let listEl         = $state<HTMLDivElement | undefined>(undefined);
 
-  let localMangaCount = $state<string>("0");
   let loading      = $state(true);
   let refreshing   = $state(false);
   let filter     = $state<Filter>("installed");
   let search     = $state("");
   let langFilter = $state<string | null>(null);
   const contentTypeFilter = $derived(settingsState.settings.contentTypeFilter);
+  const matchesType = (ct: string | null | undefined) => contentTypeFilter === "all" || ct === contentTypeFilter;
+  let localMedia = $state<{ contentType: string }[]>([]);
+  const localMangaCount = $derived(String(localMedia.filter((m) => matchesType(m.contentType)).length));
   let working      = $state(new Set<string>());
   let updatingAll  = $state(false);
   let expanded     = $state(new Set<string>());
@@ -162,9 +164,8 @@
 
   async function loadLocalManga() {
     try {
-      const found = await tsunagu.rescanLocalMedia();
-      localMangaCount = String(found.length);
-    } catch { localMangaCount = "0"; }
+      localMedia = await tsunagu.rescanLocalMedia();
+    } catch { localMedia = []; }
   }
 
   async function fetchFromRepo() {
@@ -266,7 +267,7 @@
   }
 
   async function updateAll() {
-    const pending = installedExts.filter((e) => e.needsUpdate);
+    const pending = pendingUpdates;
     if (!pending.length || updatingAll) return;
     updatingAll = true;
     for (const ext of pending) await mutate(ext.packageName, "update", false);
@@ -340,7 +341,8 @@
   );
 
 
-  const updateCount = $derived(installedExts.filter((e) => e.needsUpdate).length);
+  const pendingUpdates = $derived(installedExts.filter((e) => e.needsUpdate && matchesType(e.contentType)));
+  const updateCount    = $derived(pendingUpdates.length);
 
   let searchDebounce: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {

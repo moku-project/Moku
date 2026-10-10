@@ -1,10 +1,10 @@
 import { gql, baseUrl } from './gql'
-import type { Folder, LibraryEntry } from '$lib/server-adapters/types'
+import type { ContentType, Folder, LibraryEntry } from '$lib/server-adapters/types'
 
 export const folders = {
 	async folders(): Promise<Folder[]> {
 		const data = await gql<{ folders: Folder[] }>(
-			`query Folders { folders { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload } }`,
+			`query Folders { folders { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes } }`,
 			undefined,
 			baseUrl()
 		)
@@ -13,7 +13,7 @@ export const folders = {
 
 	async folder(id: string): Promise<Folder | null> {
 		const data = await gql<{ folder: Folder | null }>(
-			`query Folder($id: ID!) { folder(id: $id) { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload } }`,
+			`query Folder($id: ID!) { folder(id: $id) { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes } }`,
 			{ id },
 			baseUrl()
 		)
@@ -36,7 +36,7 @@ export const folders = {
 	async createFolder(name: string, parentFolderId?: string): Promise<Folder> {
 		const data = await gql<{ createFolder: Folder }>(
 			`mutation CreateFolder($name: String!, $parentFolderId: ID) {
-				createFolder(name: $name, parentFolderId: $parentFolderId) { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload }
+				createFolder(name: $name, parentFolderId: $parentFolderId) { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes }
 			}`,
 			{ name, parentFolderId },
 			baseUrl()
@@ -47,7 +47,7 @@ export const folders = {
 	async renameFolder(folderId: string, name: string): Promise<Folder> {
 		const data = await gql<{ renameFolder: Folder }>(
 			`mutation RenameFolder($folderId: ID!, $name: String!) {
-				renameFolder(folderId: $folderId, name: $name) { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload }
+				renameFolder(folderId: $folderId, name: $name) { id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes }
 			}`,
 			{ folderId, name },
 			baseUrl()
@@ -90,7 +90,7 @@ export const folders = {
 		const data = await gql<{ reorderFolder: Folder }>(
 			`mutation ReorderFolder($folderId: ID!, $sortOrder: Int!) {
 				reorderFolder(folderId: $folderId, sortOrder: $sortOrder) {
-					id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload
+					id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes
 				}
 			}`,
 			{ folderId, sortOrder },
@@ -120,12 +120,25 @@ export const folders = {
 		const data = await gql<{ updateFolderFlags: Folder }>(
 			`mutation UpdateFolderFlags($folderId: ID!, $includeInUpdate: Boolean, $includeInDownload: Boolean) {
 				updateFolderFlags(folderId: $folderId, includeInUpdate: $includeInUpdate, includeInDownload: $includeInDownload) {
-					id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload
+					id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes
 				}
 			}`,
 			{ folderId, ...flags },
 			baseUrl()
 		)
 		return data.updateFolderFlags
+	},
+
+	async setFolderContentTypes(folderId: string, contentTypes: ContentType[]): Promise<Folder> {
+		const data = await gql<{ setFolderContentTypes: Folder }>(
+			`mutation SetFolderContentTypes($folderId: ID!, $contentTypes: [ContentType!]!) {
+				setFolderContentTypes(folderId: $folderId, contentTypes: $contentTypes) {
+					id name kind systemKey parentFolderId sortOrder includeInUpdate includeInDownload contentTypes
+				}
+			}`,
+			{ folderId, contentTypes },
+			baseUrl()
+		)
+		return data.setFolderContentTypes
 	},
 }

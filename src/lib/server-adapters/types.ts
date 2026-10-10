@@ -219,6 +219,8 @@ export interface Folder {
 	sortOrder: number
 	includeInUpdate: boolean
 	includeInDownload: boolean
+	/** Content types the folder is designated for; empty means all. */
+	contentTypes: ContentType[]
 }
 export interface PreviewChapter {
 	externalId:  string

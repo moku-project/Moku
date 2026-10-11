@@ -80,9 +80,9 @@
     <div class="msp-row">
       <span>Column width</span>
       <div class="msp-stepper">
-        <button aria-label="Narrower" onclick={() => st.bumpWidth(-2)}>−</button>
+        <button aria-label="Narrower" onclick={() => st.bumpWidth(-4)}>−</button>
         <span class="msp-val">{st.pageWidth}</span>
-        <button aria-label="Wider" onclick={() => st.bumpWidth(2)}>+</button>
+        <button aria-label="Wider" onclick={() => st.bumpWidth(4)}>+</button>
       </div>
     </div>
   </div>

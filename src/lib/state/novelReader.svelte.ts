@@ -14,7 +14,7 @@ export function resolvedNovelFont(st: { systemFont: string | null; fontFamily: N
 const FONT_MIN = 0.8,  FONT_MAX = 2.0;
 const LH_MIN   = 1.3,   LH_MAX  = 2.4;
 const PS_MIN   = 0.3,   PS_MAX  = 2.2;
-const W_MIN    = 30,    W_MAX   = 60;
+const W_MIN    = 30,    W_MAX   = 160;
 
 const LS_KEY = "moku.novelPrefs";
 

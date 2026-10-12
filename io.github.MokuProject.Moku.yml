@@ -1,6 +1,6 @@
 app-id: io.github.MokuProject.Moku
 runtime: org.gnome.Platform
-runtime-version: '48'
+runtime-version: '50'
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
@@ -26,16 +26,6 @@ finish-args:
   - --filesystem=xdg-download
 
   - --env=WEBKIT_DISABLE_DMABUF_RENDERER=1
-
-add-extensions:
-  org.freedesktop.Platform.ffmpeg-full:
-    directory: lib/ffmpeg
-    version: '24.08'
-    add-ld-path: .
-    autodelete: false
-
-cleanup-commands:
-  - mkdir -p /app/lib/ffmpeg
 
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin

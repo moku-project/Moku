@@ -285,6 +285,9 @@
                     <span class="s-folder-count">{folderTitleCount(f)}</span>
                     <div class="s-folder-actions">
                       {@render typeChips(f)}
+                      <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? 'Show tab in library' : 'Hide tab from library'}>
+                        {#if hidden}<EyeSlash size={13} weight="light" />{:else}<Eye size={13} weight="light" />{/if}
+                      </button>
                       <button class="s-btn-icon"
                         class:active={f.includeInUpdate !== false}
                         class:inactive={f.includeInUpdate === false}

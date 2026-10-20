@@ -90,7 +90,7 @@
   <div class="s-section">
     <div class="s-section-body">
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Reading history</span><span class="s-desc">{historyState.sessions.length} entries</span></div>
+        <div class="s-row-info"><span class="s-label">Reading history</span><span class="s-desc">{historyState.sessions.length} entries · clearing keeps your reading stats</span></div>
         <button class="s-btn s-btn-danger" onclick={clearHistory} disabled={!historyState.sessions.length}>Clear</button>
       </div>
     </div>

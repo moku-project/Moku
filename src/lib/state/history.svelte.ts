@@ -1,6 +1,6 @@
 import { saveLibrary }        from '$lib/core/persistence/persist'
-import type { ReadSession, ReadingStats, MediaKind } from '$lib/types/history'
-import { DEFAULT_READING_STATS }          from '$lib/types/history'
+import type { ReadSession, ReadingStats, MediaKind, StatsLedger } from '$lib/types/history'
+import { computeStats, dailyChapterCounts, emptyLedger, recordSession } from '$lib/core/readingStats'
 
 const MAX_SESSIONS    = 1000
 const SESSION_GAP_MS  = 60 * 60 * 1_000
@@ -22,73 +22,24 @@ export interface ActiveSession {
   contentType:      MediaKind
 }
 
-function dateKey(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10)
-}
-
-function computeStats(sessions: ReadSession[]): ReadingStats {
-  if (!sessions.length) return { ...DEFAULT_READING_STATS }
-
-  const chapterIds = new Set<string>()
-  const mangaIds   = new Set<string>()
-  const days       = new Set<string>()
-  let totalMs      = 0
-  let firstReadAt  = Infinity
-  let lastReadAt   = 0
-
-  for (const s of sessions) {
-    chapterIds.add(s.endChapterId)
-    if (s.chaptersSpanned > 1) chapterIds.add(s.startChapterId)
-    mangaIds.add(s.mangaId)
-    totalMs    += Math.min(s.durationMs, SESSION_GAP_MS)
-    firstReadAt = Math.min(firstReadAt, s.startedAt)
-    lastReadAt  = Math.max(lastReadAt,  s.endedAt)
-    days.add(dateKey(s.endedAt))
-  }
-
-  const sortedDays = Array.from(days).sort()
-  let currentStreak = 0
-  let longestStreak = 0
-  let streak        = 0
-  const todayKey    = dateKey(Date.now())
-  const yestKey     = dateKey(Date.now() - 86_400_000)
-  const lastDay     = sortedDays[sortedDays.length - 1]
-  const streakActive = lastDay === todayKey || lastDay === yestKey
-
-  for (let i = 0; i < sortedDays.length; i++) {
-    if (i === 0) {
-      streak = 1
-    } else {
-      const prev = new Date(sortedDays[i - 1]).getTime()
-      const curr = new Date(sortedDays[i]).getTime()
-      streak = curr - prev <= 86_400_000 * 1.5 ? streak + 1 : 1
-    }
-    longestStreak = Math.max(longestStreak, streak)
-  }
-  currentStreak = streakActive ? streak : 0
-
-  return {
-    totalChaptersRead: chapterIds.size,
-    totalMangaRead:    mangaIds.size,
-    totalMinutesRead:  Math.round(totalMs / 60_000),
-    firstReadAt:       firstReadAt === Infinity ? 0 : firstReadAt,
-    lastReadAt,
-    currentStreakDays: currentStreak,
-    longestStreakDays: longestStreak,
-    lastStreakDate:    lastDay ?? '',
-  }
-}
-
 class HistoryStore {
   sessions         = $state<ReadSession[]>([])
-  dailyReadCounts  = $state<Record<string, number>>({})
-  stats            = $state<ReadingStats>({ ...DEFAULT_READING_STATS })
   active           = $state<ActiveSession | null>(null)
+  // The ledger is mutated in place on every commit and can get long, so it is
+  // kept out of Svelte's deep proxy; _publish copies out what the UI reads.
+  private ledger: StatsLedger = emptyLedger()
+  stats            = $state.raw<ReadingStats>(computeStats(this.ledger))
+  dailyReadCounts  = $state.raw<Record<string, number>>({})
 
-  load(sessions: ReadSession[], dailyReadCounts: Record<string, number>) {
-    this.sessions        = sessions
-    this.dailyReadCounts = dailyReadCounts
-    this.stats           = computeStats(sessions)
+  load(sessions: ReadSession[], ledger: StatsLedger) {
+    this.sessions = sessions
+    this.ledger   = ledger
+    this._publish()
+  }
+
+  private _publish() {
+    this.stats           = computeStats(this.ledger)
+    this.dailyReadCounts = dailyChapterCounts(this.ledger)
   }
 
   openSession(
@@ -155,17 +106,21 @@ class HistoryStore {
     this.active = null
   }
 
-  clearHistory() {
-    this.sessions        = []
-    this.dailyReadCounts = {}
-    this.stats           = { ...DEFAULT_READING_STATS }
-    void this._persist()
+  /** Clears the session log only; reading stats keep their totals. */
+  async clearHistory() {
+    this.sessions = []
+    await this._persist()
   }
 
   clearMangaHistory(mangaId: string) {
     this.sessions = this.sessions.filter(s => s.mangaId !== mangaId)
-    this.stats    = computeStats(this.sessions)
     void this._persist()
+  }
+
+  async resetStats() {
+    this.ledger = emptyLedger()
+    this._publish()
+    await this._persist()
   }
 
   private _commit(endedAt: number) {
@@ -193,11 +148,9 @@ class HistoryStore {
       contentType:      a.contentType,
     }
 
-    const day = dateKey(endedAt)
-    this.dailyReadCounts[day] = (this.dailyReadCounts[day] ?? 0) + session.chaptersSpanned
-
+    recordSession(this.ledger, session, a.seenChapterIds)
     this.sessions = [session, ...this.sessions].slice(0, MAX_SESSIONS)
-    this.stats    = computeStats(this.sessions)
+    this._publish()
 
     void this._persist()
   }
@@ -205,9 +158,9 @@ class HistoryStore {
   private async _persist() {
     const bookmarks = (await import('$lib/state/series.svelte')).seriesState.bookmarks
     await saveLibrary({
-      sessions:        this.sessions,
+      sessions: this.sessions,
       bookmarks,
-      dailyReadCounts: this.dailyReadCounts,
+      stats:    this.ledger,
     })
   }
 }

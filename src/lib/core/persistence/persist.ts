@@ -1,6 +1,7 @@
 import { platformService } from '$lib/platform-service'
 import type { ReadSession }                   from '$lib/types/history'
-import type { BookmarkEntry }                 from '$lib/types/history'
+import type { BookmarkEntry, StatsLedger }    from '$lib/types/history'
+import { ledgerFromHistory, normalizeLedger } from '$lib/core/readingStats'
 
 const STORE_VERSION = 2
 
@@ -10,9 +11,9 @@ export interface PersistedSettings {
 }
 
 export interface PersistedLibrary {
-  sessions:        ReadSession[]
-  bookmarks:       BookmarkEntry[]
-  dailyReadCounts: Record<string, number>
+  sessions:  ReadSession[]
+  bookmarks: BookmarkEntry[]
+  stats:     StatsLedger
 }
 
 export interface PersistedUpdates {
@@ -21,9 +22,17 @@ export interface PersistedUpdates {
   acknowledgedUpdateIds: number[]
 }
 
-function migrateLibrary(raw: unknown, fromVersion: number): PersistedLibrary {
+/** Brings stored or backed-up library data of any version up to date. */
+export function migrateLibrary(raw: unknown, fromVersion: number): PersistedLibrary {
   const data = (raw ?? {}) as Record<string, unknown>
+  const lib  = migrateSessions(data, fromVersion)
+  // Stores from before the stats ledger rebuild it from what they kept.
+  const stats = normalizeLedger(data.stats)
+    ?? ledgerFromHistory(lib.sessions, (data.dailyReadCounts ?? {}) as Record<string, number>)
+  return { ...lib, stats }
+}
 
+function migrateSessions(data: Record<string, unknown>, fromVersion: number): Omit<PersistedLibrary, 'stats'> {
   if (fromVersion < 2) {
     const oldHistory = (data.history ?? []) as Array<{
       mangaId: number; mangaTitle: string; thumbnailUrl: string
@@ -48,15 +57,13 @@ function migrateLibrary(raw: unknown, fromVersion: number): PersistedLibrary {
         durationMs:       0,
         chaptersSpanned:  1,
       })),
-      bookmarks:       (data.bookmarks       ?? []) as BookmarkEntry[],
-      dailyReadCounts: (data.dailyReadCounts ?? {}) as Record<string, number>,
+      bookmarks: (data.bookmarks ?? []) as BookmarkEntry[],
     }
   }
 
   return {
-    sessions:        (data.sessions        ?? []) as ReadSession[],
-    bookmarks:       (data.bookmarks       ?? []) as BookmarkEntry[],
-    dailyReadCounts: (data.dailyReadCounts ?? {}) as Record<string, number>,
+    sessions:  (data.sessions  ?? []) as ReadSession[],
+    bookmarks: (data.bookmarks ?? []) as BookmarkEntry[],
   }
 }
 
@@ -110,7 +117,10 @@ export async function loadLibrary(): Promise<PersistedLibrary> {
     }
   }
 
-  return migrateLibrary(raw, version)
+  const lib = migrateLibrary(raw, version)
+  // Write the seeded ledger now, so it no longer depends on the sessions it came from.
+  if (!data.stats && (lib.sessions.length || data.dailyReadCounts)) await saveLibrary(lib)
+  return lib
 }
 
 export async function saveLibrary(data: PersistedLibrary): Promise<void> {

@@ -128,7 +128,7 @@
 				const { historyState } = await import('$lib/state/history.svelte')
 				const { seriesState: s } = await import('$lib/state/series.svelte')
 
-				historyState.load(persistedLibrary.sessions, persistedLibrary.dailyReadCounts)
+				historyState.load(persistedLibrary.sessions, persistedLibrary.stats)
 				s.bookmarks = persistedLibrary.bookmarks
 
 				settingsLoaded = true

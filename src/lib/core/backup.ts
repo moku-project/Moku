@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   loadSettings, saveSettings,
-  loadLibrary,  saveLibrary,
+  loadLibrary,  saveLibrary, migrateLibrary,
   loadUpdates,  saveUpdates,
 } from "$lib/core/persistence/persist";
 
@@ -44,11 +44,7 @@ export async function importAppData(): Promise<void> {
       storeVersion: s.storeVersion ?? 2,
       settings:     s.settings     ?? null,
     }),
-    saveLibrary({
-      sessions:        l.sessions        ?? [],
-      bookmarks:       l.bookmarks       ?? [],
-      dailyReadCounts: l.dailyReadCounts ?? {},
-    }),
+    saveLibrary(migrateLibrary(l, l.storeVersion ?? 1)),
     saveUpdates({
       libraryUpdates:        u.libraryUpdates        ?? [],
       lastLibraryRefresh:    u.lastLibraryRefresh    ?? 0,

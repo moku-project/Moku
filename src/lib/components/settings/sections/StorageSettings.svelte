@@ -5,9 +5,9 @@
   import { addToast as toast } from '$lib/state/notifications.svelte'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { exportAppData, importAppData } from '$lib/core/backup'
-  import { loadBackups, saveBackups, saveSettings, saveLibrary } from '$lib/core/persistence/persist'
+  import { loadBackups, saveBackups, saveSettings } from '$lib/core/persistence/persist'
   import { DEFAULT_SETTINGS } from '$lib/types/settings'
-  import { DEFAULT_READING_STATS } from '$lib/types/history'
+  import { historyState } from '$lib/state/history.svelte'
   import { clearBlobCache } from '$lib/core/cache/imageCache'
   import { cache as queryCache } from '$lib/core/cache/queryCache'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
@@ -21,7 +21,8 @@
 
   let resetItems = $state<ResetItem[]>([
     { key: 'all-cache',       label: 'Clear all caches',      desc: 'Flushes the image blob cache, page cache, query cache, Moku disk cache, and server image/thumbnail cache in one pass.', state: 'idle', error: null, confirm: false },
-    { key: 'reading-history', label: 'Clear reading history', desc: 'Erases chapter history, read log, reading stats, and daily read counts.',                                                        state: 'idle', error: null, confirm: true  },
+    { key: 'reading-history', label: 'Clear reading history', desc: 'Erases the chapter history and read log. Reading stats and bookmarks are kept.',                                                  state: 'idle', error: null, confirm: true  },
+    { key: 'reading-stats',   label: 'Reset reading stats',   desc: 'Zeroes read time, chapter and series counts, streaks, and the activity heatmap. History is kept.',                         state: 'idle', error: null, confirm: true  },
     { key: 'moku-settings',   label: 'Reset Moku settings',   desc: 'Restores all app settings to their defaults. Does not affect library data.',                                                       state: 'idle', error: null, confirm: true  },
   ])
 
@@ -90,7 +91,10 @@
           await clearAllCaches()
           break
         case 'reading-history':
-          await saveLibrary({ sessions: [], bookmarks: [], dailyReadCounts: {} })
+          await historyState.clearHistory()
+          break
+        case 'reading-stats':
+          await historyState.resetStats()
           break
         case 'moku-settings':
           localStorage.clear()

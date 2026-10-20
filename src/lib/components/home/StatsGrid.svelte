@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Fire, BookOpen, Clock, Books, CalendarCheck, CalendarBlank, TrendUp } from 'phosphor-svelte'
   import { formatReadTime, timeAgo } from '$lib/core/util'
-  import type { ReadingStats, ReadSession, MediaKind } from '$lib/types/history'
+  import type { ReadingStats, MediaKind } from '$lib/types/history'
   import type { Manga } from '$lib/types'
 
-  let { stats, sessions, library }: { stats: ReadingStats; sessions: ReadSession[]; library: Manga[] } = $props()
+  let { stats, library }: { stats: ReadingStats; library: Manga[] } = $props()
 
   const sinceLabel = $derived(
     stats.firstReadAt
@@ -45,11 +45,6 @@
     })
   })
 
-  const weekTotal = $derived.by(() => {
-    const cut = Date.now() - 7 * 86_400_000
-    return sessions.reduce((n, s) => n + (s.endedAt >= cut ? (s.chaptersSpanned || 0) : 0), 0)
-  })
-
   const perDay = $derived.by(() => {
     if (!stats.firstReadAt || stats.totalChaptersRead === 0) return '0'
     const days = Math.max(1, Math.ceil((Date.now() - stats.firstReadAt) / 86_400_000))
@@ -59,7 +54,7 @@
   const tiles = $derived([
     { icon: BookOpen,      value: String(stats.totalChaptersRead), label: 'Chapters / episodes' },
     { icon: Clock,         value: formatReadTime(stats.totalMinutesRead), label: 'Read time' },
-    { icon: CalendarBlank, value: String(weekTotal), label: 'This week' },
+    { icon: CalendarBlank, value: String(stats.chaptersThisWeek), label: 'This week' },
     { icon: TrendUp,       value: perDay, label: 'Per day' },
     { icon: Books,         value: String(stats.totalMangaRead), label: 'Series started' },
     { icon: CalendarCheck, value: sinceLabel, label: 'Reading since' },

@@ -210,7 +210,7 @@
       <div class="col-divider col-divider-v"></div>
 
       <div class="right-col">
-        <StatsGrid stats={historyState.stats} sessions={historyState.sessions} library={libraryState.items} />
+        <StatsGrid stats={historyState.stats} library={libraryState.items} />
       </div>
     </div>
   </div>

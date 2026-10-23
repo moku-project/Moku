@@ -1,3 +1,8 @@
+<script lang="ts" module>
+  // The default view applies at launch only; afterwards Home must stay reachable.
+  let launchRedirectDone = false
+</script>
+
 <script lang="ts">
   import { goto } from '$app/navigation'
   import Home from '$lib/components/home/Home.svelte'
@@ -12,7 +17,8 @@
   }
 
   $effect(() => {
-    if (!settingsState.loaded) return
+    if (!settingsState.loaded || launchRedirectDone) return
+    launchRedirectDone = true
     const path = DEFAULT_VIEW_PATHS[settingsState.settings.defaultView ?? 'home']
     if (path) goto(path, { replaceState: true })
   })

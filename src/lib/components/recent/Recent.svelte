@@ -37,6 +37,12 @@
 
   let updateStatus = $state<LibraryUpdateStatus | null>(null)
   let updatePollTimer: ReturnType<typeof setInterval> | null = null
+  let destroyed = false
+
+  // Status requests can resolve after the page is gone; an interval started then would never be cleared.
+  function startUpdatePoll() {
+    if (!destroyed && !updatePollTimer) updatePollTimer = setInterval(pollUpdateStatus, 1500)
+  }
 
   const updaterRunning = $derived(updateStatus?.running ?? false)
   const updaterProgressLabel = $derived(
@@ -48,11 +54,12 @@
     if (!libraryState.items.length) loadLibrary()
     tsunagu.libraryUpdateStatus().then(s => {
       updateStatus = s
-      if (s.running && !updatePollTimer) updatePollTimer = setInterval(pollUpdateStatus, 1500)
+      if (s.running) startUpdatePoll()
     }).catch(() => {})
   })
 
   onDestroy(() => {
+    destroyed = true
     ctrl?.abort()
     if (updatePollTimer) clearInterval(updatePollTimer)
   })
@@ -87,9 +94,7 @@
         addToast({ kind: 'info', title: 'Nothing to update', body: 'Every series is paused or excluded from updates.' })
         return
       }
-      if (updateStatus.running && !updatePollTimer) {
-        updatePollTimer = setInterval(pollUpdateStatus, 1500)
-      }
+      if (updateStatus.running) startUpdatePoll()
     } catch (e: any) {
       addToast({ kind: 'error', title: 'Update failed', body: e?.message ?? 'Could not start library update.' })
     }

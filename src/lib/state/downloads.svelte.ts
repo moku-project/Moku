@@ -253,11 +253,11 @@ class DownloadStore {
   async retryOne(chapterId: string) {
     if (this.dequeueing.has(chapterId)) return;
     const mediaId = this.mediaIdFor(chapterId);
+    // Ask about storage first: cancelling after the dequeue lost the item for good.
+    if (!(await this.guardStorage(this.queue))) return;
     this.dequeueing = new Set(this.dequeueing).add(chapterId);
     try {
       await tsunagu.dequeueDownload(mediaId, chapterId);
-      const projected = this.queue.filter(i => i.chapterId !== chapterId);
-      if (!(await this.guardStorage(projected))) { await this.poll(); return; }
       await tsunagu.enqueueDownload(mediaId, chapterId);
       await this.poll();
     } catch { await this.poll(); }
@@ -266,13 +266,12 @@ class DownloadStore {
 
   async retryAllErrored() {
     if (this.batchWorking || !this.hasErrored) return;
+    if (!(await this.guardStorage(this.queue))) return;
     this.batchWorking = true;
     const ids = [...this.erroredIds];
     const mids = new Map(ids.map(id => [id, this.mediaIdFor(id)]));
     try {
       await Promise.all(ids.map(id => tsunagu.dequeueDownload(mids.get(id) ?? "", id)));
-      const projected = this.queue.filter(i => !this.erroredIds.has(i.chapterId));
-      if (!(await this.guardStorage(projected))) { await this.poll(); return; }
       for (const id of ids) await tsunagu.enqueueDownload(mids.get(id) ?? "", id);
       addToast({ kind: "info", title: `Retrying ${ids.length} failed download${ids.length !== 1 ? "s" : ""}`, duration: 3000 });
       await this.poll();
@@ -282,6 +281,7 @@ class DownloadStore {
 
   async retrySelected() {
     if (this.batchWorking || !this.selected.size) return;
+    if (!(await this.guardStorage(this.queue))) return;
     this.batchWorking = true;
     const ids     = [...this.selected].filter(id => this.erroredIds.has(id));
     const mids    = new Map(ids.map(id => [id, this.mediaIdFor(id)]));
@@ -289,9 +289,6 @@ class DownloadStore {
     try {
       if (ids.length) {
         await Promise.all(ids.map(id => tsunagu.dequeueDownload(mids.get(id) ?? "", id)));
-        const idSet = new Set(ids);
-        const projected = this.queue.filter(i => !idSet.has(i.chapterId));
-        if (!(await this.guardStorage(projected))) { await this.poll(); return; }
         for (const id of ids) await tsunagu.enqueueDownload(mids.get(id) ?? "", id);
         addToast({ kind: "info", title: `Retrying ${ids.length} failed download${ids.length !== 1 ? "s" : ""}`, duration: 3000 });
       }

@@ -3,7 +3,7 @@ import type { ReadSession }                   from '$lib/types/history'
 import type { BookmarkEntry, StatsLedger }    from '$lib/types/history'
 import { ledgerFromHistory, normalizeLedger } from '$lib/core/readingStats'
 
-const STORE_VERSION = 2
+export const STORE_VERSION = 2
 
 export interface PersistedSettings {
   storeVersion: number
@@ -20,6 +20,13 @@ export interface PersistedUpdates {
   libraryUpdates:        unknown[]
   lastLibraryRefresh:    number
   acknowledgedUpdateIds: number[]
+}
+
+/** Store version of raw library data; backups written before the version was exported have none. */
+export function libraryVersion(raw: unknown): number {
+  const data = (raw ?? {}) as Record<string, unknown>
+  if (typeof data.storeVersion === 'number') return data.storeVersion
+  return Array.isArray(data.sessions) ? STORE_VERSION : 1
 }
 
 /** Brings stored or backed-up library data of any version up to date. */
@@ -106,7 +113,7 @@ export async function saveSettings(data: PersistedSettings): Promise<void> {
 export async function loadLibrary(): Promise<PersistedLibrary> {
   const raw     = await platformService.loadStore('library')
   const data    = (raw ?? {}) as Record<string, unknown>
-  const version = (data.storeVersion as number) ?? 1
+  const version = libraryVersion(data)
 
   if (!data.sessions && !data.history) {
     const legacy = evacuateLocalStorage('moku-store')

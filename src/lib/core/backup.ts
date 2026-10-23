@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   loadSettings, saveSettings,
-  loadLibrary,  saveLibrary, migrateLibrary,
-  loadUpdates,  saveUpdates,
+  loadLibrary,  saveLibrary, migrateLibrary, libraryVersion,
+  loadUpdates,  saveUpdates, STORE_VERSION,
 } from "$lib/core/persistence/persist";
 
 async function collectStoreFiles(): Promise<{ name: string; bytes: Uint8Array }[]> {
@@ -15,7 +15,7 @@ async function collectStoreFiles(): Promise<{ name: string; bytes: Uint8Array }[
   const enc = new TextEncoder();
   return [
     { name: "settings.json", bytes: enc.encode(JSON.stringify(settings)) },
-    { name: "library.json",  bytes: enc.encode(JSON.stringify(library)) },
+    { name: "library.json",  bytes: enc.encode(JSON.stringify({ ...library, storeVersion: STORE_VERSION })) },
     { name: "updates.json",  bytes: enc.encode(JSON.stringify(updates)) },
   ];
 }
@@ -44,7 +44,7 @@ export async function importAppData(): Promise<void> {
       storeVersion: s.storeVersion ?? 2,
       settings:     s.settings     ?? null,
     }),
-    saveLibrary(migrateLibrary(l, l.storeVersion ?? 1)),
+    saveLibrary(migrateLibrary(l, libraryVersion(l))),
     saveUpdates({
       libraryUpdates:        u.libraryUpdates        ?? [],
       lastLibraryRefresh:    u.lastLibraryRefresh    ?? 0,

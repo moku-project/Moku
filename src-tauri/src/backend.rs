@@ -136,7 +136,7 @@ pub async fn start(app: AppHandle) -> Result<(), String> {
     let mut cmd = Command::new(&bin);
     cmd.arg("--data-dir")
         .arg(&data)
-        .env("TSUNAGU_ADDR", ":6007")
+        .env("TSUNAGU_ADDR", "127.0.0.1:6007")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);

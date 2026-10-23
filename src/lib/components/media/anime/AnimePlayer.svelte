@@ -224,11 +224,14 @@
     if (!videoEl) return;
     const dur = videoEl.duration || 0;
     videoEl.currentTime = Math.max(0, Math.min(dur, videoEl.currentTime + delta));
+    aps.positionSeconds = videoEl.currentTime;
     flash(delta < 0 ? "back" : "fwd", `${Math.abs(delta)}s`);
   }
   function seekToPct(p: number) {
     if (!videoEl || !videoEl.duration) return;
     videoEl.currentTime = (p / 100) * videoEl.duration;
+    // Time updates pause while seeking; show where the seek is going meanwhile.
+    aps.positionSeconds = videoEl.currentTime;
   }
   function toggleMute() {
     if (!videoEl) return;
@@ -398,6 +401,7 @@
   const clampNum = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, +v.toFixed(2)));
 
   async function classifySubs() {
+    const forChapter = chapter?.id;
     disposeAss();
     assSubs = [];
     subsClassified = false;
@@ -416,6 +420,8 @@
         slog(`  fetch ${s.lang}: THREW`, e);
       }
     }));
+    // A quick episode switch can finish this after the next episode started its own.
+    if (chapter?.id !== forChapter) return;
     assSubs = found;
     subsClassified = true;
     await tick();
@@ -542,6 +548,7 @@
     const m = manga, c = chapter;
     if (!m || !c) return;
     teardown();
+    setBuffering(false);
     aps.resetForEpisode();
     mediaViewState.loading = true;
 
@@ -738,9 +745,11 @@
     skippedMarker = m;
     flash("fwd", m.type === "ending" ? "outro" : "intro");
     videoEl.currentTime = Math.min(videoEl.duration || m.endMs / 1000, m.endMs / 1000 + 0.1);
+    aps.positionSeconds = videoEl.currentTime;
   }
   function onTimeUpdate() {
-    if (!videoEl || !chapter) return;
+    // load() of a detached element reports position 0, which must not be saved as progress.
+    if (!videoEl || !chapter || !attachedUrl || videoEl.readyState === 0) return;
     // Mid-seek updates can still carry the old position; the seeked event brings the real one.
     if (videoEl.seeking) return;
     aps.positionSeconds = videoEl.currentTime;

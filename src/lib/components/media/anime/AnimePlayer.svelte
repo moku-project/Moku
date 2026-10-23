@@ -8,7 +8,7 @@
   } from "phosphor-svelte";
   import type HlsType from "hls.js";
   import type { MediaPlayerClass } from "dashjs";
-  import { seriesState, setPreviewManga } from "$lib/state/series.svelte";
+  import { seriesState, setPreviewManga, seriesKey } from "$lib/state/series.svelte";
   import { settingsState, updateSettings } from "$lib/state/settings.svelte";
   import { tsunagu } from "$lib/server-adapters/tsunagu";
   import { pageServerUrl } from "$lib/core/cache/pageCache";
@@ -32,13 +32,7 @@
   const aps        = animePlayerState;
   const manga      = $derived(seriesState.activeManga);
   const chapter    = $derived(seriesState.activeChapter);
-  // Series opened from the detail page carry no prefsKey, so build the same
-  // extension:externalId key the library and direct links use.
-  const prefsKey   = $derived(
-    manga?.prefsKey
-    ?? (manga?.extensionId && manga?.sourceEntryId ? `${manga.extensionId}:${manga.sourceEntryId}` : null)
-    ?? manga?.mediaId ?? manga?.libraryEntryId ?? manga?.id ?? "",
-  );
+  const prefsKey   = $derived(seriesKey(manga));
   const reportProg = throttledProgressReporter(5000);
 
   trackHistory(() => aps.positionSeconds);

@@ -103,7 +103,7 @@
     const asc = seriesState.readerChapterList
     if (!asc.length) return null
     const anyRead  = asc.some(c => c.read)
-    const bookmark = seriesState.bookmarks.find(b => b.mangaId === mangaId)
+    const bookmark = seriesState.findBookmark([mangaId, realMediaId].filter(Boolean))
     const bookmarkedCh = bookmark ? asc.find(c => c.id === bookmark.chapterId) : null
     if (bookmarkedCh && !bookmarkedCh.read)
       return { chapter: bookmarkedCh, type: (anyRead ? 'continue' : 'start') as 'continue' | 'start', resumePage: bookmark!.pageNumber }
@@ -517,7 +517,7 @@
         chapterId:    ch.id,
         chapterName:  ch.name,
         pageNumber:   ch.lastPageRead,
-      })
+      }, [realMediaId].filter(Boolean))
     }
     openReaderForChapter(ch, manga)
   }

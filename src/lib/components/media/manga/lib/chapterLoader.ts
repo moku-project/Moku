@@ -1,5 +1,5 @@
 import { readerState }                                          from "$lib/state/mangaReader.svelte";
-import { seriesState }                                         from "$lib/state/series.svelte";
+import { seriesState, seriesAliases }                          from "$lib/state/series.svelte";
 import { settingsState }                                       from "$lib/state/settings.svelte";
 import { fetchPages, buildPageGroups }                          from "./pageLoader";
 import { cancelQueuedFetches, revokeBlobUrl, preloadBlobUrls } from "$lib/core/cache/imageCache";
@@ -114,7 +114,7 @@ export async function loadChapter(
   readerState.resetForChapter();
   readerState.pageUrls = [];
 
-  const bookmark = seriesState.bookmarks.find(b => b.mangaId === mangaId && b.chapterId === id);
+  const bookmark = seriesState.findBookmark([...seriesAliases(readerState.activeManga), mangaId], id);
   const resumeTo = bookmark ? bookmark.pageNumber : 0;
   readerState.resumePage      = pos === "first" && resumeTo > 1 ? resumeTo : 0;
   readerState.resumeDismissed = false;

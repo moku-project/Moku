@@ -30,6 +30,28 @@ export function seriesHref(m: {
   return mid ? `${base}?mid=${encodeURIComponent(mid)}` : base
 }
 
+type SeriesIds = Pick<Manga, 'id' | 'prefsKey' | 'extensionId' | 'sourceEntryId' | 'mediaId' | 'libraryEntryId'>
+
+/**
+ * The key a series' prefs and bookmarks live under: extension:externalId, as the
+ * series page and library use, or the media id for local series. The reader knows
+ * series by their numeric media id, so it must not key by `id`.
+ */
+export function seriesKey(m: SeriesIds | null | undefined): string {
+  if (!m) return ''
+  return m.prefsKey
+    ?? (m.id.includes(':') ? m.id : null) // the series page's own key
+    ?? (m.extensionId && m.sourceEntryId ? `${m.extensionId}:${m.sourceEntryId}` : null)
+    ?? m.mediaId ?? m.libraryEntryId ?? m.id
+}
+
+/** Every id a series has been stored under, the key first. */
+export function seriesAliases(m: SeriesIds | null | undefined): string[] {
+  if (!m) return []
+  const ids = [seriesKey(m), m.id, m.mediaId, m.libraryEntryId].filter((v): v is string => !!v)
+  return [...new Set(ids)]
+}
+
 export async function resolveMediaId(raw: string): Promise<string> {
   if (/^\d+$/.test(raw)) return raw
   const sep = raw.indexOf(':')
@@ -128,7 +150,7 @@ class SeriesStore {
     const id = this.activeManga?.id
     if (id == null) return []
     const raw     = this.#rawChapters.get(id) ?? []
-    const prefs   = settingsState.settings.mangaPrefs?.[this.activeManga?.prefsKey ?? id] ?? {}
+    const prefs   = settingsState.settings.mangaPrefs?.[seriesKey(this.activeManga)] ?? {}
     const globals = settingsState.settings
     return buildChapterList(raw, {
       sortMode:           globals.chapterSortMode,
@@ -144,7 +166,7 @@ class SeriesStore {
     const id = this.activeManga?.id
     if (id == null) return []
     const raw   = this.#rawChapters.get(id) ?? []
-    const prefs = settingsState.settings.mangaPrefs?.[this.activeManga?.prefsKey ?? id] ?? {}
+    const prefs = settingsState.settings.mangaPrefs?.[seriesKey(this.activeManga)] ?? {}
     return buildChapterList(raw, {
       sortMode:           'source',
       sortDir:            'asc',
@@ -265,7 +287,7 @@ class SeriesStore {
     const realMediaId = this.activeManga?.mediaId ?? this.activeManga?.libraryEntryId ?? cacheKey
 
     const list  = this.readerChapterList
-    const prefs = settingsState.settings.mangaPrefs?.[cacheKey] ?? {}
+    const prefs = settingsState.settings.mangaPrefs?.[seriesKey(this.activeManga)] ?? {}
     const ahead = (prefs.downloadAhead ?? DEFAULT_MANGA_PREFS.downloadAhead) as number
 
     if (ahead > 0) {
@@ -308,14 +330,29 @@ class SeriesStore {
     })
   }
 
-  setBookmark(entry: Omit<BookmarkEntry, 'savedAt'>) {
+  /** Replaces the series' bookmark; `aliases` are other ids an older copy may be stored under. */
+  setBookmark(entry: Omit<BookmarkEntry, 'savedAt'>, aliases: string[] = []) {
+    const ids = new Set([entry.mangaId, ...aliases])
     this.bookmarks = [
       { ...entry, savedAt: Date.now() },
-      ...this.bookmarks.filter(b => b.mangaId !== entry.mangaId),
+      ...this.bookmarks.filter(b => !ids.has(b.mangaId)),
     ].slice(0, 200)
   }
 
-  removeBookmark(mangaId: string) { this.bookmarks = this.bookmarks.filter(b => b.mangaId !== mangaId) }
+  /** The newest bookmark stored under any of `ids`, optionally for one chapter. */
+  findBookmark(ids: string[], chapterId?: string): BookmarkEntry | undefined {
+    let best: BookmarkEntry | undefined
+    for (const b of this.bookmarks) {
+      if (!ids.includes(b.mangaId) || (chapterId && b.chapterId !== chapterId)) continue
+      if (!best || b.savedAt > best.savedAt) best = b
+    }
+    return best
+  }
+
+  removeBookmark(mangaId: string | string[]) {
+    const ids = new Set(Array.isArray(mangaId) ? mangaId : [mangaId])
+    this.bookmarks = this.bookmarks.filter(b => !ids.has(b.mangaId))
+  }
   clearBookmarks()                { this.bookmarks = [] }
 
   get settings() { return settingsState.settings }
@@ -328,8 +365,8 @@ export function setPreviewManga(next: Manga | null)                             
 export function openReaderForChapter(ch: Chapter, manga?: Manga | null)                             { seriesState.openReaderForChapter(ch, manga) }
 export function closeReader()                                                                        { seriesState.closeReader() }
 export function acknowledgeUpdate(mangaId: string)                                                  { seriesState.acknowledgeUpdate(mangaId) }
-export function setBookmark(entry: Omit<BookmarkEntry, 'savedAt'>)                                  { seriesState.setBookmark(entry) }
-export function removeBookmark(mangaId: string)                                                     { seriesState.removeBookmark(mangaId) }
+export function setBookmark(entry: Omit<BookmarkEntry, 'savedAt'>, aliases?: string[])              { seriesState.setBookmark(entry, aliases) }
+export function removeBookmark(mangaId: string | string[])                                          { seriesState.removeBookmark(mangaId) }
 export function clearBookmarks()                                                                     { seriesState.clearBookmarks() }
 export function getPref<K extends keyof MangaPrefs>(mangaId: string, key: K): MangaPrefs[K]         { return seriesState.getPref(mangaId, key) }
 export function setPref<K extends keyof MangaPrefs>(mangaId: string, key: K, v: MangaPrefs[K])      { seriesState.setPref(mangaId, key, v) }

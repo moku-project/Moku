@@ -18,7 +18,7 @@
   import { addToast }          from "$lib/state/notifications.svelte";
   import { resolveMangaDetail } from "$lib/components/browse/lib/searchFilter";
   import {
-    seriesState, seriesHref,
+    seriesState, seriesHref, seriesKey, seriesAliases,
     setPreviewManga, setBookmark, openReaderForChapter,
   } from "$lib/state/series.svelte";
   import type { Manga, Chapter } from "$lib/types";
@@ -88,7 +88,7 @@
     );
     const anyRead  = asc.some((c) => c.read);
     const bookmark = displayManga
-      ? seriesState.bookmarks.find((b) => b.mangaId === displayManga!.id)
+      ? seriesState.findBookmark(seriesAliases(displayManga))
       : null;
 
     if (bookmark) {
@@ -311,13 +311,13 @@
     const { ch, type, resumePage } = continueChapter;
     if (type === "continue" && resumePage && resumePage > 1) {
       setBookmark({
-        mangaId:      displayManga.id,
+        mangaId:      seriesKey(displayManga),
         mangaTitle:   displayManga.title,
         thumbnailUrl: displayManga.thumbnailUrl,
         chapterId:    ch.id,
         chapterName:  ch.name,
         pageNumber:   resumePage,
-      });
+      }, seriesAliases(displayManga));
     }
     openReaderForChapter(ch, displayManga);
     close();

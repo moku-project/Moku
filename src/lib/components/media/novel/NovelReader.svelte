@@ -2,7 +2,7 @@
   import { onMount, onDestroy, tick, untrack } from "svelte";
   import { goto } from "$app/navigation";
   import { TextT, BookmarkSimple } from "phosphor-svelte";
-  import { seriesState, setPreviewManga } from "$lib/state/series.svelte";
+  import { seriesState, setPreviewManga, seriesKey, seriesAliases } from "$lib/state/series.svelte";
   import { settingsState, updateSettings } from "$lib/state/settings.svelte";
   import { novelReaderState, resolvedNovelFont, type NovelSegment } from "$lib/state/novelReader.svelte";
   import { mediaViewState } from "$lib/state/mediaView.svelte";
@@ -50,18 +50,18 @@
   let cfgOpen = $state(false);
 
   const isBookmarked = $derived(
-    !!seriesState.bookmarks.find(b => b.mangaId === manga?.id && b.chapterId === chapter?.id),
+    !!(chapter && seriesState.findBookmark(seriesAliases(manga), chapter.id)),
   );
   function toggleBookmark() {
     const c = chapter, m = manga;
     if (!c || !m) return;
     if (isBookmarked) {
-      seriesState.removeBookmark(m.id);
+      seriesState.removeBookmark(seriesAliases(m));
     } else {
       seriesState.setBookmark({
-        mangaId: m.id, mangaTitle: m.title, thumbnailUrl: m.thumbnailUrl ?? "",
+        mangaId: seriesKey(m), mangaTitle: m.title, thumbnailUrl: m.thumbnailUrl ?? "",
         chapterId: c.id, chapterName: c.name, pageNumber: 0,
-      });
+      }, seriesAliases(m));
     }
   }
 

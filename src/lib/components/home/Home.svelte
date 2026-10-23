@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation'
   import { libraryState, loadLibrary } from '$lib/state/library.svelte'
   import { homeState, setHeroSlot } from '$lib/state/home.svelte'
-  import { seriesState, resolveMediaId, seriesHref }   from '$lib/state/series.svelte'
+  import { seriesState, resolveMediaId, seriesHref, seriesKey } from '$lib/state/series.svelte'
   import { buildChapterList }       from '$lib/components/series/lib/chapterList'
   import { settingsState }          from '$lib/state/settings.svelte'
   import { DEFAULT_MANGA_PREFS } from '$lib/types/settings'
@@ -106,7 +106,7 @@
       await seriesState.loadChapters(mangaId, { mediaId: mangaId })
       if (heroChaptersFor !== rawId) return
       const chapters = seriesState.chaptersFor(mangaId)
-      const prefs = settingsState.settings.mangaPrefs?.[mangaId] ?? {}
+      const prefs = settingsState.settings.mangaPrefs?.[heroManga ? seriesKey(heroManga) : mangaId] ?? {}
       const all = buildChapterList(chapters, {
         sortMode:           'source',
         sortDir:            'asc',

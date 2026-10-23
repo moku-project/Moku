@@ -12,7 +12,7 @@
   import { clampZoom, captureZoomAnchor, restoreZoomAnchor } from "$lib/components/media/manga/lib/zoomHelpers";
   import { loadChapter, scheduleResumeDismiss }              from "$lib/components/media/manga/lib/chapterLoader";
   import { historyState }                                    from "$lib/state/history.svelte";
-  import { setPreviewManga, seriesState }                   from "$lib/state/series.svelte";
+  import { setPreviewManga, seriesState, seriesKey, seriesAliases } from "$lib/state/series.svelte";
   import { tsunagu }                                         from "$lib/server-adapters/tsunagu";
   import { setReading }                                      from "$lib/core/discord";
   import { revokeBlobUrl, cancelQueuedFetches, preloadBlobUrls } from "$lib/core/cache/imageCache";
@@ -58,7 +58,7 @@
 
   const currentBookmark = $derived(
     readerState.activeManga
-      ? seriesState.bookmarks.find(b => b.mangaId === readerState.activeManga!.id)
+      ? seriesState.findBookmark(seriesAliases(readerState.activeManga))
       : undefined
   );
   const currentGroup = $derived.by(() => {
@@ -374,7 +374,7 @@
     untrack(() => {
       readerState.resumePage    = 0;
       readerState.resumeVisible = false;
-      const prefs = getMangaPrefs(readerState.activeManga?.id);
+      const prefs = getMangaPrefs();
       if (prefs.downloadAhead > 0) {
         const list = readerState.activeChapterList;
         const idx  = list.findIndex(c => c.id === chId);
@@ -444,34 +444,53 @@
     }
   });
 
+  // Server progress goes out 2s after the last page turn; closing the reader
+  // sooner sends it right away instead of dropping it.
+  let pendingProgress: (() => void) | null = null;
+  function flushProgress() {
+    if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
+    const send = pendingProgress;
+    pendingProgress = null;
+    send?.();
+  }
+
   $effect(() => {
     const ch    = displayChapter ?? readerState.activeChapter;
     const manga = readerState.activeManga;
-    if (ch && lastPage && manga) {
+    // Longstrip strings chapters together; count pages of the one on screen.
+    const total = visibleChunkLastPage;
+    if (ch && total && manga) {
       const { id: chapterId, name: chapterName } = ch;
-      const { id: mangaId, title: mangaTitle, thumbnailUrl: thumb } = manga;
+      const { id: mediaId, title: mangaTitle, thumbnailUrl: thumb } = manga;
       const pageNum = readerState.pageNumber;
-      const atLast  = pageNum === lastPage;
+      const atLast  = pageNum === total;
       if (pageNum > 1) hasNavigated = true;
       untrack(() => {
         if (!hasNavigated) return;
         if (style === "longstrip" && visibleChapterId && chapterId !== visibleChapterId) return;
         if (settingsState.settings.autoBookmark ?? true) {
-          seriesState.setBookmark({ mangaId, mangaTitle, thumbnailUrl: thumb, chapterId, chapterName, pageNumber: pageNum });
+          seriesState.setBookmark(
+            { mangaId: seriesKey(manga), mangaTitle, thumbnailUrl: thumb, chapterId, chapterName, pageNumber: pageNum },
+            seriesAliases(manga),
+          );
         }
         if (style !== "longstrip" && (settingsState.settings.autoMarkRead ?? true) && atLast) markChapterRead(chapterId, markedRead);
 
-        if (pageNum > 1 && !markedRead.has(chapterId)) {
+        if (markedRead.has(chapterId)) {
+          // An earlier page's save still pending would report the chapter unfinished.
+          if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
+          pendingProgress = null;
+        } else if (pageNum > 1) {
           if (progressTimer) clearTimeout(progressTimer);
-          progressTimer = setTimeout(() => {
+          pendingProgress = () => {
             tsunagu.updateReadingProgress({
-              libraryEntryId: mangaId,
+              libraryEntryId: mediaId,
               chapterId,
-              progress: lastPage > 0 ? pageNum / lastPage : 0,
+              progress: Math.min(1, pageNum / total),
               completed: atLast,
             }).catch(console.error);
-            progressTimer = null;
-          }, 2_000);
+          };
+          progressTimer = setTimeout(flushProgress, 2_000);
         }
       });
     }
@@ -507,7 +526,7 @@
       abortCtrl.current?.abort();
       if (hideTimer) clearTimeout(hideTimer);
       if (roTimer) clearTimeout(roTimer);
-      if (progressTimer) clearTimeout(progressTimer);
+      flushProgress();
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousemove", pageViewRef.onInspectMouseMove);
       window.removeEventListener("mouseup",  pageViewRef.onInspectMouseUp);

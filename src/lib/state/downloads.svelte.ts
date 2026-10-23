@@ -155,7 +155,13 @@ class DownloadStore {
       createdAt: "", completedAt: null,
     }];
     if (!(await this.guardStorage(projected))) return false;
-    try { await tsunagu.enqueueDownload(mediaId, chapterId); await this.poll(); } catch { }
+    try {
+      await tsunagu.enqueueDownload(mediaId, chapterId);
+    } catch (e) {
+      addToast({ kind: "error", title: "Couldn't queue download", body: e instanceof Error ? e.message : String(e), duration: 5000 });
+      return false;
+    }
+    await this.poll().catch(() => {});
     return true;
   }
 

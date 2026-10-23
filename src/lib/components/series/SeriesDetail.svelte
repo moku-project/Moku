@@ -179,7 +179,7 @@
       tags: entry.tags,
       unreadCount: entry.unreadCount,
       downloadCount: entry.downloadCount,
-      extensionId:    entry.source?.id,
+      extensionId:    entry.extensionId ?? entry.source?.id,
       sourceName:     entry.sourceName ?? entry.extensionName ?? null,
       source:         entry.source
         ? { id: entry.source.id, name: entry.source.name, displayName: entry.source.displayName, isNsfw: entry.source.isNsfw, iconUrl: entry.source.iconUrl }

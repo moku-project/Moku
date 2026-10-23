@@ -257,7 +257,8 @@ export class VideoUpscaler {
     if (!gl || !this.prog) return;
     const sw = this.video.videoWidth;
     const sh = this.video.videoHeight;
-    if (!sw || !sh || this.video.readyState < 2) return;
+    // While seeking the frame may not be decoded yet; keep the last one on screen.
+    if (!sw || !sh || this.video.readyState < 2 || this.video.seeking) return;
 
     const t = this.targetSize();
     if (!t) return;

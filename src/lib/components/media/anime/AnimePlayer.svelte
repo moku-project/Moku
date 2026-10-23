@@ -18,7 +18,8 @@
   import { throttledProgressReporter } from "$lib/components/media/shared/progress";
   import { trackHistory } from "$lib/components/media/shared/historyTracking.svelte";
   import { markChapterRead } from "$lib/components/media/manga/lib/chapterActions";
-  import { resolveEpisodeSource, resolveSkipTimestamps } from "$lib/components/media/anime/lib/episodeSource";
+  import { resolveEpisodeSource, resolveSkipTimestamps, type SkipMarker } from "$lib/components/media/anime/lib/episodeSource";
+  import { pickSavedSource } from "$lib/components/media/anime/lib/sourcePref";
   import type { AssRenderer } from "$lib/components/media/anime/lib/assSubs";
   import { VideoUpscaler, type UpscaleMode } from "$lib/core/video/upscaler";
   import { addToast } from "$lib/state/notifications.svelte";
@@ -31,7 +32,13 @@
   const aps        = animePlayerState;
   const manga      = $derived(seriesState.activeManga);
   const chapter    = $derived(seriesState.activeChapter);
-  const prefsKey   = $derived(manga?.prefsKey ?? manga?.mediaId ?? manga?.libraryEntryId ?? manga?.id ?? "");
+  // Series opened from the detail page carry no prefsKey, so build the same
+  // extension:externalId key the library and direct links use.
+  const prefsKey   = $derived(
+    manga?.prefsKey
+    ?? (manga?.extensionId && manga?.sourceEntryId ? `${manga.extensionId}:${manga.sourceEntryId}` : null)
+    ?? manga?.mediaId ?? manga?.libraryEntryId ?? manga?.id ?? "",
+  );
   const reportProg = throttledProgressReporter(5000);
 
   trackHistory(() => aps.positionSeconds);
@@ -177,9 +184,12 @@
     if (!manualChrome && pointerNearBar(e)) armIdleHide();
   }
 
+  // The marker just skipped stays hidden until playback leaves it, so the
+  // button can't pop back while a long seek is still buffering.
+  let skippedMarker = $state<SkipMarker | null>(null);
   const activeSkip = $derived.by(() => {
     const ms = aps.positionSeconds * 1000;
-    return aps.skipMarkers.find(m => ms >= m.startMs && ms < m.endMs - 1000) ?? null;
+    return aps.skipMarkers.find(m => m !== skippedMarker && ms >= m.startMs && ms < m.endMs - 1000) ?? null;
   });
   const skipLabel = $derived(
     !activeSkip ? "" :
@@ -571,10 +581,7 @@
       return;
     }
 
-    const savedSource = settingsState.settings.mangaPrefs?.[prefsKey]?.preferredVideoSource;
-    let startIdx = savedSource
-      ? aps.sources.findIndex(s => s.label === savedSource)
-      : -1;
+    let startIdx = pickSavedSource(aps.sources, savedVideoSource());
     if (startIdx < 0) startIdx = Math.max(0, aps.sources.findIndex(s => s.preferred));
     if (canFallback && startIdx === 0) startIdx = 1;
     aps.sourceIdx = startIdx;
@@ -612,6 +619,16 @@
     aps.unavailable = false;
     aps.videoUrl    = aps.sources[i].url;
     savePreferredSource(aps.sources[i].label);
+  }
+
+  function savedVideoSource(): string | undefined {
+    const prefs = settingsState.settings.mangaPrefs ?? {};
+    // Older builds saved the pick under the media id when played from the series page.
+    for (const k of [prefsKey, manga?.mediaId, manga?.libraryEntryId, manga?.id]) {
+      const v = k ? prefs[k]?.preferredVideoSource : undefined;
+      if (v) return v;
+    }
+    return undefined;
   }
 
   function savePreferredSource(label: string | undefined) {
@@ -722,12 +739,18 @@
 
   function skipCurrent() {
     if (!videoEl || !activeSkip) return;
-    videoEl.currentTime = Math.min(videoEl.duration || activeSkip.endMs / 1000, activeSkip.endMs / 1000 + 0.1);
-    flash("fwd", activeSkip.type === "ending" ? "outro" : "intro");
+    const m = activeSkip;
+    skippedMarker = m;
+    flash("fwd", m.type === "ending" ? "outro" : "intro");
+    videoEl.currentTime = Math.min(videoEl.duration || m.endMs / 1000, m.endMs / 1000 + 0.1);
   }
   function onTimeUpdate() {
     if (!videoEl || !chapter) return;
+    // Mid-seek updates can still carry the old position; the seeked event brings the real one.
+    if (videoEl.seeking) return;
     aps.positionSeconds = videoEl.currentTime;
+    const ms = aps.positionSeconds * 1000;
+    if (skippedMarker && (ms < skippedMarker.startMs || ms >= skippedMarker.endMs)) skippedMarker = null;
     renderCues();
     const frac = aps.progressFraction;
     reportProg(chapter.id, frac, {
@@ -736,8 +759,15 @@
       completed: frac >= 0.9,
     });
   }
+  // Seeks fire waiting/playing in quick bursts; only show the spinner for a real stall.
+  let bufferTimer: ReturnType<typeof setTimeout> | null = null;
+  function setBuffering(on: boolean) {
+    if (bufferTimer) { clearTimeout(bufferTimer); bufferTimer = null; }
+    if (!on) { aps.buffering = false; return; }
+    bufferTimer = setTimeout(() => { bufferTimer = null; aps.buffering = true; }, 300);
+  }
   function onEnded() {
-    aps.buffering = false;
+    setBuffering(false);
     if (chapter && !markedRead.has(chapter.id)) markChapterRead(chapter.id, markedRead);
     if ((settingsState.settings.autoplayNextEpisode ?? true) && nav.next) nav.goNext();
   }
@@ -747,8 +777,8 @@
     aps.videoUrl = null;
     aps.unavailable = true;
   }
-  function onPlay()   { clearWatchdog(); aps.playing = true; aps.buffering = false; pokeCursor(); if (!manualChrome && mediaViewState.uiVisible) armIdleHide(); }
-  function onPause()  { aps.playing = false; aps.buffering = false; if (idleTimer) clearTimeout(idleTimer); }
+  function onPlay()   { clearWatchdog(); aps.playing = true; setBuffering(false); pokeCursor(); if (!manualChrome && mediaViewState.uiVisible) armIdleHide(); }
+  function onPause()  { aps.playing = false; setBuffering(false); if (idleTimer) clearTimeout(idleTimer); }
 
   onMount(() => {
     slog("env check", {
@@ -768,6 +798,7 @@
     if (cursorTimer) clearTimeout(cursorTimer);
     if (clickTimer) clearTimeout(clickTimer);
     if (flashTimer) clearTimeout(flashTimer);
+    if (bufferTimer) clearTimeout(bufferTimer);
     if (volHideTimer) clearTimeout(volHideTimer);
     if (rateHideTimer) clearTimeout(rateHideTimer);
     if (upscaleHideTimer) clearTimeout(upscaleHideTimer);
@@ -897,8 +928,9 @@
         onended={onEnded}
         onerror={onError}
         onplay={onPlay}
-        onplaying={() => { aps.buffering = false; ensureSubtitle(); }}
-        onwaiting={() => (aps.buffering = true)}
+        onplaying={() => { setBuffering(false); ensureSubtitle(); }}
+        onwaiting={() => setBuffering(true)}
+        onseeked={onTimeUpdate}
         oncanplay={() => { clearWatchdog(); ensureSubtitle(); }}
         onpause={onPause}
         onvolumechange={() => { if (videoEl) { aps.volume = videoEl.volume; aps.muted = videoEl.muted; } }}

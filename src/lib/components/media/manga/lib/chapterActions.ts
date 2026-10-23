@@ -1,7 +1,8 @@
 import { readerState } from "$lib/state/mangaReader.svelte";
 import { DEFAULT_MANGA_PREFS } from "$lib/types/settings";
 import { seriesState, seriesKey, seriesAliases } from "$lib/state/series.svelte";
-import { loadLibrary }                      from "$lib/state/library.svelte";
+import { loadLibrary, libraryState }        from "$lib/state/library.svelte";
+import { cache, CACHE_KEYS }               from "$lib/core/cache/queryCache";
 import { readTriggersAutomation }           from "$lib/state/automation.svelte";
 import { settingsState }                    from "$lib/state/settings.svelte";
 import { tsunagu }                          from "$lib/server-adapters/tsunagu";
@@ -33,6 +34,7 @@ export function markChapterRead(id: string, markedRead: Set<string>) {
 
   if (!manga) { markedRead.delete(id); return; }
   const realMediaId = manga.mediaId ?? manga.libraryEntryId ?? manga.id;
+  const wasRead = chapter?.read ?? false;
 
   tsunagu.markChapterRead(realMediaId, id)
     .then(() => {
@@ -46,6 +48,11 @@ export function markChapterRead(id: string, markedRead: Set<string>) {
           chapters.map(c => c.id === id ? { ...c, read: true } : c),
         );
       }
+
+      // The library badge and the Updates list are cached; without this the chapter
+      // still counts as unread there until their caches expire.
+      if (!wasRead) libraryState.patchUnreadCount(realMediaId, -1);
+      cache.clear(CACHE_KEYS.RECENT_UPDATES);
 
       // Delete-after-read, download-ahead and max-kept rules run on the server;
       // refetch download state once it has had a moment to act.

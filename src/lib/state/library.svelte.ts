@@ -288,6 +288,16 @@ class LibraryState {
     this.folderFrecency = { ...this.folderFrecency, [folderId]: (this.folderFrecency[folderId] ?? 0) + 1 };
   }
 
+  patchUnreadCount(mediaId: string, delta: number) {
+    let hit = false;
+    const next = this.items.map(m => {
+      if (m.id !== mediaId) return m;
+      hit = true;
+      return { ...m, unreadCount: Math.max(0, (m.unreadCount ?? 0) + delta) };
+    });
+    if (hit) this.items = next;
+  }
+
   patchDownloadCount(mediaId: string, delta: number) {
     let hit = false;
     const next = this.items.map(m => {

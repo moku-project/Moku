@@ -10,6 +10,7 @@
   import { createMediaKeyHandler } from "$lib/components/media/shared/mediaKeybinds";
   import { createBarReveal } from "$lib/components/media/shared/barReveal.svelte";
   import { throttledProgressReporter } from "$lib/components/media/shared/progress";
+  import { tsunagu } from "$lib/server-adapters/tsunagu";
   import { trackHistory } from "$lib/components/media/shared/historyTracking.svelte";
   import { markChapterRead } from "$lib/components/media/manga/lib/chapterActions";
   import { getChapterText } from "$lib/components/media/novel/lib/novelLoader";
@@ -80,14 +81,30 @@
     if (!c || !mediaId) return;
     st.reset();
     anchor = null;
-    const seg = await fetchSegment(c.id, c.chapterNumber, c.name);
+    const [seg, progress] = await Promise.all([
+      fetchSegment(c.id, c.chapterNumber, c.name),
+      tsunagu.readingProgress(mediaId).catch(() => []),
+    ]);
+    if (chapter?.id !== c.id) return;
     st.unsupported = seg == null;
     st.segments    = seg ? [seg] : [];
     st.loading     = false;
     mediaViewState.loading = false;
     await tick();
-    if (scrollEl) jumpTo(scrollEl, 0);
     st.scrollPct = 0;
+    const el = scrollEl;
+    if (!el) return;
+    jumpTo(el, 0);
+    // Pick up where the chapter was left, unless it was finished.
+    const saved = progress.find(p => p.chapterId === c.id);
+    const sec   = el.querySelector<HTMLElement>(`[data-cid="${c.id}"]`);
+    if (!saved || saved.completed || saved.progress <= 0.01 || saved.progress >= 0.98 || !sec) return;
+    if (st.paged) {
+      const start = pageOf(el, along(el, sec));
+      goPage(el, start + Math.round(saved.progress * Math.max(0, pageCount(el) - 1 - start)));
+    } else {
+      el.scrollTop = sec.offsetTop + saved.progress * Math.max(0, sec.offsetHeight - el.clientHeight);
+    }
   }
 
   async function appendNext() {
@@ -428,7 +445,8 @@
     onKey(e);
   }
 
-  onMount(() => { window.addEventListener("keydown", onReaderKey); bar.show(); loadInitial(); });
+  // The chapter effect below does the first load too.
+  onMount(() => { window.addEventListener("keydown", onReaderKey); bar.show(); });
   onDestroy(() => { window.removeEventListener("keydown", onReaderKey); bar.destroy(); reportProg.flush(); });
 
   let lastChapterId: string | null = null;

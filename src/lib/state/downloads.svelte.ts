@@ -101,27 +101,30 @@ class DownloadStore {
     const doneSet = new Set(done.map(i => i.chapterId));
     const toasts  = this.toastsEnabled;
     for (const item of this.prevQueue) {
-      if (item.status !== "DOWNLOADING") continue;
+      // A small chapter can go from queued to done between two polls, so a
+      // completion is any queued item now finished, not only one seen downloading.
       const nextItem  = nextMap.get(item.chapterId);
       const completed = !nextItem && doneSet.has(item.chapterId);
+      const failed    = nextItem?.status === "FAILED" && item.status !== "FAILED";
       if (completed) libraryState.patchDownloadCount(item.mediaId, 1);
       if (!toasts) continue;
       const label = `${this.mangaTitleFor(item.mediaId)} — ${item.chapter.title ?? "Chapter"}`;
-      if (completed)                          addToast({ kind: "download", title: "Chapter downloaded", body: label, duration: 4000 });
-      else if (nextItem?.status === "FAILED") addToast({ kind: "error",    title: "Download failed",    body: label, duration: 5000 });
+      if (completed)   addToast({ kind: "download", title: "Chapter downloaded", body: label, duration: 4000 });
+      else if (failed) addToast({ kind: "error",    title: "Download failed",    body: label, duration: 5000 });
     }
     this.prevQueue = next.slice();
   }
 
   async tickStatus() {
+    this.syncAutoRetry();
     try {
       const status = await tsunagu.downloaderStatus();
       this.downloaderStatusVal = status;
+      // Failed items alone are not activity: they would keep the full poll going forever.
       const active =
         status.isRunning ||
         status.queuedCount > 0 ||
-        status.downloadingCount > 0 ||
-        status.failedCount > 0;
+        status.downloadingCount > 0;
       if (active || this.drawerOpen || this.wasActive) await this.poll();
       this.wasActive = active;
     } catch { } finally {
@@ -171,21 +174,25 @@ class DownloadStore {
     addToast({ kind: "info", title: next ? "Notifications enabled" : "Notifications muted", duration: 2500 });
   }
 
-  toggleAutoRetry() {
-    if (this.autoRetryEnabled) {
-      this.autoRetryHnd?.stop();
-      this.autoRetryHnd = null;
-      updateSettings({ downloadAutoRetry: false });
-      addToast({ kind: "info", title: "Auto-retry disabled", duration: 2500 });
-    } else {
-      updateSettings({ downloadAutoRetry: true });
+  // The setting persists across launches; the retry loop has to be started again.
+  private syncAutoRetry() {
+    if (this.autoRetryEnabled && !this.autoRetryHnd) {
       this.autoRetryHnd = startAutoRetry(
         () => this.queue,
         () => this.isRunning,
         () => this.retryAllErrored(),
       );
-      addToast({ kind: "info", title: "Auto-retry enabled", duration: 3000 });
+    } else if (!this.autoRetryEnabled && this.autoRetryHnd) {
+      this.autoRetryHnd.stop();
+      this.autoRetryHnd = null;
     }
+  }
+
+  toggleAutoRetry() {
+    const enable = !this.autoRetryEnabled;
+    updateSettings({ downloadAutoRetry: enable });
+    this.syncAutoRetry();
+    addToast({ kind: "info", title: enable ? "Auto-retry enabled" : "Auto-retry disabled", duration: enable ? 3000 : 2500 });
   }
 
   async togglePlay() {

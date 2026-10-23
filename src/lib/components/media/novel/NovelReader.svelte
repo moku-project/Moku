@@ -429,7 +429,7 @@
   }
 
   onMount(() => { window.addEventListener("keydown", onReaderKey); bar.show(); loadInitial(); });
-  onDestroy(() => { window.removeEventListener("keydown", onReaderKey); bar.destroy(); });
+  onDestroy(() => { window.removeEventListener("keydown", onReaderKey); bar.destroy(); reportProg.flush(); });
 
   let lastChapterId: string | null = null;
   $effect(() => {

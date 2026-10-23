@@ -786,6 +786,7 @@
     window.addEventListener("keydown", onKey);
   });
   onDestroy(() => {
+    reportProg.flush();
     window.removeEventListener("keydown", onKey);
     teardown();
     if (idleTimer) clearTimeout(idleTimer);

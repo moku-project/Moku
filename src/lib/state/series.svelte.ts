@@ -9,6 +9,7 @@ import { buildChapterList }                           from '$lib/components/seri
 import { clearPageCache }                             from '$lib/core/cache/pageCache'
 import { sourceErrorInfo }                            from '$lib/core/sourceErrors'
 import { goto }                                       from '$app/navigation'
+import { historyState }                               from '$lib/state/history.svelte'
 
 export type { BookmarkEntry } from '$lib/types/history'
 export type { MangaPrefs }                              from '$lib/types/settings'
@@ -337,6 +338,7 @@ class SeriesStore {
       { ...entry, savedAt: Date.now() },
       ...this.bookmarks.filter(b => !ids.has(b.mangaId)),
     ].slice(0, 200)
+    historyState.persistSoon()
   }
 
   /** The newest bookmark stored under any of `ids`, optionally for one chapter. */
@@ -352,8 +354,9 @@ class SeriesStore {
   removeBookmark(mangaId: string | string[]) {
     const ids = new Set(Array.isArray(mangaId) ? mangaId : [mangaId])
     this.bookmarks = this.bookmarks.filter(b => !ids.has(b.mangaId))
+    historyState.persistSoon()
   }
-  clearBookmarks()                { this.bookmarks = [] }
+  clearBookmarks()                { this.bookmarks = []; historyState.persistSoon() }
 
   get settings() { return settingsState.settings }
 }

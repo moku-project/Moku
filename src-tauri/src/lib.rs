@@ -6,7 +6,7 @@ use std::net::{TcpListener, TcpStream};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Emitter, Manager,
 };
 
 const IPC_PORT: u16 = 47823;
@@ -132,7 +132,19 @@ pub fn run() {
                             let _ = win.set_focus();
                         }
                     }
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        // The window saves the open reading session before quitting;
+                        // exit anyway if it doesn't answer.
+                        if app.emit("tray-quit", ()).is_err() {
+                            app.exit(0);
+                            return;
+                        }
+                        let app = app.clone();
+                        std::thread::spawn(move || {
+                            std::thread::sleep(std::time::Duration::from_secs(3));
+                            app.exit(0);
+                        });
+                    }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {

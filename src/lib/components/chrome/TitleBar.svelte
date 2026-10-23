@@ -3,10 +3,12 @@
   import { getCurrentWindow } from '@tauri-apps/api/window'
   import { platform } from '@tauri-apps/plugin-os'
   import { invoke } from '@tauri-apps/api/core'
+  import { listen } from '@tauri-apps/api/event'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { chromeState } from '$lib/state/chrome.svelte'
   import { readerState } from '$lib/state/mangaReader.svelte'
   import { mediaViewState } from '$lib/state/mediaView.svelte'
+  import { historyState } from '$lib/state/history.svelte'
 
   interface Props {
     forceOverlay?: boolean
@@ -29,6 +31,7 @@
   onMount(() => {
     let unlistenResize: (() => void) | undefined
     let unlistenClose:  (() => void) | undefined
+    let unlistenTrayQuit: (() => void) | undefined
 
     win.isFullscreen().then(v => { isFullscreen = v })
 
@@ -38,10 +41,12 @@
 
     win.listen('tauri://close-requested', handleCloseRequested)
       .then(u => { unlistenClose = u })
+    listen('tray-quit', doQuit).then(u => { unlistenTrayQuit = u })
 
     return () => {
       unlistenResize?.()
       unlistenClose?.()
+      unlistenTrayQuit?.()
       if (hideTimer) clearTimeout(hideTimer)
       chromeState.titlebarRevealed = false
       document.documentElement.style.setProperty('--titlebar-slide', '0px')
@@ -79,6 +84,8 @@
   })
 
   async function doQuit() {
+    // The open reading session and recent bookmarks only exist in memory until saved.
+    await historyState.flush().catch(console.error)
     await invoke('exit_app')
   }
 

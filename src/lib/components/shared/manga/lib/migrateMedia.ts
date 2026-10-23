@@ -1,5 +1,6 @@
 import { tsunagu } from '$lib/server-adapters/tsunagu'
 import { seriesState } from '$lib/state/series.svelte'
+import { historyState } from '$lib/state/history.svelte'
 import { settingsState, updateSettings } from '$lib/state/settings.svelte'
 import type { Chapter, LibraryEntry } from '$lib/server-adapters/types'
 
@@ -48,6 +49,7 @@ export async function migrateMedia(
 					: null
 			})
 			.filter((b): b is NonNullable<typeof b> => b != null)
+		historyState.persistSoon()
 
 		const oldKey = prefsKey(src.extensionId, src.externalId)
 		const newKey = prefsKey(entry.extensionId, entry.externalId)

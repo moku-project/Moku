@@ -592,9 +592,10 @@
   }
 
   function tryNextSource(): boolean {
-    if (sourceAttempts >= aps.sources.length || aps.sourceIdx + 1 >= aps.sources.length) return false;
+    // Wraps around: a remembered source can be the last one, and the earlier ones may work.
+    if (sourceAttempts >= aps.sources.length - 1) return false;
     sourceAttempts++;
-    aps.sourceIdx += 1;
+    aps.sourceIdx = (aps.sourceIdx + 1) % aps.sources.length;
     aps.resumeAt    = aps.positionSeconds;
     aps.error       = null;
     aps.unavailable = false;

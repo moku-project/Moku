@@ -195,7 +195,8 @@ export const discovery = {
 	},
 
 	async chapterUpdates(since?: string, limit?: number): Promise<RecentChapter[]> {
-		const data = await gql<{ chapterUpdates: Array<{ chapter: RecentChapter['chapter']; media: { id: string; title: string; thumbnailUrl: string | null; contentType: RecentChapter['contentType'] } }> }>(
+		type Row = { chapter: RecentChapter['chapter']; media: { id: string; title: string; thumbnailUrl: string | null; contentType: RecentChapter['contentType'] }; foundAt?: string | null }
+		const query = (withFoundAt: boolean) => gql<{ chapterUpdates: Row[] }>(
 			`query ChapterUpdates($since: Time, $limit: Int) {
 				chapterUpdates(since: $since, limit: $limit) {
 					chapter {
@@ -203,17 +204,24 @@ export const discovery = {
 						readingProgress { progress completed }
 					}
 					media { id title thumbnailUrl contentType }
+					${withFoundAt ? 'foundAt' : ''}
 				}
 			}`,
 			{ since, limit },
 			baseUrl()
 		)
+		// Older servers reject foundAt (gqlgen answers validation errors with 422); ask again without it.
+		const data = await query(true).catch((e: unknown) => {
+			if (/foundAt|HTTP 422/.test(String(e))) return query(false)
+			throw e
+		})
 		return data.chapterUpdates.map(rc => ({
 			chapter:               rc.chapter,
 			mediaId:               rc.media.id,
 			libraryEntryTitle:     rc.media.title,
 			libraryEntryCoverPath: rc.media.thumbnailUrl,
 			contentType:           rc.media.contentType,
+			foundAt:               rc.foundAt ?? null,
 		}))
 	},
 

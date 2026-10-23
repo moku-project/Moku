@@ -281,6 +281,8 @@ export interface RecentChapter {
 	libraryEntryTitle: string
 	libraryEntryCoverPath: string | null
 	contentType: ContentType
+	/** When the server first saw the chapter; only chapterUpdates sets it. */
+	foundAt?: string | null
 }
 
 export interface Tracker {

@@ -27,12 +27,13 @@ export interface UpdateStatus {
   lastUpdated?: unknown
 }
 
+/** 0 when the update has no usable date. */
 export function fetchedAtMs(item: Pick<RecentUpdate, 'fetchedAt'>): number {
-  if (!item.fetchedAt) return Date.now()
+  if (!item.fetchedAt) return 0
   const numeric = Number(item.fetchedAt)
   if (Number.isFinite(numeric)) return numeric * 1000
   const ts = new Date(item.fetchedAt).getTime()
-  return Number.isFinite(ts) ? ts : Date.now()
+  return Number.isFinite(ts) ? ts : 0
 }
 
 export function parseServerTimestamp(value: unknown): number | null {
@@ -51,7 +52,8 @@ export function groupUpdatesByDay(updates: RecentUpdate[]): UpdateGroup[] {
   const order: Record<string, number> = {}
   for (const item of updates) {
     const ts = fetchedAtMs(item)
-    const label = dayLabel(ts)
+    // Undated chapters (often oneshots) used to land under Today on every load.
+    const label = ts ? dayLabel(ts) : 'Earlier'
     if (!grouped[label]) {
       grouped[label] = []
       order[label] = ts
@@ -73,7 +75,7 @@ export function mapRecentChapterToUpdate(rc: RecentChapter): RecentUpdate {
     isRead:        rc.chapter.readingProgress?.completed ?? rc.chapter.completed ?? false,
     lastPageRead:  0,
     mangaId:       rc.mediaId,
-    fetchedAt:     rc.chapter.uploadedAt ?? '',
+    fetchedAt:     rc.foundAt ?? rc.chapter.uploadedAt ?? '',
     downloaded:    rc.chapter.downloaded ?? (rc.chapter.download?.status === 'DONE'),
     manga: {
       id:           rc.mediaId,

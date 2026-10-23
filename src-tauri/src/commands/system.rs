@@ -16,8 +16,30 @@ pub fn get_platform_ui_scale(window: tauri::Window) -> f64 {
 }
 
 #[tauri::command]
-pub fn restart_app(app: tauri::AppHandle) {
-    tauri::process::restart(&app.env());
+pub async fn restart_app(app: tauri::AppHandle) -> Result<(), String> {
+    // tauri::process::restart exits without RunEvent::Exit, so the bundled server
+    // kept running: it held the port, and on Windows the installer couldn't replace it.
+    crate::backend::stop(&app.state::<crate::backend::Backend>()).await;
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        use tauri::Emitter;
+        let installer = crate::commands::updater::PENDING_INSTALLER
+            .lock()
+            .map_err(|e| e.to_string())?
+            .take();
+        if let Some(installer) = installer {
+            std::process::Command::new(&installer)
+                .creation_flags(0x0800_0000)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+            let _ = app.emit("update-launching", ());
+            app.exit(0);
+            return Ok(());
+        }
+    }
+    app.request_restart();
+    Ok(())
 }
 
 #[tauri::command]

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { platformService } from '$lib/platform-service'
   import { autoBackupAppData } from '$lib/core/backup'
+  import { historyState } from '$lib/state/history.svelte'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
   import type { ReleaseInfo } from '$lib/platform-adapters/types'
 
@@ -124,7 +125,10 @@
     }
   }
 
-  async function restartNow() { await platformService.restartApp() }
+  async function restartNow() {
+    await historyState.flush().catch(console.error)
+    await platformService.restartApp()
+  }
   function cancelUpdate() { updatePhase = 'idle'; updateError = null; targetTag = null; dlBytes = 0; dlTotal = null }
 </script>
 

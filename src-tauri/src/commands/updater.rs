@@ -11,6 +11,11 @@ pub struct ReleaseInfo {
     pub html_url: String,
 }
 
+/// Installer fetched by download_and_install_update. restart_app runs it once the
+/// bundled server has stopped, since it cannot replace a running tsunagu.exe.
+#[cfg(target_os = "windows")]
+pub static PENDING_INSTALLER: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
+
 #[cfg(target_os = "windows")]
 #[derive(Clone, Serialize)]
 struct UpdateProgress {
@@ -73,11 +78,8 @@ pub async fn download_and_install_update(app: tauri::AppHandle, tag: String) -> 
     #[cfg(target_os = "windows")]
     {
         use std::io::Write;
-        use std::os::windows::process::CommandExt;
         use tauri::Emitter;
         use tauri_plugin_http::reqwest;
-
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
         #[derive(Deserialize)]
         struct Asset {
@@ -128,6 +130,10 @@ pub async fn download_and_install_update(app: tauri::AppHandle, tag: String) -> 
             .await
             .map_err(|e| e.to_string())?;
 
+        if !resp.status().is_success() {
+            return Err(format!("Installer download returned {}", resp.status()));
+        }
+
         let tmp_path = std::env::temp_dir().join(&asset.name);
         let mut file = std::fs::File::create(&tmp_path).map_err(|e| e.to_string())?;
         let mut downloaded: u64 = 0;
@@ -138,13 +144,14 @@ pub async fn download_and_install_update(app: tauri::AppHandle, tag: String) -> 
             let _ = app.emit("update-progress", UpdateProgress { downloaded, total });
         }
         drop(file);
+        if let Some(total) = total {
+            if downloaded != total {
+                let _ = std::fs::remove_file(&tmp_path);
+                return Err(format!("Installer download incomplete ({downloaded} of {total} bytes)"));
+            }
+        }
 
-        std::process::Command::new(&tmp_path)
-            .creation_flags(CREATE_NO_WINDOW)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-
-        let _ = app.emit("update-launching", ());
+        *PENDING_INSTALLER.lock().map_err(|e| e.to_string())? = Some(tmp_path);
         Ok(())
     }
 }

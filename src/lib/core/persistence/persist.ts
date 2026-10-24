@@ -22,7 +22,6 @@ export interface PersistedUpdates {
   acknowledgedUpdateIds: number[]
 }
 
-/** Store version of raw library data; backups written before the version was exported have none. */
 export function libraryVersion(raw: unknown): number {
   const data = (raw ?? {}) as Record<string, unknown>
   if (typeof data.storeVersion === 'number') return data.storeVersion

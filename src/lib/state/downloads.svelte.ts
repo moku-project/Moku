@@ -101,8 +101,7 @@ class DownloadStore {
     const doneSet = new Set(done.map(i => i.chapterId));
     const toasts  = this.toastsEnabled;
     for (const item of this.prevQueue) {
-      // A small chapter can go from queued to done between two polls, so a
-      // completion is any queued item now finished, not only one seen downloading.
+      // Small chapters can finish between two polls.
       const nextItem  = nextMap.get(item.chapterId);
       const completed = !nextItem && doneSet.has(item.chapterId);
       const failed    = nextItem?.status === "FAILED" && item.status !== "FAILED";
@@ -120,7 +119,6 @@ class DownloadStore {
     try {
       const status = await tsunagu.downloaderStatus();
       this.downloaderStatusVal = status;
-      // Failed items alone are not activity: they would keep the full poll going forever.
       const active =
         status.isRunning ||
         status.queuedCount > 0 ||
@@ -174,7 +172,6 @@ class DownloadStore {
     addToast({ kind: "info", title: next ? "Notifications enabled" : "Notifications muted", duration: 2500 });
   }
 
-  // The setting persists across launches; the retry loop has to be started again.
   private syncAutoRetry() {
     if (this.autoRetryEnabled && !this.autoRetryHnd) {
       this.autoRetryHnd = startAutoRetry(
@@ -260,7 +257,6 @@ class DownloadStore {
   async retryOne(chapterId: string) {
     if (this.dequeueing.has(chapterId)) return;
     const mediaId = this.mediaIdFor(chapterId);
-    // Ask about storage first: cancelling after the dequeue lost the item for good.
     if (!(await this.guardStorage(this.queue))) return;
     this.dequeueing = new Set(this.dequeueing).add(chapterId);
     try {

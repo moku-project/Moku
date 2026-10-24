@@ -95,7 +95,6 @@
     const el = scrollEl;
     if (!el) return;
     jumpTo(el, 0);
-    // Pick up where the chapter was left, unless it was finished.
     const saved = progress.find(p => p.chapterId === c.id);
     const sec   = el.querySelector<HTMLElement>(`[data-cid="${c.id}"]`);
     if (!saved || saved.completed || saved.progress <= 0.01 || saved.progress >= 0.98 || !sec) return;
@@ -445,7 +444,6 @@
     onKey(e);
   }
 
-  // The chapter effect below does the first load too.
   onMount(() => { window.addEventListener("keydown", onReaderKey); bar.show(); });
   onDestroy(() => { window.removeEventListener("keydown", onReaderKey); bar.destroy(); reportProg.flush(); });
 

@@ -84,7 +84,6 @@
   })
 
   async function doQuit() {
-    // The open reading session and recent bookmarks only exist in memory until saved.
     await historyState.flush().catch(console.error)
     await invoke('exit_app')
   }

@@ -20,11 +20,6 @@ export function reportProgress(chapterId: string, fraction: number, opts: Progre
   }).catch(console.error);
 }
 
-/**
- * Rate-limits progress reports. The series is captured when a report is made,
- * since by the time a delayed one fires the reader may have closed; call flush()
- * on close so the final position is sent rather than dropped.
- */
 export function throttledProgressReporter(minGapMs = 4000) {
   let last = 0;
   let pending: ReturnType<typeof setTimeout> | null = null;

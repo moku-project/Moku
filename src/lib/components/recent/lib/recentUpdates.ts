@@ -52,7 +52,6 @@ export function groupUpdatesByDay(updates: RecentUpdate[]): UpdateGroup[] {
   const order: Record<string, number> = {}
   for (const item of updates) {
     const ts = fetchedAtMs(item)
-    // Undated chapters (often oneshots) used to land under Today on every load.
     const label = ts ? dayLabel(ts) : 'Earlier'
     if (!grouped[label]) {
       grouped[label] = []

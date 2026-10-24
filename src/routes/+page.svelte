@@ -1,5 +1,4 @@
 <script lang="ts" module>
-  // The default view applies at launch only; afterwards Home must stay reachable.
   let launchRedirectDone = false
 </script>
 

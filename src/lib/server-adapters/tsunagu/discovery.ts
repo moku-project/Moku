@@ -210,7 +210,7 @@ export const discovery = {
 			{ since, limit },
 			baseUrl()
 		)
-		// Older servers reject foundAt (gqlgen answers validation errors with 422); ask again without it.
+		// Older servers reject foundAt with a 422.
 		const data = await query(true).catch((e: unknown) => {
 			if (/foundAt|HTTP 422/.test(String(e))) return query(false)
 			throw e

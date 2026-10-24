@@ -41,16 +41,12 @@ export function markChapterRead(id: string, markedRead: Set<string>) {
       const active = readerState.activeManga;
       if (!active) return;
 
-      // The series page caches this list under its own key, the reader under the
-      // media id; patch both so going back doesn't show the chapter unread.
       for (const key of seriesAliases(active)) {
         seriesState.patchChapters(key, chapters =>
           chapters.map(c => c.id === id ? { ...c, read: true } : c),
         );
       }
 
-      // The library badge and the Updates list are cached; without this the chapter
-      // still counts as unread there until their caches expire.
       if (!wasRead) libraryState.patchUnreadCount(realMediaId, -1);
       cache.clear(CACHE_KEYS.RECENT_UPDATES);
 

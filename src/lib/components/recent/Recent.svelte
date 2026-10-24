@@ -39,7 +39,6 @@
   let updatePollTimer: ReturnType<typeof setInterval> | null = null
   let destroyed = false
 
-  // Status requests can resolve after the page is gone; an interval started then would never be cleared.
   function startUpdatePoll() {
     if (!destroyed && !updatePollTimer) updatePollTimer = setInterval(pollUpdateStatus, 1500)
   }

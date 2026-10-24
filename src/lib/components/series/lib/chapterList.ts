@@ -47,9 +47,7 @@ export function buildChapterList(chapters: Chapter[], prefs: ChapterDisplayPrefs
   base.sort((a, b) => sortByMode(a, b, sortMode))
 
   if (preferredScanlator) {
-    // Where the preferred group has a chapter, other groups' copies of it are
-    // dropped; chapters it lacks keep their place. Moving the whole group to the
-    // front instead sent "next" from its last chapter back to another group's first.
+    // Drop other groups' copies of chapters the preferred group has.
     const covered = new Set(
       base.filter(c => c.scanlator === preferredScanlator && c.chapterNumber >= 0).map(c => c.chapterNumber),
     )

@@ -1,9 +1,7 @@
 import type { EpisodeStreamSource } from "./episodeSource";
 
-// A saved source is a label like "HD-1 - Sub - 1080p". Most extensions keep
-// labels stable across episodes, but some add per-episode details (bitrate,
-// frame size) or rename servers, so when the exact label is gone the closest
-// source with the same audio wins: same resolution first, then same host.
+// Labels can change between episodes; without an exact match, prefer the same
+// audio, then resolution, then host.
 
 interface SourceTraits {
   audio:      "sub" | "dub" | "raw" | null;

@@ -133,8 +133,7 @@ pub fn run() {
                         }
                     }
                     "quit" => {
-                        // The window saves the open reading session before quitting;
-                        // exit anyway if it doesn't answer.
+                        // Let the window save first; exit anyway if it doesn't answer.
                         if app.emit("tray-quit", ()).is_err() {
                             app.exit(0);
                             return;

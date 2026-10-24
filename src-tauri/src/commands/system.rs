@@ -17,8 +17,7 @@ pub fn get_platform_ui_scale(window: tauri::Window) -> f64 {
 
 #[tauri::command]
 pub async fn restart_app(app: tauri::AppHandle) -> Result<(), String> {
-    // tauri::process::restart exits without RunEvent::Exit, so the bundled server
-    // kept running: it held the port, and on Windows the installer couldn't replace it.
+    // process::restart skips RunEvent::Exit, which would leave the bundled server running.
     crate::backend::stop(&app.state::<crate::backend::Backend>()).await;
     #[cfg(target_os = "windows")]
     {

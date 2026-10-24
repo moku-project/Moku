@@ -11,8 +11,7 @@ pub struct ReleaseInfo {
     pub html_url: String,
 }
 
-/// Installer fetched by download_and_install_update. restart_app runs it once the
-/// bundled server has stopped, since it cannot replace a running tsunagu.exe.
+/// Run by restart_app once the bundled server has stopped.
 #[cfg(target_os = "windows")]
 pub static PENDING_INSTALLER: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
 

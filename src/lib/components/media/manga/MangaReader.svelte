@@ -444,8 +444,6 @@
     }
   });
 
-  // Server progress goes out 2s after the last page turn; closing the reader
-  // sooner sends it right away instead of dropping it.
   let pendingProgress: (() => void) | null = null;
   function flushProgress() {
     if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
@@ -477,7 +475,6 @@
         if (style !== "longstrip" && (settingsState.settings.autoMarkRead ?? true) && atLast) markChapterRead(chapterId, markedRead);
 
         if (markedRead.has(chapterId)) {
-          // An earlier page's save still pending would report the chapter unfinished.
           if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
           pendingProgress = null;
         } else if (pageNum > 1) {

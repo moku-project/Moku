@@ -33,20 +33,15 @@ export function seriesHref(m: {
 
 type SeriesIds = Pick<Manga, 'id' | 'prefsKey' | 'extensionId' | 'sourceEntryId' | 'mediaId' | 'libraryEntryId'>
 
-/**
- * The key a series' prefs and bookmarks live under: extension:externalId, as the
- * series page and library use, or the media id for local series. The reader knows
- * series by their numeric media id, so it must not key by `id`.
- */
+/** extension:externalId, or the media id for local series. */
 export function seriesKey(m: SeriesIds | null | undefined): string {
   if (!m) return ''
   return m.prefsKey
-    ?? (m.id.includes(':') ? m.id : null) // the series page's own key
+    ?? (m.id.includes(':') ? m.id : null)
     ?? (m.extensionId && m.sourceEntryId ? `${m.extensionId}:${m.sourceEntryId}` : null)
     ?? m.mediaId ?? m.libraryEntryId ?? m.id
 }
 
-/** Every id a series has been stored under, the key first. */
 export function seriesAliases(m: SeriesIds | null | undefined): string[] {
   if (!m) return []
   const ids = [seriesKey(m), m.id, m.mediaId, m.libraryEntryId].filter((v): v is string => !!v)
@@ -331,7 +326,6 @@ class SeriesStore {
     })
   }
 
-  /** Replaces the series' bookmark; `aliases` are other ids an older copy may be stored under. */
   setBookmark(entry: Omit<BookmarkEntry, 'savedAt'>, aliases: string[] = []) {
     const ids = new Set([entry.mangaId, ...aliases])
     this.bookmarks = [
@@ -341,7 +335,6 @@ class SeriesStore {
     historyState.persistSoon()
   }
 
-  /** The newest bookmark stored under any of `ids`, optionally for one chapter. */
   findBookmark(ids: string[], chapterId?: string): BookmarkEntry | undefined {
     let best: BookmarkEntry | undefined
     for (const b of this.bookmarks) {

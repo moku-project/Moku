@@ -106,7 +106,6 @@ class HistoryStore {
     this.active = null
   }
 
-  /** Ends the open session and waits until everything is written; call before quitting. */
   async flush() {
     if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null }
     if (this.active) { this._commit(Date.now()); this.active = null }
@@ -115,7 +114,6 @@ class HistoryStore {
 
   private persistTimer: ReturnType<typeof setTimeout> | null = null
 
-  /** Saves shortly; bookmarks change on every page turn, so their writes are batched. */
   persistSoon() {
     if (this.persistTimer) clearTimeout(this.persistTimer)
     this.persistTimer = setTimeout(() => { this.persistTimer = null; void this._persist() }, 1_000)

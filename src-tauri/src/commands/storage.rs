@@ -65,7 +65,6 @@ fn resolve_downloads_path(app: &tauri::AppHandle, downloads_path: &str) -> PathB
     moku_data_dir(app).join("downloads")
 }
 
-// async: walking a large downloads folder on the main thread froze the window.
 #[tauri::command(async)]
 pub fn get_storage_info(
     app: tauri::AppHandle,
@@ -138,8 +137,7 @@ pub async fn migrate_downloads(
         return Ok(());
     }
 
-    // A destination inside the source (or the reverse) gets walked as it is written,
-    // and the final remove_dir_all would delete the copy along with the original.
+    // Nested folders would copy into themselves, then get deleted with the source.
     let canon = |p: &PathBuf| fs::canonicalize(p).unwrap_or_else(|_| p.clone());
     let (src_real, dst_real) = (canon(&src_path), canon(&dst_path));
     if dst_real.starts_with(&src_real) || src_real.starts_with(&dst_real) {

@@ -9,7 +9,7 @@
 
 pkgbase=moku-git
 pkgname=('moku-git' 'moku-nobackend-git')
-pkgver=0.14.0.r0.g0000000
+pkgver=0.14.1.r0.g0000000
 pkgrel=1
 arch=('x86_64' 'aarch64')
 url='https://github.com/moku-project/Moku'

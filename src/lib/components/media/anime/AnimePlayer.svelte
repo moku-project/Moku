@@ -42,6 +42,9 @@
   let upscaleCanvas = $state<HTMLCanvasElement | null>(null);
   let upscaler: VideoUpscaler | null = null;
   let upscaleActive = $state(false);
+  // WebKit paints a seeking video black, so the last frame is held over it.
+  let seekFrameEl = $state<HTMLCanvasElement | null>(null);
+  let seekFrozen = $state(false);
   const upscaleEnabled = $derived(settingsState.settings.videoUpscaleExperimental ?? false);
   const upscaleMode = $derived(
     (upscaleEnabled ? (settingsState.settings.videoUpscale ?? "off") : "off") as UpscaleMode,
@@ -178,8 +181,6 @@
     if (!manualChrome && pointerNearBar(e)) armIdleHide();
   }
 
-  // The marker just skipped stays hidden until playback leaves it, so the
-  // button can't pop back while a long seek is still buffering.
   let skippedMarker = $state<SkipMarker | null>(null);
   const activeSkip = $derived.by(() => {
     const ms = aps.positionSeconds * 1000;
@@ -220,8 +221,36 @@
     if (wasPaused) void videoEl.play().catch(() => {}); else videoEl.pause();
     flash(wasPaused ? "play" : "pause");
   }
+  function freezeFrame() {
+    if (!videoEl || !seekFrameEl || seekFrozen || videoEl.seeking || videoEl.readyState < 2) return;
+    const up = upscaleActive && upscaleCanvas ? upscaleCanvas : null;
+    const w = up ? up.width : videoEl.videoWidth;
+    const h = up ? up.height : videoEl.videoHeight;
+    if (!w || !h) return;
+    try {
+      seekFrameEl.width = w;
+      seekFrameEl.height = h;
+      seekFrameEl.getContext("2d")?.drawImage(up ?? videoEl, 0, 0, w, h);
+      seekFrozen = true;
+    } catch { }
+  }
+  function thawFrame() {
+    if (!seekFrozen || !videoEl) { seekFrozen = false; return; }
+    const v = videoEl as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
+    let done = false;
+    const thaw = () => { if (!done) { done = true; seekFrozen = false; } };
+    if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(thaw);
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (!v.requestVideoFrameCallback || v.paused) thaw(); }));
+    setTimeout(thaw, 1000);
+  }
+  function onSeeked() {
+    onTimeUpdate();
+    thawFrame();
+  }
+
   function seekBy(delta: number) {
     if (!videoEl) return;
+    freezeFrame();
     const dur = videoEl.duration || 0;
     videoEl.currentTime = Math.max(0, Math.min(dur, videoEl.currentTime + delta));
     aps.positionSeconds = videoEl.currentTime;
@@ -229,8 +258,8 @@
   }
   function seekToPct(p: number) {
     if (!videoEl || !videoEl.duration) return;
+    freezeFrame();
     videoEl.currentTime = (p / 100) * videoEl.duration;
-    // Time updates pause while seeking; show where the seek is going meanwhile.
     aps.positionSeconds = videoEl.currentTime;
   }
   function toggleMute() {
@@ -278,11 +307,22 @@
     if (aps.activeSubtitle) {
       const m = manifestTracks.find(x => x.key === aps.activeSubtitle);
       if (m) applyDashText(m.dashIndex!);
-    } else if (!subChoiceMade && manifestTracks.length) {
-      slog("syncDashText: auto-enabling dash text idx 0 =", manifestTracks[0].key);
-      applyDashText(manifestTracks[0].dashIndex!);
-      aps.activeSubtitle = manifestTracks[0].key;
+    } else if (!subChoiceMade && manifestTracks.length && (settingsState.settings.autoEnableSubtitles ?? true)) {
+      const m = manifestTracks.find(x => isPreferredSub(x.label)) ?? manifestTracks[0];
+      slog("syncDashText: auto-enabling dash text", m.key);
+      applyDashText(m.dashIndex!);
+      aps.activeSubtitle = m.key;
     }
+  }
+  function isPreferredSub(lang: string): boolean {
+    const pref = (settingsState.settings.preferredSubtitleLang ?? "").trim();
+    return !!pref && (lang.toLowerCase() === pref.toLowerCase() || bcp47(lang) === bcp47(pref));
+  }
+  function rememberSub(lang: string | null) {
+    subChoiceMade = true;
+    updateSettings(lang == null
+      ? { autoEnableSubtitles: false }
+      : { autoEnableSubtitles: true, preferredSubtitleLang: lang });
   }
   function applyDashText(index: number) {
     const tt = videoEl?.textTracks;
@@ -296,8 +336,8 @@
     } catch (e) { slog("applyDashText: threw", e); }
     setTimeout(() => dumpTextTracks("applyDashText+500ms"), 500);
   }
-  function selectManifestTrack(t: { key: string; dashIndex?: number }) {
-    subChoiceMade = true;
+  function selectManifestTrack(t: { key: string; label: string; dashIndex?: number }) {
+    rememberSub(t.dashIndex != null ? t.label : t.key);
     disposeAss();
     if (t.dashIndex != null) applyDashText(t.dashIndex);
     else applyVtt(t.key);
@@ -329,7 +369,7 @@
     renderCues();
   }
   function selectVtt(key: string | null) {
-    subChoiceMade = true;
+    rememberSub(key);
     applyVtt(key);
     subMenuOpen = false;
   }
@@ -393,7 +433,7 @@
     }
   }
   async function selectAss(a: { lang: string; content: string }) {
-    subChoiceMade = true;
+    rememberSub(a.lang);
     await applyAss(a);
     subMenuOpen = false;
   }
@@ -420,7 +460,6 @@
         slog(`  fetch ${s.lang}: THREW`, e);
       }
     }));
-    // A quick episode switch can finish this after the next episode started its own.
     if (chapter?.id !== forChapter) return;
     assSubs = found;
     subsClassified = true;
@@ -433,10 +472,7 @@
       if (ass) { if (!assRenderer) void applyAss(ass); }
       else if (trackFor(aps.activeSubtitle)) applyVtt(aps.activeSubtitle);
     } else if (!subChoiceMade && aps.subtitles.length && (settingsState.settings.autoEnableSubtitles ?? true)) {
-      const pref = (settingsState.settings.preferredSubtitleLang ?? "").trim();
-      const first = (pref && aps.subtitles.find(s =>
-        s.lang.toLowerCase() === pref.toLowerCase() || bcp47(s.lang) === bcp47(pref)
-      )) || aps.subtitles[0];
+      const first = aps.subtitles.find(s => isPreferredSub(s.lang)) ?? aps.subtitles[0];
       const ass = found.find(a => a.url === first.url);
       slog("classifySubs: auto-enabling", first.lang, ass ? "(ASS→JASSUB)" : "(VTT→<track>)");
       if (ass) void applyAss(ass); else applyVtt(first.lang);
@@ -599,7 +635,6 @@
   }
 
   function tryNextSource(): boolean {
-    // Wraps around: a remembered source can be the last one, and the earlier ones may work.
     if (sourceAttempts >= aps.sources.length - 1) return false;
     sourceAttempts++;
     aps.sourceIdx = (aps.sourceIdx + 1) % aps.sources.length;
@@ -625,7 +660,6 @@
 
   function savedVideoSource(): string | undefined {
     const prefs = settingsState.settings.mangaPrefs ?? {};
-    // Older builds saved the pick under the media id when played from the series page.
     for (const k of [prefsKey, manga?.mediaId, manga?.libraryEntryId, manga?.id]) {
       const v = k ? prefs[k]?.preferredVideoSource : undefined;
       if (v) return v;
@@ -712,6 +746,7 @@
     if (dash) { try { dash.destroy(); } catch { } dash = null; }
     if (videoEl) { videoEl.removeAttribute("src"); videoEl.load(); }
     attachedUrl = null;
+    seekFrozen = false;
   }
 
   function onLoadedMeta() {
@@ -744,13 +779,12 @@
     const m = activeSkip;
     skippedMarker = m;
     flash("fwd", m.type === "ending" ? "outro" : "intro");
+    freezeFrame();
     videoEl.currentTime = Math.min(videoEl.duration || m.endMs / 1000, m.endMs / 1000 + 0.1);
     aps.positionSeconds = videoEl.currentTime;
   }
   function onTimeUpdate() {
-    // load() of a detached element reports position 0, which must not be saved as progress.
     if (!videoEl || !chapter || !attachedUrl || videoEl.readyState === 0) return;
-    // Mid-seek updates can still carry the old position; the seeked event brings the real one.
     if (videoEl.seeking) return;
     aps.positionSeconds = videoEl.currentTime;
     const ms = aps.positionSeconds * 1000;
@@ -763,7 +797,6 @@
       completed: frac >= 0.9,
     });
   }
-  // Seeks fire waiting/playing in quick bursts; only show the spinner for a real stall.
   let bufferTimer: ReturnType<typeof setTimeout> | null = null;
   function setBuffering(on: boolean) {
     if (bufferTimer) { clearTimeout(bufferTimer); bufferTimer = null; }
@@ -935,7 +968,7 @@
         onplay={onPlay}
         onplaying={() => { setBuffering(false); ensureSubtitle(); }}
         onwaiting={() => setBuffering(true)}
-        onseeked={onTimeUpdate}
+        onseeked={onSeeked}
         oncanplay={() => { clearWatchdog(); ensureSubtitle(); }}
         onpause={onPause}
         onvolumechange={() => { if (videoEl) { aps.volume = videoEl.volume; aps.muted = videoEl.muted; } }}
@@ -952,6 +985,8 @@
           class:up-hidden={!upscaleActive}
         ></canvas>
       {/if}
+
+      <canvas bind:this={seekFrameEl} class="video seek-frame" class:seek-hidden={!seekFrozen}></canvas>
 
       {#if subText && !assRenderer}
         <div
@@ -1260,6 +1295,8 @@
   .video-dimmed { opacity: 0; }
   .up-canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; pointer-events: none; z-index: 1; opacity: 1; transition: opacity 0.15s ease; }
   .up-hidden { opacity: 0; }
+  .seek-frame { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+  .seek-hidden { visibility: hidden; }
   .tap-layer { position: absolute; inset: 0; z-index: 2; }
 
   .sub-overlay {
@@ -1318,15 +1355,15 @@
     50%      { opacity: 1;    transform: scale(1); }
   }
 
-  .buffering { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); pointer-events: none; }
+  .buffering { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); pointer-events: none; }
 
   .flash {
     position: absolute; top: 50%; transform: translateY(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     color: #fff;
-    background: rgba(0,0,0,0.55); border-radius: 999px;
+    background: rgba(0,0,0,0.55); border-radius: var(--radius-2xl);
     width: 76px; height: 76px; justify-content: center;
-    pointer-events: none;
+    pointer-events: none; z-index: 3;
   }
   .flash span { font-family: var(--font-ui); font-size: var(--text-2xs); }
 

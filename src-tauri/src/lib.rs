@@ -98,6 +98,7 @@ pub fn run() {
             commands::backup::import_mihon_backup,
             commands::backup::auto_backup_app_data,
             commands::backup::get_auto_backup_dir,
+            commands::extension::pick_extension_file,
             commands::storage::load_store,
             commands::storage::save_store,
             commands::storage::store_credential,

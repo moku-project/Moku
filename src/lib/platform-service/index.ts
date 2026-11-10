@@ -34,6 +34,7 @@ export const platformService = {
   pickFolder:      ()                                      => get().pickFolder(),
   pickFile:        (extensions?: string[])                 => get().pickFile(extensions),
   importMihonBackupFile: ()                                => get().importMihonBackupFile(),
+  pickExtensionFile: ()                                    => get().pickExtensionFile(),
   pickImportPaths: (directory: boolean)                    => get().pickImportPaths(directory),
   checkPathExists: (path: string)                          => get().checkPathExists(path),
   createDirectory: (path: string)                          => get().createDirectory(path),

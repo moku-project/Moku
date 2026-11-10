@@ -53,6 +53,7 @@ export class WebAdapter implements PlatformAdapter {
   async pickFolder(): Promise<string | null> { return null }
   async pickFile(_extensions?: string[]): Promise<string | null> { return null }
   async importMihonBackupFile(): Promise<Uint8Array | null> { return null }
+  async pickExtensionFile(): Promise<{ name: string; bytes: Uint8Array } | null> { return null }
   async pickImportPaths(_directory: boolean): Promise<string[]> { return [] }
   async checkPathExists(_path: string): Promise<boolean> { return false }
   async createDirectory(_path: string): Promise<void> {}

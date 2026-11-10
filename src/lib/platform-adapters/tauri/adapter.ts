@@ -108,6 +108,16 @@ export class TauriAdapter implements PlatformAdapter {
     }
   }
 
+  async pickExtensionFile(): Promise<{ name: string; bytes: Uint8Array } | null> {
+    try {
+      const file = await invoke<{ name: string; bytes: number[] }>('pick_extension_file')
+      return { name: file.name, bytes: new Uint8Array(file.bytes) }
+    } catch (e) {
+      if (String(e).includes('Cancelled')) return null
+      throw e
+    }
+  }
+
   async pickImportPaths(directory: boolean): Promise<string[]> {
     const result = await open({ directory, multiple: true })
     if (!result) return []

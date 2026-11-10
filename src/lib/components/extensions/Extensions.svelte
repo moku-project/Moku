@@ -1,7 +1,8 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { CircleNotch, X, Check, HardDrives } from "phosphor-svelte";
+  import { CircleNotch, X, Check, HardDrives, FileArrowUp } from "phosphor-svelte";
   import { tsunagu } from "$lib/server-adapters/tsunagu";
+  import { platformService } from "$lib/platform-service";
   import { addToast }      from "$lib/state/notifications.svelte";
   import { settingsState } from "$lib/state/settings.svelte";
   import type { Extension } from "$lib/server-adapters/types";
@@ -73,6 +74,7 @@
   let installing     = $state(false);
   let installError   = $state<string | null>(null);
   let installSuccess = $state(false);
+  const canPickFile  = platformService.isSupported("filesystem");
 
   let repos        = $state<string[]>([]);
   let reposLoading = $state(false);
@@ -293,6 +295,24 @@
     } finally { installing = false; }
   }
 
+  async function installFile() {
+    if (installing) return;
+    installError = null; installSuccess = false;
+    try {
+      const file = await platformService.pickExtensionFile();
+      if (!file) return;
+      installing = true;
+      const ext = await tsunagu.installExtensionFile(file.name, file.bytes);
+      installSuccess = true;
+      await refreshAfterMutate();
+      addToast({ kind: "download", title: "Extension installed", body: ext.name || file.name });
+      setTimeout(() => { panel = null; installSuccess = false; }, 1500);
+    } catch (e: any) {
+      installError = e instanceof Error ? e.message : "Install failed";
+      addToast({ kind: "error", title: "Install failed", body: installError });
+    } finally { installing = false; }
+  }
+
   function openPanel(p: Panel) {
     panel = panel === p ? null : p;
     installError = null; installSuccess = false; externalUrl = "";
@@ -400,8 +420,11 @@
     {#if panel === "apk"}
       <div class="ext-panel" class:ext-panel-anim={anims}>
         <div class="panel-header">
-          <span class="panel-title-wrap"><span class="panel-title">Install from APK URL</span></span>
+          <span class="panel-title-wrap"><span class="panel-title">Install Extension</span></span>
         </div>
+        {#if canPickFile}
+          <p class="panel-hint">Paste a link, or pick a local .apk, .jar or LNReader .js file.</p>
+        {/if}
         <div class="ext-row">
           <input
             class="ext-input" class:error={installError}
@@ -417,6 +440,11 @@
             {:else if installSuccess}<Check size={13} weight="bold" /> Done
             {:else}Install{/if}
           </button>
+          {#if canPickFile}
+            <button class="install-btn" onclick={installFile} disabled={installing} title="Install from a local file">
+              <FileArrowUp size={13} weight="light" /> File
+            </button>
+          {/if}
         </div>
         {#if installError}<div class="panel-error">{installError}</div>{/if}
       </div>

@@ -63,7 +63,7 @@
     <button class="icon-btn" class:active={panel === "repos"} data-tour="add-source" onclick={() => onPanel("repos")} title="Manage repos">
       <Plus size={14} weight="light" />
     </button>
-    <button class="icon-btn" class:active={panel === "apk"} onclick={() => onPanel("apk")} title="Install from URL">
+    <button class="icon-btn" class:active={panel === "apk"} onclick={() => onPanel("apk")} title="Install extension">
       <GitBranch size={14} weight="light" />
     </button>
     <button class="icon-btn" onclick={onRefresh} disabled={refreshing} title="Refresh repo">

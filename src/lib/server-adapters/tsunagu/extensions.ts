@@ -1,6 +1,7 @@
 import { gql, baseUrl } from './gql'
 import type { ContentType, Extension } from '$lib/server-adapters/types'
 import { canonicalLang } from '$lib/core/lang'
+import { authHeaders } from '$lib/state/auth.svelte'
 
 const EXT_FIELDS = `
 	id repositoryId packageName name displayName version contentType lang iconUrl
@@ -109,5 +110,17 @@ export const extensions = {
 			baseUrl()
 		)
 		return normExt(data.installExternalExtension)
+	},
+
+	async installExtensionFile(name: string, bytes: Uint8Array): Promise<{ packageName: string; name: string }> {
+		const form = new FormData()
+		form.append('file', new Blob([bytes]), name)
+		const res = await fetch(`${baseUrl().replace(/\/$/, '')}/api/extensions/install-file`, {
+			method: 'POST',
+			headers: authHeaders(),
+			body: form,
+		})
+		if (!res.ok) throw new Error((await res.text()).trim() || `HTTP ${res.status}`)
+		return res.json()
 	},
 }

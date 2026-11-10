@@ -84,6 +84,7 @@ export interface PlatformAdapter {
   pickFolder():                            Promise<string | null>
   pickFile(extensions?: string[]):         Promise<string | null>
   importMihonBackupFile():                 Promise<Uint8Array | null>
+  pickExtensionFile():                     Promise<{ name: string; bytes: Uint8Array } | null>
   pickImportPaths(directory: boolean):     Promise<string[]>
   checkPathExists(path: string):           Promise<boolean>
   createDirectory(path: string):           Promise<void>

@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="docs/banner.svg" width="100%" alt="Moku" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/banner.svg">
+    <img src="docs/banner-light.svg" width="100%" alt="Moku">
+  </picture>
 </div>
 
 <div align="center">

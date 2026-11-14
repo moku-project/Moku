@@ -5,9 +5,7 @@
   </picture>
 </div>
 
-Moku is a fast, minimal manga, novel and anime reader. It's a lightweight Tauri frontend for the [Tsunagu](https://github.com/moku-project/Tsunagu) backend — no Electron overhead. The desktop builds bundle Tsunagu and manage it for you.
-
-Need more information? Check out the website/docs: https://moku-project.github.io/
+<br/>
 
 <div align="center">
 
@@ -17,6 +15,12 @@ Need more information? Check out the website/docs: https://moku-project.github.i
 [![Discord](https://www.shieldcn.dev/discord/members/x97hj8zR72.svg?variant=outline&size=default)](https://discord.gg/x97hj8zR72)
 
 </div>
+
+<br/>
+
+Moku is a fast, minimal manga, novel and anime reader. It's a lightweight Tauri frontend for the [Tsunagu](https://github.com/moku-project/Tsunagu) backend — no Electron overhead. The desktop builds bundle Tsunagu and manage it for you.
+
+Need more information? Check out the website/docs: https://moku-project.github.io/
 
 ---
 

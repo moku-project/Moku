@@ -160,19 +160,8 @@
 		}
 	})
 
-	let vw = $state(1440)
-	let vh = $state(820)
-	$effect(() => {
-		const measure = () => { vw = window.innerWidth; vh = window.innerHeight }
-		measure()
-		window.addEventListener('resize', measure)
-		return () => window.removeEventListener('resize', measure)
-	})
 	const uiZoomFactor = $derived(
-		Math.max(0.6, Math.min(
-			4,
-			Math.max(0.8, Math.min(vw / 1440, vh / 820)) * (settingsState.settings.uiZoom ?? 1.0),
-		)),
+		Math.max(0.6, Math.min(4, settingsState.settings.uiZoom ?? 1.0)),
 	)
 	$effect(() => {
 		document.documentElement.style.zoom = String(uiZoomFactor)

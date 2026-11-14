@@ -9,10 +9,14 @@ Moku is a fast, minimal manga, novel and anime reader. It's a lightweight Tauri 
 
 Need more information? Check out the website/docs: https://moku-project.github.io/
 
+<div align="center">
+
 [![Release](https://www.shieldcn.dev/github/release/moku-project/Moku.svg?variant=outline&size=default)](https://github.com/moku-project/Moku/releases/latest)
 ![GitHub Downloads](https://www.shieldcn.dev/github/downloads/moku-project/Moku.svg?variant=outline&size=default)
 [![Stars](https://www.shieldcn.dev/github/stars/moku-project/Moku.svg?variant=outline&size=default)](https://github.com/moku-project/Moku)
 [![Discord](https://www.shieldcn.dev/discord/members/x97hj8zR72.svg?variant=outline&size=default)](https://discord.gg/x97hj8zR72)
+
+</div>
 
 ---
 
@@ -187,6 +191,8 @@ pnpm tauri:dev
 Questions, feedback, or just want to hang out — join the Discord.
 
 [![Discord](https://www.shieldcn.dev/discord/members/x97hj8zR72.svg?variant=secondary&size=large)](https://discord.gg/x97hj8zR72)
+
+</div>
 
 ---
 

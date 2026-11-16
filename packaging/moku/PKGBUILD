@@ -13,7 +13,7 @@ arch=('x86_64' 'aarch64')
 url='https://github.com/moku-project/Moku'
 license=('MIT')
 depends=(
-  'tsunagu>=0.6.0'
+  'tsunagu>=0.8.1'
   'webkit2gtk-4.1'
   'gtk3'
   'glib-networking'

@@ -156,10 +156,6 @@
   let pathsFieldError      = $state<{ dl?: string; loc?: string }>({})
   let pathsSaved           = $state(false)
 
-  // The server falls back to its media dir when no downloads path is set,
-  // so that (not the OS "Downloads" folder) is the real default to show.
-  const defaultDownloadsPath = $derived(srvStorage?.mediaDir ?? '')
-
   let confirmedDownloadsPath   = $state(settingsState.settings.serverDownloadsPath ?? '')
   let confirmedLocalSourcePath = $state(settingsState.settings.serverLocalSourcePath ?? '')
 
@@ -334,6 +330,9 @@
   let backupList    = $state<{ url: string; name: string; deleting?: boolean }[]>([])
 
   let srvStorage    = $state<import('$lib/server-adapters/types').StorageInfo | null>(null)
+  // The server falls back to its media dir when no downloads path is set,
+  // so that (not the OS "Downloads" folder) is the real default to show.
+  const defaultDownloadsPath = $derived(srvStorage?.mediaDir ?? '')
   let srvLoading    = $state(false)
   let srvError      = $state<string | null>(null)
   let srvClearing   = $state<string | null>(null)
@@ -462,7 +461,7 @@
       if (!bytes) return
       importingFile = true
       const form = new FormData()
-      form.append('file', new Blob([bytes]), 'backup.tachibk')
+      form.append('file', new Blob([bytes as Uint8Array<ArrayBuffer>]), 'backup.tachibk')
       const res = await fetch(`${getServerUrl()}/api/backups/import-file`, {
         method:  'POST',
         headers: authHeaders(),

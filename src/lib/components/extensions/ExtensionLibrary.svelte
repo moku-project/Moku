@@ -103,7 +103,7 @@
     importing = true;
     importProgress = null;
     try {
-      if (!mediaDir) mediaDir = (await tsunagu.storageInfo()).mediaDir;
+      if (!mediaDir) mediaDir = (await tsunagu.storageInfo()).mediaDir ?? "";
       const { importLocalPaths } = await import("$lib/core/localImport");
       const { imported, errors } = await importLocalPaths(paths, mediaDir, (copied, total) => {
         importProgress = { copied, total };

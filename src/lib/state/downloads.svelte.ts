@@ -16,7 +16,7 @@ import StorageWarningDialog                       from "$lib/components/download
 function fakeChapter(chapterId: string, mediaId: string): Chapter {
   return {
     id: chapterId, mediaId, externalId: "", title: null, number: null, scanlator: null,
-    sourceOrder: null, uploadedAt: null, completed: false, downloaded: false, readingProgress: null, download: null, pages: null, pageCount: 0, videoUrl: null,
+    sourceOrder: null, uploadedAt: null, completed: false, downloaded: false, readingProgress: null, download: null, pages: null, pageCount: 0, videoUrl: null, pdfSource: false,
   };
 }
 

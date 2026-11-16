@@ -383,7 +383,7 @@ export async function loadLibrary(force = false) {
     try {
       const [entries, orphans, folders] = await Promise.all([
         tsunagu.library(),
-        tsunagu.orphanedDownloads().catch(() => [] as typeof entries),
+        tsunagu.orphanedDownloads().catch(() => [] as Awaited<ReturnType<typeof tsunagu.orphanedDownloads>>),
         tsunagu.folders(),
       ]);
       const items = entries.map(mapEntryToManga);

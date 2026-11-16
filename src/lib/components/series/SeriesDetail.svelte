@@ -685,7 +685,7 @@
   <MetadataMatchPanel
     {manga}
     mediaId={realMediaId}
-    metadata={manga.metadata ?? null}
+    metadata={(manga.metadata ?? null) as import("$lib/server-adapters/types").MediaMetadata | null}
     onChanged={(m) => { if (manga) manga.metadata = m; mangaCache.delete(mangaId) }}
     onClose={() => metadataOpen = false}
   />

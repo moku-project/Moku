@@ -114,7 +114,7 @@ export const extensions = {
 
 	async installExtensionFile(name: string, bytes: Uint8Array): Promise<{ packageName: string; name: string }> {
 		const form = new FormData()
-		form.append('file', new Blob([bytes]), name)
+		form.append('file', new Blob([bytes as Uint8Array<ArrayBuffer>]), name)
 		const res = await fetch(`${baseUrl().replace(/\/$/, '')}/api/extensions/install-file`, {
 			method: 'POST',
 			headers: authHeaders(),

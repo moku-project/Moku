@@ -35,7 +35,7 @@
   let { trackerKey, trackerName, username = null, onClose, onDone }: Props = $props();
 
   let phase: Phase = $state("pick-target");
-  let importKind: ContentType = $state("MANGA");
+  let importKind = $state<ContentType>("MANGA");
   let installedSources: Source[] = $state([]);
   let loadingSources = $state(true);
   let targetSource: Source | null = $state(null);
@@ -587,8 +587,10 @@
     if (!src) throw new Error(t('trackerImport.noSourceError'));
     if (!entry.match?.sourceEntryId) throw new Error(t('trackerImport.noMatchError'));
     const info = await tsunagu.mangaInfo(src.id, entry.match.sourceEntryId, true);
-    if (!info.inLibrary) await tsunagu.setInLibrary(info.id, true);
-    const link = await tsunagu.bindTrack(info.id, trackerKey, entry.remote.remoteId);
+    const mediaId = info.id;
+    if (!mediaId) throw new Error(t('trackerImport.noMatchError'));
+    if (!info.inLibrary) await tsunagu.setInLibrary(mediaId, true);
+    const link = await tsunagu.bindTrack(mediaId, trackerKey, entry.remote.remoteId);
     await sleep(ANILIST_GAP_MS);
     await tsunagu.updateTrack(link.id, {
       status: alStatusToTrack(entry.remote.status),

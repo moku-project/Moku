@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte'
-  import { X, Book, FilmSlate, Image, Sliders, Info, Keyboard, Gear, HardDrives, PaintBrush, ShieldCheck, Robot, Bug, Broadcast, Database, LockKey } from 'phosphor-svelte'
+  import { X, Book, FilmSlate, Image, Sliders, Info, Keyboard, Gear, HardDrives, PaintBrush, ShieldCheck, Robot, Bug, Broadcast, Database, LockKey, ArrowsClockwise } from 'phosphor-svelte'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { app } from '$lib/state/app.svelte'
   import { eventToKeybind } from '$lib/core/keybinds/keybindEngine'
@@ -24,6 +24,7 @@
   import TrackingSettings    from './sections/TrackingSettings.svelte'
   import ServerSettings      from './sections/ServerSettings.svelte'
   import AuthSettings        from './sections/AuthSettings.svelte'
+  import SyncSettings        from './sections/SyncSettings.svelte'
   import ModalBlur           from '$lib/components/shared/ui/ModalBlur.svelte'
   import BugReporter         from './BugReporter.svelte'
   import TrackerImportModal  from '$lib/components/tracking/TrackerImportModal.svelte'
@@ -31,7 +32,7 @@
   interface Props { onclose?: () => void; onOpenThemeEditor?: (id?: string | null) => void }
   let { onclose, onOpenThemeEditor }: Props = $props()
 
-  type Tab = 'general'|'appearance'|'reader'|'player'|'library'|'automation'|'tracking'|'performance'|'keybinds'|'storage'|'content'|'server'|'auth'|'about'
+  type Tab = 'general'|'appearance'|'reader'|'player'|'library'|'automation'|'tracking'|'performance'|'keybinds'|'storage'|'content'|'sync'|'server'|'auth'|'about'
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: 'general',     label: 'General',     icon: Gear        },
     { id: 'appearance',  label: 'Appearance',  icon: PaintBrush  },
@@ -44,6 +45,7 @@
     { id: 'keybinds',    label: 'Keybinds',    icon: Keyboard    },
     { id: 'storage',     label: 'Storage',     icon: HardDrives  },
     { id: 'content',     label: 'Content',     icon: ShieldCheck },
+    { id: 'sync',        label: 'Sync',        icon: ArrowsClockwise },
     { id: 'server',      label: 'Server',      icon: Database    },
     { id: 'auth',        label: 'Auth',        icon: LockKey     },
     { id: 'about',       label: 'About',       icon: Info        },
@@ -58,6 +60,7 @@
   let modalEl: HTMLDivElement
   let bugReporterOpen    = $state(false)
   let importKey          = $state<string | null>(null)
+  let syncPopupOpen      = $state(false)
 
   $effect(() => { tab; tick().then(() => contentBodyEl?.scrollTo({ top: 0 })) })
 
@@ -81,7 +84,7 @@
   let listeningKey: keyof Keybinds | null = $state(null)
 
   $effect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !listeningKey && !bugReporterOpen && !importKey) { e.stopPropagation(); close() } }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !listeningKey && !bugReporterOpen && !importKey && !syncPopupOpen) { e.stopPropagation(); close() } }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
   })
@@ -208,6 +211,8 @@
           <StorageSettings />
         {:else if tab === 'content'}
           <ContentSettings />
+        {:else if tab === 'sync'}
+          <SyncSettings bind:popupOpen={syncPopupOpen} />
         {:else if tab === 'server'}
           <ServerSettings {selectOpen} {closingSelect} {toggleSelect} {registerTrigger} {getTrigger} {selectPortal} {anims} />
         {:else if tab === 'auth'}

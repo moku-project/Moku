@@ -40,6 +40,7 @@
     "jassub": "^2.5.18",
     "mammoth": "^1.13.0",
     "pdfjs-dist": "^6.4.299",
-    "tauri-plugin-discord-rpc-api": "github:Youwes09/tauri-plugin-discord-rpc"
+    "tauri-plugin-discord-rpc-api": "github:Youwes09/tauri-plugin-discord-rpc",
+    "uqr": "0.1.2"
   }
 }

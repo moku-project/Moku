@@ -44,6 +44,9 @@ importers:
       tauri-plugin-discord-rpc-api:
         specifier: github:Youwes09/tauri-plugin-discord-rpc
         version: https://codeload.github.com/Youwes09/tauri-plugin-discord-rpc/tar.gz/e0ad152c29b5b8e372e108a7b868707e5f72e1cc
+      uqr:
+        specifier: 0.1.2
+        version: 0.1.2
     devDependencies:
       '@sveltejs/adapter-node':
         specifier: ^5.5.7
@@ -1243,6 +1246,9 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
+  uqr@0.1.2:
+    resolution: {integrity: sha512-MJu7ypHq6QasgF5YRTjqscSzQp/W11zoUk6kvmlH+fmWEs63Y0Eib13hYFwAzagRJcVY8WVnlV+eBDUGMJ5IbA==}
+
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
@@ -2246,6 +2252,8 @@ snapshots:
   underscore@1.13.8: {}
 
   undici-types@8.9.0: {}
+
+  uqr@0.1.2: {}
 
   util-deprecate@1.0.2: {}
 

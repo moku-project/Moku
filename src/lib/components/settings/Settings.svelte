@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte'
-  import { X, Book, FilmSlate, Image, Sliders, Info, Keyboard, Gear, HardDrives, FolderSimple, Wrench, PaintBrush, ShieldCheck, Robot, Bug, Broadcast, Database, LockKey } from 'phosphor-svelte'
+  import { X, Book, FilmSlate, Image, Sliders, Info, Keyboard, Gear, HardDrives, PaintBrush, ShieldCheck, Robot, Bug, Broadcast, Database, LockKey } from 'phosphor-svelte'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { app } from '$lib/state/app.svelte'
   import { eventToKeybind } from '$lib/core/keybinds/keybindEngine'
@@ -31,7 +31,7 @@
   interface Props { onclose?: () => void; onOpenThemeEditor?: (id?: string | null) => void }
   let { onclose, onOpenThemeEditor }: Props = $props()
 
-  type Tab = 'general'|'appearance'|'reader'|'player'|'library'|'automation'|'tracking'|'performance'|'keybinds'|'storage'|'folders'|'content'|'server'|'auth'|'about'|'devtools'
+  type Tab = 'general'|'appearance'|'reader'|'player'|'library'|'automation'|'tracking'|'performance'|'keybinds'|'storage'|'content'|'server'|'auth'|'about'
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: 'general',     label: 'General',     icon: Gear        },
     { id: 'appearance',  label: 'Appearance',  icon: PaintBrush  },
@@ -43,12 +43,10 @@
     { id: 'performance', label: 'Performance', icon: Sliders     },
     { id: 'keybinds',    label: 'Keybinds',    icon: Keyboard    },
     { id: 'storage',     label: 'Storage',     icon: HardDrives  },
-    { id: 'folders',     label: 'Folders',     icon: FolderSimple },
     { id: 'content',     label: 'Content',     icon: ShieldCheck },
     { id: 'server',      label: 'Server',      icon: Database    },
     { id: 'auth',        label: 'Auth',        icon: LockKey     },
     { id: 'about',       label: 'About',       icon: Info        },
-    { id: 'devtools',    label: 'Dev Tools',   icon: Wrench      },
   ]
 
   const anims = $derived(settingsState.settings.qolAnimations ?? true)
@@ -197,6 +195,7 @@
           <PlayerSettings />
         {:else if tab === 'library'}
           <LibrarySettings {selectOpen} {closingSelect} {toggleSelect} {registerTrigger} {getTrigger} {selectPortal} {anims} />
+          <FoldersSettings />
         {:else if tab === 'automation'}
           <AutomationSettings />
         {:else if tab === 'tracking'}
@@ -207,8 +206,6 @@
           <KeybindsSettings bind:listeningKey />
         {:else if tab === 'storage'}
           <StorageSettings />
-        {:else if tab === 'folders'}
-          <FoldersSettings />
         {:else if tab === 'content'}
           <ContentSettings />
         {:else if tab === 'server'}
@@ -217,7 +214,6 @@
           <AuthSettings />
         {:else if tab === 'about'}
           <AboutSettings />
-        {:else if tab === 'devtools'}
           <DevtoolsSettings />
         {/if}
       </div>

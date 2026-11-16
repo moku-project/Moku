@@ -140,6 +140,8 @@
   padding: var(--sp-4) var(--sp-5) var(--sp-6);
   gap: var(--sp-2);
 }
+/* Tabs that show two sections, like Library with Folders, keep one panel's spacing between them. */
+.s-panel + .s-panel { padding-top: 0; }
 
 .s-section {
   background: var(--bg-raised);

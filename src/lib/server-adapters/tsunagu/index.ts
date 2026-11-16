@@ -13,6 +13,7 @@ import { contentFilter } from './contentFilter'
 import { storage } from './storage'
 import { auth } from './auth'
 import { sync } from './sync'
+import { history } from './history'
 
 export const tsunagu = {
 	...meta,
@@ -30,4 +31,5 @@ export const tsunagu = {
 	...storage,
 	...auth,
 	...sync,
+	...history,
 }

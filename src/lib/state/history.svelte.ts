@@ -1,9 +1,11 @@
-import { saveLibrary }        from '$lib/core/persistence/persist'
-import type { ReadSession, ReadingStats, MediaKind, StatsLedger } from '$lib/types/history'
-import { computeStats, dailyChapterCounts, emptyLedger, recordSession } from '$lib/core/readingStats'
+import { tsunagu } from '$lib/server-adapters/tsunagu'
+import { historyUnsupported } from '$lib/server-adapters/tsunagu/history'
+import { clearLegacyLibrary, loadLegacyLibrary } from '$lib/core/persistence/persist'
+import type { ReadSession, ReadingStats, MediaKind } from '$lib/types/history'
+import { DEFAULT_READING_STATS } from '$lib/types/history'
 
-const MAX_SESSIONS    = 1000
-const SESSION_GAP_MS  = 60 * 60 * 1_000
+const HISTORY_LIMIT  = 1000
+const SESSION_GAP_MS = 60 * 60 * 1_000
 
 export interface ActiveSession {
   id:               string
@@ -22,24 +24,63 @@ export interface ActiveSession {
   contentType:      MediaKind
 }
 
-class HistoryStore {
-  sessions         = $state<ReadSession[]>([])
-  active           = $state<ActiveSession | null>(null)
-  // The ledger is mutated in place on every commit and can get long, so it is
-  // kept out of Svelte's deep proxy; _publish copies out what the UI reads.
-  private ledger: StatsLedger = emptyLedger()
-  stats            = $state.raw<ReadingStats>(computeStats(this.ledger))
-  dailyReadCounts  = $state.raw<Record<string, number>>({})
+function timeZone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
+}
 
-  load(sessions: ReadSession[], ledger: StatsLedger) {
-    this.sessions = sessions
-    this.ledger   = ledger
-    this._publish()
+// History and stats belong to the server, so a fresh server shows none and paired devices show the same.
+class HistoryStore {
+  sessions        = $state<ReadSession[]>([])
+  active          = $state<ActiveSession | null>(null)
+  stats           = $state.raw<ReadingStats>({ ...DEFAULT_READING_STATS })
+  dailyReadCounts = $state.raw<Record<string, number>>({})
+  /** False on servers from before history moved there; nothing is recorded then. */
+  supported       = $state(true)
+
+  #unsent: ReadSession[] = []
+  #statsTimer: ReturnType<typeof setTimeout> | null = null
+  #generation = 0
+
+  /** Replaces everything shown with what the connected server has. Called on every connect. */
+  async connect() {
+    const gen = ++this.#generation
+    this.sessions = []
+    this.stats = { ...DEFAULT_READING_STATS }
+    this.dailyReadCounts = {}
+    this.#unsent = []
+    await this.#uploadLegacy().catch(e => console.warn('[moku] history upload:', e))
+    if (gen === this.#generation) await this.refresh()
   }
 
-  private _publish() {
-    this.stats           = computeStats(this.ledger)
-    this.dailyReadCounts = dailyChapterCounts(this.ledger)
+  async refresh() {
+    const gen = this.#generation
+    try {
+      const [sessions, stats] = await Promise.all([
+        tsunagu.readingSessions(HISTORY_LIMIT),
+        tsunagu.readingStats(timeZone()),
+      ])
+      if (gen !== this.#generation) return
+      this.supported       = true
+      this.sessions        = sessions
+      this.stats           = stats.stats
+      this.dailyReadCounts = stats.daily
+    } catch (e) {
+      if (historyUnsupported(e)) this.supported = false
+      else console.error('[moku] history:', e)
+    }
+  }
+
+  // Only history whose titles this server has, under the same IDs and names, can be the history it lost.
+  async #uploadLegacy() {
+    const legacy = await loadLegacyLibrary()
+    if (!legacy) return
+    const library = await tsunagu.library()
+    const titles  = new Map(library.map(e => [e.id, e.title]))
+    const sessions = legacy.sessions.filter(s => titles.get(s.mangaId) === s.mangaTitle)
+    if (legacy.sessions.length && !sessions.length) return
+    const days = Object.entries(legacy.stats.days).map(([date, [seconds, chapters]]) => ({ date, seconds, chapters }))
+    await tsunagu.importReadingHistory(legacy.source, sessions, days)
+    await clearLegacyLibrary()
   }
 
   openSession(
@@ -56,11 +97,11 @@ class HistoryStore {
       this.tickSession(chapterId, chapterName, page)
       return
     }
-    if (a) this._commit(Date.now())
-    this._start(mangaId, mangaTitle, thumbnailUrl, chapterId, chapterName, page, contentType)
+    if (a) this.#commit(Date.now())
+    this.#start(mangaId, mangaTitle, thumbnailUrl, chapterId, chapterName, page, contentType)
   }
 
-  private _start(
+  #start(
     mangaId: string, mangaTitle: string, thumbnailUrl: string,
     chapterId: string, chapterName: string, page: number, contentType: MediaKind,
   ) {
@@ -88,8 +129,8 @@ class HistoryStore {
     const now = Date.now()
 
     if (now - a.lastTickAt > SESSION_GAP_MS) {
-      this._commit(a.lastTickAt)
-      this._start(a.mangaId, a.mangaTitle, a.thumbnailUrl, chapterId, chapterName, page, a.contentType)
+      this.#commit(a.lastTickAt)
+      this.#start(a.mangaId, a.mangaTitle, a.thumbnailUrl, chapterId, chapterName, page, a.contentType)
       return
     }
 
@@ -102,46 +143,37 @@ class HistoryStore {
 
   closeSession() {
     if (!this.active) return
-    this._commit(Date.now())
+    this.#commit(Date.now())
     this.active = null
   }
 
   async flush() {
-    if (this.persistTimer) { clearTimeout(this.persistTimer); this.persistTimer = null }
-    if (this.active) { this._commit(Date.now()); this.active = null }
-    await this._persist()
+    if (this.active) { this.#commit(Date.now()); this.active = null }
+    await this.#send()
   }
 
-  private persistTimer: ReturnType<typeof setTimeout> | null = null
-
-  persistSoon() {
-    if (this.persistTimer) clearTimeout(this.persistTimer)
-    this.persistTimer = setTimeout(() => { this.persistTimer = null; void this._persist() }, 1_000)
-  }
-
-  /** Clears the session log only; reading stats keep their totals. */
+  /** Hides the history list on the server; reading stats keep their totals. */
   async clearHistory() {
     this.sessions = []
-    await this._persist()
+    await tsunagu.clearReadingHistory()
   }
 
-  clearMangaHistory(mangaId: string) {
+  async clearMangaHistory(mangaId: string) {
     this.sessions = this.sessions.filter(s => s.mangaId !== mangaId)
-    void this._persist()
+    await tsunagu.clearReadingHistory(mangaId)
   }
 
   async resetStats() {
-    this.ledger = emptyLedger()
-    this._publish()
-    await this._persist()
+    await tsunagu.resetReadingStats()
+    await this.refresh()
   }
 
-  private _commit(endedAt: number) {
+  #commit(endedAt: number) {
     const a = this.active
     if (!a) return
 
     const durationMs = Math.min(endedAt - a.startedAt, SESSION_GAP_MS)
-    if (durationMs < 1_000) return
+    if (durationMs < 1_000 || !this.supported) return
 
     const session: ReadSession = {
       id:               a.id,
@@ -160,21 +192,35 @@ class HistoryStore {
       chaptersSpanned:  a.seenChapterIds.size,
       contentType:      a.contentType,
     }
-
-    recordSession(this.ledger, session, a.seenChapterIds)
-    this.sessions = [session, ...this.sessions].slice(0, MAX_SESSIONS)
-    this._publish()
-
-    void this._persist()
+    this.sessions = [session, ...this.sessions].slice(0, HISTORY_LIMIT)
+    this.#unsent.push(session)
+    void this.#send()
   }
 
-  private async _persist() {
-    const bookmarks = (await import('$lib/state/series.svelte')).seriesState.bookmarks
-    await saveLibrary({
-      sessions: this.sessions,
-      bookmarks,
-      stats:    this.ledger,
-    })
+  // A session that couldn't be sent waits for the next one, so a short server hiccup loses nothing.
+  async #send() {
+    const batch = this.#unsent.splice(0)
+    for (const s of batch) {
+      try {
+        await tsunagu.recordReadingSession(s)
+      } catch (e) {
+        if (historyUnsupported(e)) { this.supported = false; return }
+        this.#unsent.push(s)
+        console.warn('[moku] session not saved yet:', e)
+      }
+    }
+    if (batch.length) this.#refreshStatsSoon()
+  }
+
+  #refreshStatsSoon() {
+    if (this.#statsTimer) clearTimeout(this.#statsTimer)
+    this.#statsTimer = setTimeout(() => {
+      this.#statsTimer = null
+      const gen = this.#generation
+      tsunagu.readingStats(timeZone())
+        .then(s => { if (gen === this.#generation) { this.stats = s.stats; this.dailyReadCounts = s.daily } })
+        .catch(() => {})
+    }, 1_000)
   }
 }
 

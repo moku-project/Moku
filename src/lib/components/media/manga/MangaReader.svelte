@@ -485,6 +485,7 @@
               chapterId,
               progress: Math.min(1, pageNum / total),
               completed: atLast,
+              page: pageNum,
             }).catch(console.error);
           };
           progressTimer = setTimeout(flushProgress, 2_000);

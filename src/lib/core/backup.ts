@@ -1,23 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   loadSettings, saveSettings,
-  loadLibrary,  saveLibrary, migrateLibrary, libraryVersion,
-  loadUpdates,  saveUpdates, STORE_VERSION,
+  saveLibrary, migrateLibrary, libraryVersion,
 } from "$lib/core/persistence/persist";
 
+// History, stats and resume points live on the server and are backed up with it, so only settings go here.
 async function collectStoreFiles(): Promise<{ name: string; bytes: Uint8Array }[]> {
-  const [settings, library, updates] = await Promise.all([
-    loadSettings(),
-    loadLibrary(),
-    loadUpdates(),
-  ]);
-
-  const enc = new TextEncoder();
-  return [
-    { name: "settings.json", bytes: enc.encode(JSON.stringify(settings)) },
-    { name: "library.json",  bytes: enc.encode(JSON.stringify({ ...library, storeVersion: STORE_VERSION })) },
-    { name: "updates.json",  bytes: enc.encode(JSON.stringify(updates)) },
-  ];
+  const settings = await loadSettings();
+  return [{ name: "settings.json", bytes: new TextEncoder().encode(JSON.stringify(settings)) }];
 }
 
 export async function exportAppData(): Promise<void> {
@@ -36,20 +26,15 @@ export async function importAppData(): Promise<void> {
   };
 
   const s = decode("settings.json");
-  const l = decode("library.json");
-  const u = decode("updates.json");
+  // Backups from before history moved to the server still carry it; it uploads on the next connect.
+  const l = files.has("library.json") ? decode("library.json") : null;
 
   await Promise.all([
     saveSettings({
       storeVersion: s.storeVersion ?? 2,
       settings:     s.settings     ?? null,
     }),
-    saveLibrary(migrateLibrary(l, libraryVersion(l))),
-    saveUpdates({
-      libraryUpdates:        u.libraryUpdates        ?? [],
-      lastLibraryRefresh:    u.lastLibraryRefresh    ?? 0,
-      acknowledgedUpdateIds: u.acknowledgedUpdateIds ?? [],
-    }),
+    l ? saveLibrary(migrateLibrary(l, libraryVersion(l))) : Promise.resolve(),
   ]);
 
   await showExitModal();

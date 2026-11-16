@@ -79,5 +79,14 @@ export function toggleBookmark(chapter: typeof readerState.activeChapter, pageNu
       chapterName:  chapter.name,
       pageNumber,
     }, ids);
+    const total = readerState.pageUrls.length;
+    if (total > 0) {
+      tsunagu.updateReadingProgress({
+        libraryEntryId: manga.mediaId ?? manga.libraryEntryId ?? manga.id,
+        chapterId:      chapter.id,
+        progress:       Math.min(1, pageNumber / total),
+        page:           pageNumber,
+      }).catch(console.error);
+    }
   }
 }

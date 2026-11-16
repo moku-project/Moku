@@ -22,17 +22,25 @@ export const progress = {
 		completed?: boolean
 		positionSeconds?: number
 		durationSeconds?: number
+		/** The page reached, so a resume lands on it on any device. */
+		page?: number
 	}): Promise<ReadingProgress> {
-		const { libraryEntryId, ...rest } = input
-		const data = await gql<{ updateReadingProgress: ReadingProgress }>(
-			`mutation UpdateReadingProgress($mediaId: ID!, $chapterId: ID!, $progress: Float!, $completed: Boolean, $positionSeconds: Float, $durationSeconds: Float) {
-				updateReadingProgress(mediaId: $mediaId, chapterId: $chapterId, progress: $progress, completed: $completed, positionSeconds: $positionSeconds, durationSeconds: $durationSeconds) {
+		const { libraryEntryId, page, ...rest } = input
+		const send = (withPage: boolean) => gql<{ updateReadingProgress: ReadingProgress }>(
+			`mutation UpdateReadingProgress($mediaId: ID!, $chapterId: ID!, $progress: Float!, $completed: Boolean, $positionSeconds: Float, $durationSeconds: Float${withPage ? ", $page: Int" : ""}) {
+				updateReadingProgress(mediaId: $mediaId, chapterId: $chapterId, progress: $progress, completed: $completed, positionSeconds: $positionSeconds, durationSeconds: $durationSeconds${withPage ? ", page: $page" : ""}) {
 					id mediaId chapterId progress completed positionSeconds durationSeconds updatedAt
 				}
 			}`,
-			{ mediaId: libraryEntryId, ...rest },
+			withPage ? { mediaId: libraryEntryId, ...rest, page: Math.round(page!) } : { mediaId: libraryEntryId, ...rest },
 			baseUrl()
 		)
+		const withPage = page != null && page > 0
+		// Servers from before resume pages reject the argument; progress still matters there.
+		const data = await send(withPage).catch((e: unknown) => {
+			if (withPage && /page|Unknown argument|HTTP 422/i.test(String(e))) return send(false)
+			throw e
+		})
 		return data.updateReadingProgress
 	},
 

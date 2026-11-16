@@ -4,12 +4,11 @@ import type { MangaPrefs } from '$lib/types/settings'
 import { DEFAULT_MANGA_PREFS }                            from '$lib/types/settings'
 import { settingsState, updateSettings }              from '$lib/state/settings.svelte'
 import { tsunagu }                                    from '$lib/server-adapters/tsunagu'
-import type { LibraryEntry, Chapter as TsunaguChapter, MangaInfo } from '$lib/server-adapters/types'
+import type { LibraryEntry, Chapter as TsunaguChapter, MangaInfo, ReadingProgress } from '$lib/server-adapters/types'
 import { buildChapterList }                           from '$lib/components/series/lib/chapterList'
 import { clearPageCache }                             from '$lib/core/cache/pageCache'
 import { sourceErrorInfo }                            from '$lib/core/sourceErrors'
 import { goto }                                       from '$app/navigation'
-import { historyState }                               from '$lib/state/history.svelte'
 
 export type { BookmarkEntry } from '$lib/types/history'
 export type { MangaPrefs }                              from '$lib/types/settings'
@@ -129,6 +128,17 @@ function mapChapter(
 	}
 }
 
+// Pages read come from the server, so an unfinished chapter shows where it stopped on any device.
+function applyProgress(chapters: Chapter[], progress: ReadingProgress[] | undefined): Chapter[] {
+	if (!progress?.length) return chapters
+	const byChapter = new Map(progress.map(p => [p.chapterId, p]))
+	return chapters.map(c => {
+		const p = byChapter.get(c.id)
+		if (!p || p.completed || p.progress <= 0 || !c.pageCount) return c
+		return { ...c, lastPageRead: Math.max(1, Math.round(p.progress * c.pageCount)) }
+	})
+}
+
 class SeriesStore {
   activeManga         = $state<Manga | null>(null)
   previewManga        = $state<Manga | null>(null)
@@ -202,9 +212,10 @@ class SeriesStore {
       if (ctrl.signal.aborted) return
       if (!entry) throw new Error(`Media ${mediaId} not found`)
 
-      const nodes = entry.chapters.map((c, i) => mapChapter(c, key, i))
+      const nodes = applyProgress(entry.chapters.map((c, i) => mapChapter(c, key, i)), entry.readingProgress)
       this.#rawChapters = new Map(this.#rawChapters).set(key, nodes)
       this.#fetchedAt.set(key, Date.now())
+      void this.#loadResumePoint(key, mediaId, entry)
     } catch (e: unknown) {
       if ((e as { name?: string }).name === 'AbortError') return
       const info = sourceErrorInfo(e)
@@ -221,13 +232,45 @@ class SeriesStore {
     }
   }
 
+  // The server's resume point holds the exact page, which progress alone can't give.
+  async #loadResumePoint(key: string, mediaId: string, entry: LibraryEntry) {
+    const rp = await tsunagu.resumePoint(mediaId).catch(() => null)
+    if (!rp) return
+    const chapter = this.#rawChapters.get(key)?.find(c => c.id === rp.chapterId)
+    if (!chapter) return
+    const page = rp.page ?? chapter.lastPageRead ?? 0
+    if (rp.page && !rp.completed) {
+      this.patchChapters(key, cs => cs.map(c => c.id === rp.chapterId ? { ...c, lastPageRead: rp.page! } : c))
+    }
+    const savedAt = Date.parse(rp.updatedAt) || 0
+    const current = this.findBookmark([key, mediaId])
+    if (page <= 0 || (current && current.savedAt >= savedAt)) return
+    this.bookmarks = [
+      { mangaId: key, mangaTitle: entry.title, thumbnailUrl: entry.thumbnailUrl ?? '', chapterId: chapter.id, chapterName: chapter.name, pageNumber: page, savedAt },
+      ...this.bookmarks.filter(b => b.mangaId !== key && b.mangaId !== mediaId),
+    ]
+  }
+
+  /** Forgets everything from the previous server, so another one starts from what it has. */
+  reset() {
+    for (const c of this.#abortCtrls.values()) c.abort()
+    this.#abortCtrls.clear()
+    this.#rawChapters = new Map()
+    this.#fetchedAt.clear()
+    this.bookmarks = []
+    this.acknowledgedUpdates = new Set()
+    this.activeManga = null
+    this.previewManga = null
+    this.activeChapter = null
+  }
+
   invalidateChapters(mangaId: string) {
     this.#fetchedAt.delete(mangaId)
   }
 
   ingestEntry(mangaId: string, entry: LibraryEntry) {
     if (this.#rawChapters.has(mangaId) && (Date.now() - (this.#fetchedAt.get(mangaId) ?? 0)) < CHAPTER_TTL_MS) return
-    const nodes = entry.chapters.map((c, i) => mapChapter(c, mangaId, i))
+    const nodes = applyProgress(entry.chapters.map((c, i) => mapChapter(c, mangaId, i)), entry.readingProgress)
     this.#rawChapters = new Map(this.#rawChapters).set(mangaId, nodes)
     this.#fetchedAt.set(mangaId, Date.now())
   }
@@ -332,7 +375,6 @@ class SeriesStore {
       { ...entry, savedAt: Date.now() },
       ...this.bookmarks.filter(b => !ids.has(b.mangaId)),
     ].slice(0, 200)
-    historyState.persistSoon()
   }
 
   findBookmark(ids: string[], chapterId?: string): BookmarkEntry | undefined {
@@ -347,9 +389,8 @@ class SeriesStore {
   removeBookmark(mangaId: string | string[]) {
     const ids = new Set(Array.isArray(mangaId) ? mangaId : [mangaId])
     this.bookmarks = this.bookmarks.filter(b => !ids.has(b.mangaId))
-    historyState.persistSoon()
   }
-  clearBookmarks()                { this.bookmarks = []; historyState.persistSoon() }
+  clearBookmarks()                { this.bookmarks = [] }
 
   get settings() { return settingsState.settings }
 }

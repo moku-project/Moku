@@ -126,12 +126,35 @@ export async function submitLogin(password: string): Promise<void> {
 	startProbe(0)
 }
 
+let connectedTo: string | null = null
+
+// Moku only shows what the connected server has, so switching servers drops everything from the last one.
+async function onServerConnected() {
+	const url = appState.serverUrl
+	const switched = connectedTo !== null && connectedTo !== url
+	connectedTo = url
+	if (switched) {
+		const [{ cache }, { seriesState }, lib] = await Promise.all([
+			import('$lib/core/cache/queryCache'),
+			import('$lib/state/series.svelte'),
+			import('$lib/state/library.svelte'),
+		])
+		cache.clearAll()
+		seriesState.reset()
+		lib.libraryState.items = []
+		lib.loadLibrary(true).catch(() => {})
+	}
+	const { historyState } = await import('$lib/state/history.svelte')
+	await historyState.connect()
+}
+
 function handleProbeSuccess(gen: number) {
 	if (gen !== probeGeneration) return
 	boot.failed = false
 	boot.skipped = false
 	boot.serverProbeOk = true
 	appState.status = pinLockEnabled() ? 'locked' : 'ready'
+	onServerConnected().catch(e => console.warn('[moku] connect:', e))
 	import('$lib/state/automation.svelte').then(m => m.onServerConnected()).catch(() => {})
 	tsunagu.rescanLocalMedia()
 		.then(found => { if (found.length) import('$lib/state/library.svelte').then(m => m.loadLibrary(true)) })

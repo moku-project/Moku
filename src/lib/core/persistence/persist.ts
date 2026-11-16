@@ -16,12 +16,6 @@ export interface PersistedLibrary {
   stats:     StatsLedger
 }
 
-export interface PersistedUpdates {
-  libraryUpdates:        unknown[]
-  lastLibraryRefresh:    number
-  acknowledgedUpdateIds: number[]
-}
-
 export function libraryVersion(raw: unknown): number {
   const data = (raw ?? {}) as Record<string, unknown>
   if (typeof data.storeVersion === 'number') return data.storeVersion
@@ -133,18 +127,20 @@ export async function saveLibrary(data: PersistedLibrary): Promise<void> {
   await platformService.saveStore('library', { ...data, storeVersion: STORE_VERSION })
 }
 
-export async function loadUpdates(): Promise<PersistedUpdates> {
-  const raw  = await platformService.loadStore('updates')
-  const data = (raw ?? {}) as Record<string, unknown>
-  return {
-    libraryUpdates:        (data.libraryUpdates        ?? []) as unknown[],
-    lastLibraryRefresh:    (data.lastLibraryRefresh     ?? 0)  as number,
-    acknowledgedUpdateIds: (data.acknowledgedUpdateIds  ?? []) as number[],
-  }
+/** History Moku kept itself before Tsunagu did, waiting to be uploaded once; null when there's none. */
+export async function loadLegacyLibrary(): Promise<(PersistedLibrary & { source: string }) | null> {
+  const raw = (await platformService.loadStore('library')) as Record<string, unknown> | null
+  if (!raw || raw.uploaded) return null
+  const lib = await loadLibrary()
+  if (!lib.sessions.length && !Object.keys(lib.stats.days).length) return null
+  // Kept across attempts, so a retried upload replaces its days on the server instead of adding them again.
+  const source = typeof raw.source === 'string' ? raw.source : `moku-${crypto.randomUUID()}`
+  if (raw.source !== source) await platformService.saveStore('library', { ...raw, source })
+  return { ...lib, source }
 }
 
-export async function saveUpdates(data: PersistedUpdates): Promise<void> {
-  await platformService.saveStore('updates', data)
+export async function clearLegacyLibrary(): Promise<void> {
+  await platformService.saveStore('library', { storeVersion: STORE_VERSION, uploaded: true })
 }
 
 export async function loadBackups(): Promise<{ url: string; name: string }[]> {

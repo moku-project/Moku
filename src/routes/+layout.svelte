@@ -24,7 +24,7 @@
 	import { seriesState } from '$lib/state/series.svelte'
 	import { animePlayerState } from '$lib/state/animePlayer.svelte'
 	import MediaPreview from '$lib/components/shared/manga/MediaPreview.svelte'
-	import { loadSettings, loadLibrary } from '$lib/core/persistence/persist'
+	import { loadSettings } from '$lib/core/persistence/persist'
 	import '../app.css'
 
 	let { children } = $props()
@@ -121,15 +121,9 @@
 
 				void subscribeBackend()
 
-				const [persistedSettings, persistedLibrary] = await Promise.all([loadSettings(), loadLibrary()])
+				const persistedSettings = await loadSettings()
 				const raw = persistedSettings?.settings ?? persistedSettings ?? null
 				await loadSettingsIntoState(raw)
-
-				const { historyState } = await import('$lib/state/history.svelte')
-				const { seriesState: s } = await import('$lib/state/series.svelte')
-
-				historyState.load(persistedLibrary.sessions, persistedLibrary.stats)
-				s.bookmarks = persistedLibrary.bookmarks
 
 				settingsLoaded = true
 				checkForChangelog()

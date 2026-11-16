@@ -64,11 +64,3 @@ export interface StatsLedger {
   firstReadAt:   number
   lastReadAt:    number
 }
-
-export interface LibraryUpdateEntry {
-  mangaId:      string
-  mangaTitle:   string
-  thumbnailUrl: string
-  newChapters:  number
-  checkedAt:    number
-}

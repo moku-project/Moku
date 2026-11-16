@@ -3,8 +3,9 @@
 // A line opts out with an `i18n-ignore` comment, a block with `i18n-ignore-start` … `i18n-ignore-end`.
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 const en = JSON.parse(readFileSync(join(root, 'src/lib/i18n/locales/en.json'), 'utf8'))
 
 // Names that stay the same in every language.

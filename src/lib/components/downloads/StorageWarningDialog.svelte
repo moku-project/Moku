@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from "$lib/i18n/index.svelte";
+
   interface Props {
     onConfirm: () => void;
     onCancel:  () => void;
@@ -18,16 +20,16 @@
 >
   <div class="panel">
     <div class="panel-header">
-      <p id="storage-dialog-title" class="panel-title">Low disk space</p>
+      <p id="storage-dialog-title" class="panel-title">{t("downloads.storageDialog.title")}</p>
     </div>
     <div class="panel-body">
       <p class="panel-message">
-        The download queue is estimated to exceed 95% of your available storage. Download anyway?
+        {t("downloads.storageDialog.message")}
       </p>
     </div>
     <div class="panel-footer">
-      <button class="btn-cancel"  onclick={onCancel}>Cancel</button>
-      <button class="btn-confirm" onclick={onConfirm}>Download anyway</button>
+      <button class="btn-cancel"  onclick={onCancel}>{t("common.cancel")}</button>
+      <button class="btn-confirm" onclick={onConfirm}>{t("downloads.storageDialog.confirm")}</button>
     </div>
   </div>
 </div>

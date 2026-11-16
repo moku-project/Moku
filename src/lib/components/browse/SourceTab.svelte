@@ -13,6 +13,7 @@
   import type { Manga, Source } from "$lib/types";
   import { canonicalLang, langBadge, LANG_ALL } from "$lib/core/lang";
   import { longPress } from "$lib/core/ui/touchscreen";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     allSources:           Source[];
@@ -123,12 +124,12 @@
             src_browseError = null;
           } else if (info) {
             src_browseError = info.cloudflare
-              ? "This source is behind Cloudflare protection. Enable the Cloudflare solver in settings, then retry."
-              : `${info.label} — ${info.message}`;
+              ? t("browse.source.cloudflareError")
+              : t("browse.source.errorDetail", { label: info.label, message: info.message });
           } else {
             src_browseError = /connection reset|socket|timeout|timed out|ECONN|unreachable|handshake/i.test(String(e?.message ?? e))
-              ? "The source site could not be reached. It may be down, blocking requests, or rate-limiting."
-              : (e?.message ?? "Failed to load from this source.");
+              ? t("browse.source.unreachable")
+              : (e?.message ?? t("browse.source.loadFailed"));
           }
         }
       }
@@ -177,9 +178,9 @@
 <div class="splitRoot">
   <div class="splitSidebar">
     <div class="srcLangRow">
-      <span class="langPocketLabel">Language</span>
+      <span class="langPocketLabel">{t("browse.source.language")}</span>
       <select class="langSelect" bind:value={src_selectedLang}>
-        <option value={LANG_ALL}>All</option>
+        <option value={LANG_ALL}>{t("common.all")}</option>
         {#each availableLangs.filter((l) => l !== LANG_ALL) as lang (lang)}
           <option value={lang}>{langBadge(lang)}{lang === preferredLang ? " ★" : ""}</option>
         {/each}
@@ -207,13 +208,13 @@
                 <path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm44-84a44,44,0,1,1-44-44A44.05,44.05,0,0,1,172,128Z"/>
               </svg>
             </div>
-            <span class="splitItemLabel">Local Source</span>
+            <span class="splitItemLabel">{t("extensions.local.name")}</span>
           </button>
           <div class="localDivider"></div>
         {/if}
 
         {#if pinnedSources.length > 0}
-          <p class="sectionLabel">Pinned</p>
+          <p class="sectionLabel">{t("browse.source.pinned")}</p>
           {#each pinnedSources as src (src.id)}
             <button
               class="splitItem splitItemSource"
@@ -224,14 +225,14 @@
             >
               <ExtensionIcon src={src.iconUrl} alt="" size={20} class="splitSourceIcon" />
               <span class="splitItemLabel">{src.name}</span>
-              <span class="pinIndicator" title="Pinned">
+              <span class="pinIndicator" title={t("browse.source.pinned")}>
                 <PushPin size={9} weight="fill" />
               </span>
               {#if src.isNsfw}<span class="nsfwBadge">18+</span>{/if}
             </button>
           {/each}
           <div class="localDivider"></div>
-          <p class="sectionLabel">All Sources</p>
+          <p class="sectionLabel">{t("browse.source.allSources")}</p>
         {/if}
 
         {#each src_visibleSources as src (src.id)}
@@ -251,7 +252,7 @@
           </button>
         {/each}
         {#if src_visibleSources.length === 0}
-          <p class="splitEmpty">No sources for this language</p>
+          <p class="splitEmpty">{t("browse.source.noSourcesForLanguage")}</p>
         {/if}
       </div>
     {/if}
@@ -263,8 +264,8 @@
         <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor" class="emptyIcon" aria-hidden="true">
           <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/>
         </svg>
-        <p class="emptyText">Browse a source</p>
-        <p class="emptyHint">Select a source to see its popular titles, or search within it.</p>
+        <p class="emptyText">{t("browse.source.emptyTitle")}</p>
+        <p class="emptyHint">{t("browse.source.emptyHint")}</p>
       </div>
     {:else}
       <div class="splitContentHeader">
@@ -276,7 +277,7 @@
               <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"/>
             </svg>
           {:else if src_browseResults.length > 0}
-            <span class="splitResultCount">{src_browseResults.length} results</span>
+            <span class="splitResultCount">{t("browse.source.resultCount", { count: src_browseResults.length })}</span>
           {/if}
         </div>
       </div>
@@ -289,14 +290,14 @@
           <input
             bind:value={src_browseQuery}
             class="searchInput"
-            placeholder="Search {src_activeSource.displayName}…"
+            placeholder={t("browse.source.searchPlaceholder", { name: src_activeSource.displayName })}
             onkeydown={(e) => e.key === "Enter" && srcHandleSearch()}
           />
           {#if src_submitted}
-            <button class="clearBtn" title="Clear search" onclick={srcClearSearch}>×</button>
+            <button class="clearBtn" title={t("browse.source.clearSearch")} onclick={srcClearSearch}>×</button>
           {/if}
         </div>
-        <button class="searchBtn" onclick={srcHandleSearch} disabled={!src_browseQuery.trim() || src_loadingBrowse}>Search</button>
+        <button class="searchBtn" onclick={srcHandleSearch} disabled={!src_browseQuery.trim() || src_loadingBrowse}>{t("common.search")}</button>
       </div>
 
       {#if src_loadingBrowse && src_browseResults.length === 0}
@@ -311,7 +312,7 @@
             <button class="card" onclick={() => onPreview(m)}>
               <div class="coverWrap">
                 <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={i < 12 ? 12 - i : 0} id={m.id} contentType={m.contentType} />
-                {#if m.inLibrary}<span class="inLibBadge">Saved</span>{/if}
+                {#if m.inLibrary}<span class="inLibBadge">{t("browse.common.saved")}</span>{/if}
               </div>
               <p class="cardTitle">{m.title}</p>
             </button>
@@ -323,27 +324,27 @@
                 disabled={src_loadingBrowse}
                 onclick={() => src_activeSource && srcFetchBrowse(src_activeSource, src_submitted ? "SEARCH" : "POPULAR", src_submitted || undefined, src_currentPage + 1)}
               >
-                {src_loadingBrowse ? "Loading…" : "Load more"}
+                {src_loadingBrowse ? t("common.loading") : t("browse.common.loadMore")}
               </button>
             </div>
           {/if}
         </div>
       {:else if src_browseError}
         <div class="empty">
-          <p class="emptyText">Couldn't load</p>
+          <p class="emptyText">{t("browse.source.loadErrorTitle")}</p>
           <p class="emptyHint">{src_browseError}</p>
           <button
             class="searchBtn"
             style="margin-top:var(--sp-3)"
             onclick={() => src_activeSource && srcFetchBrowse(src_activeSource, src_submitted ? "SEARCH" : "POPULAR", src_submitted || undefined, 1)}
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       {:else if !src_loadingBrowse}
         <div class="empty">
-          <p class="emptyText">No results</p>
-          <p class="emptyHint">Try a different search term.</p>
+          <p class="emptyText">{t("browse.common.noResults")}</p>
+          <p class="emptyHint">{t("browse.source.noResultsHint")}</p>
         </div>
       {/if}
     {/if}
@@ -358,13 +359,13 @@
     onClose={closeCtx}
     items={[
       {
-        label: isPinned ? "Unpin source" : "Pin source",
+        label: isPinned ? t("browse.source.unpin") : t("browse.source.pin"),
         icon: isPinned ? PushPinSlash : PushPin,
         onClick: () => { togglePinnedSource(ctx_source!.id); },
       },
       { separator: true },
       {
-        label: "Browse source",
+        label: t("browse.source.browse"),
         icon: ArrowRight,
         onClick: () => { srcSelectSource(ctx_source!); },
       },

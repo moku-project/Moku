@@ -1,6 +1,7 @@
 import { dayLabel } from '$lib/core/util'
 import { deriveChapterNumber } from '$lib/state/series.svelte'
 import type { RecentChapter } from '$lib/server-adapters/types'
+import { t } from '$lib/i18n/index.svelte'
 
 export interface RecentUpdate {
   id:            string
@@ -52,7 +53,7 @@ export function groupUpdatesByDay(updates: RecentUpdate[]): UpdateGroup[] {
   const order: Record<string, number> = {}
   for (const item of updates) {
     const ts = fetchedAtMs(item)
-    const label = ts ? dayLabel(ts) : 'Earlier'
+    const label = ts ? dayLabel(ts) : t('recent.earlier')
     if (!grouped[label]) {
       grouped[label] = []
       order[label] = ts

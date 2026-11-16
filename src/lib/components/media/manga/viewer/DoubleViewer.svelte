@@ -1,6 +1,7 @@
 <script lang="ts">
   import { readerState } from "$lib/state/mangaReader.svelte";
   import type { PeelGeometry } from "$lib/components/media/manga/lib/pagePeel";
+  import { t } from "$lib/i18n/index.svelte";
   import { getCachedAspect, spreadLayout } from "$lib/components/media/manga/lib/pageLoader";
 
   export interface SpreadFlip {
@@ -170,10 +171,10 @@
         {/if}
       {:else}
         <div class="slot gap-left">
-          {@render pageSlot(idle.leftSrc, idle.leftPg, `Page ${idle.leftPg}`)}
+          {@render pageSlot(idle.leftSrc, idle.leftPg, t("reader.pageAlt", { page: String(idle.leftPg) }))}
         </div>
         <div class="slot gap-right">
-          {@render pageSlot(idle.rightSrc, idle.rightPg, `Page ${idle.rightPg}`)}
+          {@render pageSlot(idle.rightSrc, idle.rightPg, t("reader.pageAlt", { page: String(idle.rightPg) }))}
         </div>
       {/if}
     </div>

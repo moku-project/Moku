@@ -19,6 +19,7 @@
   import type { RecentUpdate, UpdateGroup } from './lib/recentUpdates'
   import type { HistoryGroup }              from './lib/recentHistory'
   import type { LibraryUpdateStatus }       from '$lib/server-adapters/types'
+  import { t } from '$lib/i18n/index.svelte'
 
   const RECENT_UPDATES_TTL_MS = 60 * 1_000
 
@@ -74,11 +75,11 @@
       const n = updateStatus.newChapterCount
       addToast({
         kind:  n > 0 ? 'success' : 'info',
-        title: 'Library update complete',
-        body:  n > 0 ? `${n} new chapter${n === 1 ? '' : 's'}` : 'No new chapters',
+        title: t('library.toast.updateComplete'),
+        body:  n > 0 ? t('library.toast.newChapters', { count: n }) : t('library.toast.noNewChapters'),
       })
       if (updateStatus.failedTitles.length) {
-        addToast({ kind: 'error', title: `${updateStatus.failedTitles.length} series failed to update`, body: updateStatus.failedTitles.slice(0, 3).join(', ') })
+        addToast({ kind: 'error', title: t('library.toast.seriesFailedToUpdate', { count: updateStatus.failedTitles.length }), body: updateStatus.failedTitles.slice(0, 3).join(', ') })
       }
       if (n > 0) loadUpdates(true)
     }
@@ -90,12 +91,12 @@
       const started = await tsunagu.startLibraryUpdate()
       updateStatus = await tsunagu.libraryUpdateStatus()
       if (!started && !updateStatus.running) {
-        addToast({ kind: 'info', title: 'Nothing to update', body: 'Every series is paused or excluded from updates.' })
+        addToast({ kind: 'info', title: t('library.toast.nothingToUpdate'), body: t('library.toast.nothingToUpdateBody') })
         return
       }
       if (updateStatus.running) startUpdatePoll()
     } catch (e: any) {
-      addToast({ kind: 'error', title: 'Update failed', body: e?.message ?? 'Could not start library update.' })
+      addToast({ kind: 'error', title: t('library.toast.updateFailed'), body: e?.message ?? t('recent.toast.updateStartFailed') })
     }
   }
 
@@ -142,7 +143,7 @@
       updates = updatesRes ?? []
     } catch (e: any) {
       if (nextCtrl.signal.aborted) return
-      updatesError = e?.message ?? 'Failed to load updates'
+      updatesError = e?.message ?? t('recent.updatesLoadFailed')
       updates      = []
     } finally {
       if (!nextCtrl.signal.aborted) updatesLoading = false
@@ -152,7 +153,7 @@
   function mangaStub(item: RecentUpdate): Manga {
     return {
       id:           item.manga?.id ?? item.mangaId,
-      title:        item.manga?.title ?? 'Unknown series',
+      title:        item.manga?.title ?? t('recent.unknownSeries'),
       thumbnailUrl: item.manga?.thumbnailUrl ?? '',
       inLibrary:    item.manga?.inLibrary ?? true,
     } as Manga
@@ -184,7 +185,7 @@
       }
     } catch {
       setPreviewManga(manga)
-      addToast({ kind: 'error', title: "Couldn't open chapter", body: 'Opened the series instead.' })
+      addToast({ kind: 'error', title: t('recent.toast.openChapterFailed'), body: t('recent.toast.openedSeriesInstead') })
     } finally {
       openingId = null
     }
@@ -209,9 +210,9 @@
     enqueueing = new Set(enqueueing).add(item.id)
     try {
       await tsunagu.enqueueDownload(item.mangaId, item.id)
-      addToast({ kind: 'download', title: 'Download queued', body: item.name ?? 'Chapter' })
+      addToast({ kind: 'download', title: t('recent.toast.downloadQueued'), body: item.name ?? t('recent.chapter') })
     } catch {
-      addToast({ kind: 'error', title: 'Download failed', body: 'Could not queue chapter.' })
+      addToast({ kind: 'error', title: t('recent.toast.downloadFailed'), body: t('recent.toast.queueFailed') })
     } finally {
       enqueueing.delete(item.id)
       enqueueing = new Set(enqueueing)
@@ -225,7 +226,7 @@
       seriesState.markChaptersDeleted(item.mangaId, [item.id])
       libraryState.patchDownloadCount(item.mangaId, -1)
     } catch {
-      addToast({ kind: 'error', title: 'Delete failed', body: 'Could not delete download.' })
+      addToast({ kind: 'error', title: t('recent.toast.deleteFailed'), body: t('recent.toast.deleteDownloadFailed') })
     }
   }
 
@@ -240,7 +241,7 @@
     hasHistory={historyState.sessions.length > 0}
     {updatesLoading}
     {updaterRunning}
-    onTabChange={(t) => tab = t}
+    onTabChange={(next) => tab = next}
     onHistorySearchChange={(v) => historySearch = v}
     onUpdatesSearchChange={(v) => updatesSearch = v}
     onHistoryClear={handleHistoryClear}

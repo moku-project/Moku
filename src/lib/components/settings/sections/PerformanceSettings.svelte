@@ -1,6 +1,7 @@
 <script lang="ts">
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { cache } from '$lib/core/cache/queryCache'
+  import { t } from '$lib/i18n/index.svelte'
 
   interface PerfSnapshot {
     cacheEntries:  number
@@ -36,10 +37,10 @@
   function fmtAge(ts: number | null): string {
     if (ts === null) return '-'
     const secs = Math.floor((Date.now() - ts) / 1000)
-    if (secs < 60) return `${secs}s ago`
+    if (secs < 60) return t('settings.performance.ageSeconds', { count: secs })
     const mins = Math.floor(secs / 60)
-    if (mins < 60) return `${mins}m ago`
-    return `${Math.floor(mins / 60)}h ago`
+    if (mins < 60) return t('settings.performance.ageMinutes', { count: mins })
+    return t('settings.performance.ageHours', { count: Math.floor(mins / 60) })
   }
 
   function handleClearCache() {
@@ -61,12 +62,12 @@
 <div class="s-panel">
 
   <div class="s-section">
-    <p class="s-section-title">Render Limit</p>
+    <p class="s-section-title">{t('settings.performance.renderLimitTitle')}</p>
     <div class="s-section-body">
       <div class="s-slider-row">
         <div class="s-row-info">
-          <span class="s-label">Items per page</span>
-          <span class="s-desc">Lower = faster on large libraries</span>
+          <span class="s-label">{t('settings.performance.itemsPerPage')}</span>
+          <span class="s-desc">{t('settings.performance.itemsPerPageDesc')}</span>
         </div>
         <div class="s-stepper">
           <button class="s-step-btn"
@@ -87,11 +88,11 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Rendering</p>
+    <p class="s-section-title">{t('settings.performance.renderingTitle')}</p>
     <div class="s-section-body">
       <label class="s-row">
-        <div class="s-row-info"><span class="s-label">GPU acceleration</span><span class="s-desc">Uses the GPU for rendering; disable if you see visual glitches</span></div>
-        <button role="switch" aria-checked={settingsState.settings.gpuAcceleration} aria-label="GPU acceleration"
+        <div class="s-row-info"><span class="s-label">{t('settings.performance.gpu')}</span><span class="s-desc">{t('settings.performance.gpuDesc')}</span></div>
+        <button role="switch" aria-checked={settingsState.settings.gpuAcceleration} aria-label={t('settings.performance.gpu')}
           class="s-toggle" class:on={settingsState.settings.gpuAcceleration}
           onclick={() => updateSettings({ gpuAcceleration: !settingsState.settings.gpuAcceleration })}>
           <span class="s-toggle-thumb"></span>
@@ -101,11 +102,11 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Idle / Splash Screen</p>
+    <p class="s-section-title">{t('settings.performance.idleTitle')}</p>
     <div class="s-section-body">
       <label class="s-row">
-        <div class="s-row-info"><span class="s-label">Animated card background</span><span class="s-desc">Shows cover art cards floating in the background on the idle screen</span></div>
-        <button role="switch" aria-checked={settingsState.settings.splashCards ?? true} aria-label="Animated card background"
+        <div class="s-row-info"><span class="s-label">{t('settings.performance.splashCards')}</span><span class="s-desc">{t('settings.performance.splashCardsDesc')}</span></div>
+        <button role="switch" aria-checked={settingsState.settings.splashCards ?? true} aria-label={t('settings.performance.splashCards')}
           class="s-toggle" class:on={settingsState.settings.splashCards ?? true}
           onclick={() => updateSettings({ splashCards: !(settingsState.settings.splashCards ?? true) })}>
           <span class="s-toggle-thumb"></span>
@@ -115,30 +116,30 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Session Cache</p>
+    <p class="s-section-title">{t('settings.performance.sessionCacheTitle')}</p>
     <div class="s-section-body">
       <div class="s-row">
         <div class="s-row-info">
-          <span class="s-label">Cache entries</span>
-          <span class="s-desc">In-memory, cleared on restart</span>
+          <span class="s-label">{t('settings.performance.cacheEntries')}</span>
+          <span class="s-desc">{t('settings.performance.cacheEntriesDesc')}</span>
         </div>
         <div class="s-btn-row">
-          <span class="s-step-val">{perfSnapshot?.cacheEntries ?? 0} entries</span>
-          <button class="s-btn-icon" onclick={refreshPerfMetrics} title="Refresh">↺</button>
+          <span class="s-step-val">{t('settings.performance.entryCount', { count: perfSnapshot?.cacheEntries ?? 0 })}</span>
+          <button class="s-btn-icon" onclick={refreshPerfMetrics} title={t('common.refresh')}>↺</button>
         </div>
       </div>
       {#if perfSnapshot && perfSnapshot.cacheEntries > 0}
         <div class="s-row">
-          <div class="s-row-info"><span class="s-label">Oldest entry</span></div>
+          <div class="s-row-info"><span class="s-label">{t('settings.performance.oldestEntry')}</span></div>
           <span class="s-step-val">{fmtAge(perfSnapshot.oldestEntryMs)}</span>
         </div>
         <div class="s-row">
-          <div class="s-row-info"><span class="s-label">Newest entry</span></div>
+          <div class="s-row-info"><span class="s-label">{t('settings.performance.newestEntry')}</span></div>
           <span class="s-step-val">{fmtAge(perfSnapshot.newestEntryMs)}</span>
         </div>
         <div class="s-row">
           <div class="s-row-info">
-            <span class="s-label">Cached keys</span>
+            <span class="s-label">{t('settings.performance.cachedKeys')}</span>
             <span class="s-desc">{perfSnapshot.cacheKeys.join(', ')}</span>
           </div>
         </div>
@@ -147,12 +148,12 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Cache</p>
+    <p class="s-section-title">{t('settings.performance.cacheTitle')}</p>
     <div class="s-section-body">
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Image cache</span><span class="s-desc">Webview page image cache</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.performance.imageCache')}</span><span class="s-desc">{t('settings.performance.imageCacheDesc')}</span></div>
         <button class="s-btn s-btn-danger" onclick={handleClearCache} disabled={clearing}>
-          {cleared ? 'Cleared' : clearing ? 'Clearing…' : 'Clear'}
+          {cleared ? t('settings.performance.cleared') : clearing ? t('settings.performance.clearing') : t('common.clear')}
         </button>
       </div>
     </div>

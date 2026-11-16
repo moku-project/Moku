@@ -6,6 +6,7 @@
   import { trackerState } from "$lib/state/trackers.svelte";
   import { tsunagu } from "$lib/server-adapters/tsunagu";
   import TrackerLogo from "$lib/components/tracking/TrackerLogo.svelte";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props { importKey?: string | null }
   let { importKey = $bindable(null) }: Props = $props();
@@ -30,7 +31,7 @@
   }
 
   async function copyAuth(url: string) {
-    try { await navigator.clipboard.writeText(url); addToast({ kind: "success", title: "Link copied" }); }
+    try { await navigator.clipboard.writeText(url); addToast({ kind: "success", title: t("settings.tracking.linkCopied") }); }
     catch { }
   }
 
@@ -42,9 +43,9 @@
       const updated = await tsunagu.trackerLogin(key, raw);
       trackerState.patch(updated);
       setDraft(key, "");
-      addToast({ kind: "success", title: `${updated.name} connected`, body: updated.username ?? "" });
+      addToast({ kind: "success", title: t("settings.tracking.connected", { name: updated.name }), body: updated.username ?? "" });
     } catch (e: any) {
-      addToast({ kind: "error", title: "Couldn't connect", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("settings.tracking.connectFailed"), body: e?.message ?? String(e) });
     } finally {
       setBusy(key, false);
     }
@@ -59,11 +60,16 @@
       if (!alive || !polling[key]) break;
       await trackerState.load(true);
       if (trackerState.byKey(key)?.isLoggedIn) {
-        addToast({ kind: "success", title: `${trackerState.byKey(key)?.name ?? "Tracker"} connected` });
+        addToast({ kind: "success", title: t("settings.tracking.connected", { name: trackerState.byKey(key)?.name ?? t("settings.tracking.trackerFallback") }) });
         break;
       }
     }
     polling = { ...polling, [key]: false };
+  }
+
+  function noOauthClientParts(name: string): [string, string] {
+    const [before, after = ""] = t("settings.tracking.noOauthClient", { name, env: "\u0000" }).split("\u0000");
+    return [before, after];
   }
 
   async function disconnect(key: string) {
@@ -72,7 +78,7 @@
       await tsunagu.trackerLogout(key);
       await trackerState.load(true);
     } catch (e: any) {
-      addToast({ kind: "error", title: "Couldn't disconnect", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("settings.tracking.disconnectFailed"), body: e?.message ?? String(e) });
     } finally {
       setBusy(key, false);
     }
@@ -82,75 +88,76 @@
 <div class="s-panel">
   <div class="s-section">
     <div class="s-section-title">
-      <span>Tracking services</span>
-      <button class="trk-reload" title="Reload" onclick={() => trackerState.load(true)} aria-label="Reload">
+      <span>{t("settings.tracking.title")}</span>
+      <button class="trk-reload" title={t("settings.tracking.reload")} onclick={() => trackerState.load(true)} aria-label={t("settings.tracking.reload")}>
         <ArrowClockwise size={13} weight="regular" class={trackerState.loading ? "anim-spin" : ""} />
       </button>
     </div>
 
     <div class="s-section-body">
       {#if trackerState.loading && trackerState.list.length === 0}
-        <p class="s-empty"><CircleNotch size={14} weight="light" class="anim-spin" /> Loading…</p>
+        <p class="s-empty"><CircleNotch size={14} weight="light" class="anim-spin" /> {t("common.loading")}</p>
       {:else if trackerState.error}
         <p class="s-empty" style="color:var(--color-error)">{trackerState.error}</p>
       {:else if trackerState.list.length === 0}
-        <p class="s-empty">No tracking services available on this server.</p>
+        <p class="s-empty">{t("settings.tracking.empty")}</p>
       {:else}
-        {#each trackerState.list as t (t.key)}
-          {@const isMal = t.key === "mal" || t.key === "myanimelist"}
+        {#each trackerState.list as tr (tr.key)}
+          {@const isMal = tr.key === "mal" || tr.key === "myanimelist"}
           <div class="trk">
             <div class="trk-top">
-              <TrackerLogo trackerKey={t.key} iconUrl={t.iconUrl} size={22} />
+              <TrackerLogo trackerKey={tr.key} iconUrl={tr.iconUrl} size={22} />
               <div class="trk-id">
-                <span class="trk-name">{t.name}</span>
-                {#if !isMal && t.isLoggedIn && t.username}
-                  <span class="trk-user">Signed in as {t.username}</span>
+                <span class="trk-name">{tr.name}</span>
+                {#if !isMal && tr.isLoggedIn && tr.username}
+                  <span class="trk-user">{t("settings.tracking.signedInAs", { username: tr.username })}</span>
                 {/if}
               </div>
               {#if isMal}
-                <span class="trk-badge trk-badge-off">Coming soon</span>
-              {:else if !t.configured}
-                <span class="trk-badge trk-badge-off">Not configured</span>
-              {:else if t.isLoggedIn}
-                <span class="trk-badge trk-badge-on"><CheckCircle size={11} weight="fill" /> Connected</span>
+                <span class="trk-badge trk-badge-off">{t("settings.tracking.comingSoon")}</span>
+              {:else if !tr.configured}
+                <span class="trk-badge trk-badge-off">{t("settings.tracking.notConfigured")}</span>
+              {:else if tr.isLoggedIn}
+                <span class="trk-badge trk-badge-on"><CheckCircle size={11} weight="fill" /> {t("settings.tracking.statusConnected")}</span>
               {:else}
-                <span class="trk-badge">Not connected</span>
+                <span class="trk-badge">{t("settings.tracking.notConnected")}</span>
               {/if}
             </div>
 
             {#if isMal}
-              <p class="s-desc">MyAnimeList sync is not available yet.</p>
+              <p class="s-desc">{t("settings.tracking.malUnavailable")}</p>
 
-            {:else if !t.configured}
-              <p class="s-desc">No OAuth client configured for {t.name}. Set <code>TSUNAGU_ANILIST_CLIENT_ID</code>.</p>
+            {:else if !tr.configured}
+              {@const oauthParts = noOauthClientParts(tr.name)}
+              <p class="s-desc">{oauthParts[0]}<code>TSUNAGU_ANILIST_CLIENT_ID</code>{oauthParts[1]}</p>
 
-            {:else if t.isLoggedIn}
+            {:else if tr.isLoggedIn}
               <div class="trk-actions">
-                {#if t.key === "anilist"}
-                  <button class="s-btn s-btn-accent" onclick={() => (importKey = t.key)}>
-                    <TrayArrowDown size={12} weight="light" /> Import from {t.name}
+                {#if tr.key === "anilist"}
+                  <button class="s-btn s-btn-accent" onclick={() => (importKey = tr.key)}>
+                    <TrayArrowDown size={12} weight="light" /> {t("settings.tracking.importFrom", { name: tr.name })}
                   </button>
                 {/if}
-                <button class="s-btn s-btn-danger" disabled={busy[t.key]} onclick={() => disconnect(t.key)}>
-                  <LinkBreak size={12} weight="light" /> Disconnect
+                <button class="s-btn s-btn-danger" disabled={busy[tr.key]} onclick={() => disconnect(tr.key)}>
+                  <LinkBreak size={12} weight="light" /> {t("settings.tracking.disconnect")}
                 </button>
               </div>
 
             {:else}
-              <p class="s-desc">Open the authorization page and approve access, or paste the redirected URL below.</p>
+              <p class="s-desc">{t("settings.tracking.authHint")}</p>
               <div class="trk-connect">
                 <div class="trk-row">
-                  {#if polling[t.key]}
-                    <button class="s-btn s-btn-accent" onclick={() => (polling = { ...polling, [t.key]: false })}>
-                      <CircleNotch size={12} weight="light" class="anim-spin" /> Waiting… cancel
+                  {#if polling[tr.key]}
+                    <button class="s-btn s-btn-accent" onclick={() => (polling = { ...polling, [tr.key]: false })}>
+                      <CircleNotch size={12} weight="light" class="anim-spin" /> {t("settings.tracking.waitingCancel")}
                     </button>
                   {:else}
-                    <button class="s-btn s-btn-accent" onclick={() => t.authUrl && authorize(t.key, t.authUrl)} disabled={!t.authUrl}>
-                      <ArrowSquareOut size={12} weight="light" /> Authorize {t.name}
+                    <button class="s-btn s-btn-accent" onclick={() => tr.authUrl && authorize(tr.key, tr.authUrl)} disabled={!tr.authUrl}>
+                      <ArrowSquareOut size={12} weight="light" /> {t("settings.tracking.authorize", { name: tr.name })}
                     </button>
                   {/if}
-                  {#if t.authUrl}
-                    <button class="s-btn trk-icon-btn" title="Copy link" onclick={() => copyAuth(t.authUrl!)} aria-label="Copy authorization link">
+                  {#if tr.authUrl}
+                    <button class="s-btn trk-icon-btn" title={t("settings.tracking.copyLink")} onclick={() => copyAuth(tr.authUrl!)} aria-label={t("settings.tracking.copyAuthLink")}>
                       <Copy size={12} weight="light" />
                     </button>
                   {/if}
@@ -158,13 +165,13 @@
                 <div class="trk-row">
                   <input
                     class="s-input full mono"
-                    placeholder="Paste token or redirect URL"
-                    value={drafts[t.key] ?? ""}
-                    oninput={(e) => setDraft(t.key, (e.currentTarget as HTMLInputElement).value)}
-                    onkeydown={(e) => { if (e.key === "Enter") submitToken(t.key); }}
+                    placeholder={t("settings.tracking.tokenPlaceholder")}
+                    value={drafts[tr.key] ?? ""}
+                    oninput={(e) => setDraft(tr.key, (e.currentTarget as HTMLInputElement).value)}
+                    onkeydown={(e) => { if (e.key === "Enter") submitToken(tr.key); }}
                   />
-                  <button class="s-btn s-btn-accent" disabled={busy[t.key] || !(drafts[t.key] ?? "").trim()} onclick={() => submitToken(t.key)}>
-                    {busy[t.key] ? "…" : "Connect"}
+                  <button class="s-btn s-btn-accent" disabled={busy[tr.key] || !(drafts[tr.key] ?? "").trim()} onclick={() => submitToken(tr.key)}>
+                    {busy[tr.key] ? "…" : t("settings.tracking.connect")}
                   </button>
                 </div>
               </div>

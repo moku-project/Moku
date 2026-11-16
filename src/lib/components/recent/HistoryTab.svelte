@@ -3,6 +3,7 @@
   import Thumbnail from '$lib/components/shared/manga/Thumbnail.svelte'
   import { timeAgo, formatReadTime } from '$lib/core/util'
   import type { HistoryGroup, MangaHistoryEntry } from './lib/recentHistory'
+  import { t, tSplit } from '$lib/i18n/index.svelte'
 
   interface Stats {
     currentStreakDays:  number
@@ -36,15 +37,15 @@
 
   function formatDuration(ms: number): string {
     const totalMin = Math.round(ms / 60_000)
-    if (totalMin < 1)  return '< 1 min'
-    if (totalMin < 60) return `${totalMin} min`
+    if (totalMin < 1)  return t('recent.history.durationUnderMinute')
+    if (totalMin < 60) return t('common.minutesShort', { count: totalMin })
     const h = Math.floor(totalMin / 60)
     const m = totalMin % 60
-    return m > 0 ? `${h}h ${m}m` : `${h}h`
+    return m > 0 ? t('recent.history.durationHoursMinutes', { hours: h, minutes: m }) : t('recent.history.durationHours', { hours: h })
   }
 
-  const unitPlural = (k: MangaHistoryEntry['contentType']) =>
-    k === 'ANIME' ? 'episodes' : 'chapters'
+  const readCountLabel = (k: MangaHistoryEntry['contentType'], count: number) =>
+    k === 'ANIME' ? t('recent.history.episodesRead', { count }) : t('recent.history.chaptersRead', { count })
 
   function posLabel(k: MangaHistoryEntry['contentType'], v: number): string {
     if (k === 'NOVEL') return v >= 1 ? `${Math.round(v)}%` : ''
@@ -53,7 +54,7 @@
       const s = Math.round(v)
       return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
     }
-    return v > 1 ? `p.${v}` : ''
+    return v > 1 ? t('recent.history.pageShort', { page: v }) : ''
   }
 </script>
 
@@ -61,14 +62,14 @@
   {#if !hasHistory}
     <div class="empty">
       <div class="empty-icon-wrap"><ClockCounterClockwise size={24} weight="light" /></div>
-      <p class="empty-text">No reading history yet</p>
-      <p class="empty-hint">Chapters you read will appear here</p>
+      <p class="empty-text">{t('recent.history.empty')}</p>
+      <p class="empty-hint">{t('recent.history.emptyHint')}</p>
     </div>
 
   {:else if groups.length === 0}
     <div class="empty">
       <div class="empty-icon-wrap"><Books size={20} weight="light" /></div>
-      <p class="empty-text">No results for "{historySearch}"</p>
+      <p class="empty-text">{t('recent.noResults', { query: historySearch })}</p>
     </div>
 
   {:else}
@@ -79,28 +80,28 @@
             <div class="stat-icon-wrap fire"><Fire size={14} weight="fill" /></div>
             <div class="stat-body">
               <span class="stat-val">{stats.currentStreakDays}</span>
-              <span class="stat-label">Day streak</span>
+              <span class="stat-label">{t('recent.history.statStreak')}</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon-wrap accent"><BookOpen size={14} weight="light" /></div>
             <div class="stat-body">
               <span class="stat-val">{stats.totalChaptersRead}</span>
-              <span class="stat-label">Chapters / episodes</span>
+              <span class="stat-label">{t('recent.history.statChapters')}</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon-wrap neutral"><Clock size={14} weight="light" /></div>
             <div class="stat-body">
               <span class="stat-val">{formatReadTime(stats.totalMinutesRead)}</span>
-              <span class="stat-label">Read time</span>
+              <span class="stat-label">{t('recent.history.statReadTime')}</span>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon-wrap neutral"><TrendUp size={14} weight="light" /></div>
             <div class="stat-body">
               <span class="stat-val">{stats.totalMangaRead}</span>
-              <span class="stat-label">Series read</span>
+              <span class="stat-label">{t('recent.history.statSeries')}</span>
             </div>
           </div>
         </div>
@@ -127,7 +128,7 @@
                     class="expand-btn"
                     class:expanded={isExpanded}
                     onclick={(e) => toggleExpand(item.mangaId, e)}
-                    title={isExpanded ? 'Collapse chapters' : 'Expand chapters'}
+                    title={isExpanded ? t('recent.history.collapseChapters') : t('recent.history.expandChapters')}
                   >
                     {#if isExpanded}
                       <CaretDown size={12} weight="bold" />
@@ -151,7 +152,7 @@
                     <span class="session-chapter">
                       {item.latestChapterName}
                       {#if item.chaptersSpanned > 1}
-                        <span class="ch-page">· {item.chaptersSpanned} {unitPlural(item.contentType)} read</span>
+                        <span class="ch-page">· {readCountLabel(item.contentType, item.chaptersSpanned)}</span>
                       {/if}
                       {#if item.durationMs >= 60_000}
                         <span class="ch-duration">· {formatDuration(item.durationMs)}</span>
@@ -162,7 +163,7 @@
                   <button
                     class="delete-btn"
                     onclick={(e) => { e.stopPropagation(); confirmDelete = { id: item.mangaId, title: item.mangaTitle } }}
-                    title="Clear history for this series"
+                    title={t('recent.history.clearSeriesHistory')}
                   >
                     <Trash size={13} weight="light" />
                   </button>
@@ -204,6 +205,7 @@
 </div>
 
 {#if confirmDelete}
+  {@const confirmParts = tSplit('recent.history.clearConfirmBody', 'title')}
   <div
     class="modal-backdrop"
     role="presentation"
@@ -212,13 +214,13 @@
   >
     <div class="modal-card" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
-        <span class="modal-title">Clear history?</span>
+        <span class="modal-title">{t('recent.history.clearConfirmTitle')}</span>
       </div>
       <div class="modal-body">
-        <p class="modal-msg">Remove all reading history for <strong>{confirmDelete.title}</strong>?</p>
+        <p class="modal-msg">{confirmParts[0]}<strong>{confirmDelete.title}</strong>{confirmParts[1] ?? ''}</p>
       </div>
       <div class="modal-actions">
-        <button class="btn-cancel" onclick={() => confirmDelete = null}>Cancel</button>
+        <button class="btn-cancel" onclick={() => confirmDelete = null}>{t('common.cancel')}</button>
         <button
           class="btn-danger"
           onclick={() => {
@@ -226,7 +228,7 @@
             confirmDelete = null
           }}
         >
-          Clear
+          {t('common.clear')}
         </button>
       </div>
     </div>

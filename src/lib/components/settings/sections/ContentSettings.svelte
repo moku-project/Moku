@@ -5,6 +5,7 @@
   import { addToast } from '$lib/state/notifications.svelte'
   import type { ContentLevel } from '$lib/types/settings'
   import type { Extension, ContentFilterRule, FilterField, ContentBlockLevel } from '$lib/server-adapters/types'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
   let contentSources        = $state<Extension[]>([])
   let contentSourcesLoading = $state(false)
@@ -67,10 +68,10 @@
     return Array.from(map.values())
   })
 
-  const LEVELS: { value: ContentLevel; label: string; desc: string }[] = [
-    { value: 'strict',       label: 'Strict',       desc: 'Hide all explicit and violent content' },
-    { value: 'moderate',     label: 'Moderate',     desc: 'Hide explicit content, allow gore' },
-    { value: 'unrestricted', label: 'Unrestricted', desc: 'Show everything' },
+  const LEVELS: { value: ContentLevel; label: MessageKey; desc: MessageKey }[] = [
+    { value: 'strict',       label: 'settings.content.levelStrict',       desc: 'settings.content.levelStrictDesc' },
+    { value: 'moderate',     label: 'settings.content.levelModerate',     desc: 'settings.content.levelModerateDesc' },
+    { value: 'unrestricted', label: 'settings.content.levelUnrestricted', desc: 'settings.content.levelUnrestrictedDesc' },
   ]
 
   let serverLevel = $state<string | null>(null)
@@ -94,13 +95,18 @@
       serverLevel = r.setting.value
       loadLibrary(true)
     } catch (e) {
-      addToast({ kind: 'error', title: 'Content level', body: e instanceof Error ? e.message : String(e) })
+      addToast({ kind: 'error', title: t('settings.content.levelToast'), body: e instanceof Error ? e.message : String(e) })
     } finally {
       levelBusy = false
     }
   }
 
-  const FIELDS: [FilterField, string][] = [['GENRE', 'Genre'], ['TAG', 'Tag'], ['TITLE', 'Title'], ['DESCRIPTION', 'Description']]
+  const FIELDS: [FilterField, MessageKey][] = [['GENRE', 'settings.content.fieldGenre'], ['TAG', 'settings.content.fieldTag'], ['TITLE', 'settings.content.fieldTitle'], ['DESCRIPTION', 'settings.content.fieldDescription']]
+
+  function fieldLabel(field: FilterField): string {
+    const key = FIELDS.find(([v]) => v === field)?.[1]
+    return key ? t(key) : field
+  }
 
   let rules        = $state<ContentFilterRule[]>([])
   let rulesOpen    = $state(false)
@@ -140,7 +146,7 @@
       nf = { ...nf, keyword: '' }
       await afterRuleChange()
     } catch (e) {
-      addToast({ kind: 'error', title: 'Add rule', body: e instanceof Error ? e.message : String(e) })
+      addToast({ kind: 'error', title: t('settings.content.addRuleToast'), body: e instanceof Error ? e.message : String(e) })
     } finally {
       rulesBusy = false
     }
@@ -150,7 +156,7 @@
     if (rulesBusy) return
     rulesBusy = true
     try { await tsunagu.removeContentFilterRule(id); await afterRuleChange() }
-    catch (e) { addToast({ kind: 'error', title: 'Remove rule', body: e instanceof Error ? e.message : String(e) }) }
+    catch (e) { addToast({ kind: 'error', title: t('settings.content.removeRule'), body: e instanceof Error ? e.message : String(e) }) }
     finally { rulesBusy = false }
   }
 
@@ -158,7 +164,7 @@
     confirmReset = false
     rulesBusy = true
     try { await tsunagu.resetContentFilterRules(); await afterRuleChange() }
-    catch (e) { addToast({ kind: 'error', title: 'Reset rules', body: e instanceof Error ? e.message : String(e) }) }
+    catch (e) { addToast({ kind: 'error', title: t('settings.content.resetRulesToast'), body: e instanceof Error ? e.message : String(e) }) }
     finally { rulesBusy = false }
   }
 
@@ -167,10 +173,10 @@
     rulesBusy = true
     try {
       await tsunagu.recomputeContentFilter()
-      addToast({ kind: 'info', title: 'Rescanning library…' })
+      addToast({ kind: 'info', title: t('settings.content.rescanningToast') })
       setTimeout(() => loadLibrary(true), 1500)
     } catch (e) {
-      addToast({ kind: 'error', title: 'Rescan', body: e instanceof Error ? e.message : String(e) })
+      addToast({ kind: 'error', title: t('settings.content.rescanToast'), body: e instanceof Error ? e.message : String(e) })
     } finally {
       rulesBusy = false
     }
@@ -180,10 +186,10 @@
 <div class="s-panel">
 
   <div class="s-section">
-    <p class="s-section-title">Content Level</p>
+    <p class="s-section-title">{t('settings.content.levelTitle')}</p>
     <div class="s-section-body">
       <div class="s-row" style="border-bottom: none; padding-bottom: 0;">
-        <span class="s-desc">Filters library, search and discover. Enforced by the server.</span>
+        <span class="s-desc">{t('settings.content.levelDesc')}</span>
       </div>
       <div class="s-level-group">
         {#each LEVELS as lvl}
@@ -191,8 +197,8 @@
           <button class="s-level-btn" class:active disabled={levelBusy} onclick={() => setLevel(lvl.value)}>
             <span class="s-level-dot" class:active></span>
             <div class="s-level-text">
-              <span class="s-level-label">{lvl.label}</span>
-              <span class="s-level-desc">{lvl.desc}</span>
+              <span class="s-level-label">{t(lvl.label)}</span>
+              <span class="s-level-desc">{t(lvl.desc)}</span>
             </div>
           </button>
         {/each}
@@ -203,13 +209,13 @@
   {#if serverLevel !== null}
     <div class="s-section">
       <button class="s-section-title cf-head" onclick={() => rulesOpen = !rulesOpen}>
-        <span>Filter Rules</span>
+        <span>{t('settings.content.rulesTitle')}</span>
         <span class="cf-caret" class:open={rulesOpen}>▾</span>
       </button>
       {#if rulesOpen}
         <div class="s-section-body">
           {#if rules.length === 0}
-            <div class="s-row"><span class="s-desc">No rules.</span></div>
+            <div class="s-row"><span class="s-desc">{t('settings.content.noRules')}</span></div>
           {:else}
             {#each groupedRules as [category, list] (category)}
               <div class="cf-group">
@@ -217,10 +223,10 @@
                 {#each list as r (r.id)}
                   <div class="cf-rule">
                     <span class="cf-kw">{r.keyword}</span>
-                    <span class="cf-meta">{FIELDS.find(([v]) => v === r.field)?.[1] ?? r.field}{r.field === 'TAG' && r.minWeight > 0 ? ` ≥${r.minWeight}` : ''}</span>
-                    <span class="cf-lvl">{r.blockLevel === 'STRICT' ? 'Strict' : 'Moderate'}</span>
-                    {#if r.isDefault}<span class="cf-default">default</span>{/if}
-                    <button class="cf-x" title="Remove rule" disabled={rulesBusy} onclick={() => removeRule(r.id)}>✕</button>
+                    <span class="cf-meta">{fieldLabel(r.field)}{r.field === 'TAG' && r.minWeight > 0 ? ` ≥${r.minWeight}` : ''}</span>
+                    <span class="cf-lvl">{r.blockLevel === 'STRICT' ? t('settings.content.levelStrict') : t('settings.content.levelModerate')}</span>
+                    {#if r.isDefault}<span class="cf-default">{t('settings.content.defaultBadge')}</span>{/if}
+                    <button class="cf-x" title={t('settings.content.removeRule')} disabled={rulesBusy} onclick={() => removeRule(r.id)}>✕</button>
                   </div>
                 {/each}
               </div>
@@ -228,28 +234,28 @@
           {/if}
 
           <div class="cf-add">
-            <input class="s-input cf-in" placeholder="category" bind:value={nf.category} />
+            <input class="s-input cf-in" placeholder={t('settings.content.categoryPlaceholder')} bind:value={nf.category} />
             <select class="s-input cf-in" bind:value={nf.field}>
-              {#each FIELDS as [v, l]}<option value={v}>{l}</option>{/each}
+              {#each FIELDS as [v, l]}<option value={v}>{t(l)}</option>{/each}
             </select>
-            <input class="s-input cf-in cf-kw-in" placeholder="keyword" bind:value={nf.keyword}
+            <input class="s-input cf-in cf-kw-in" placeholder={t('settings.content.keywordPlaceholder')} bind:value={nf.keyword}
               onkeydown={(e) => { if (e.key === 'Enter') addRule() }} />
             <select class="s-input cf-in" bind:value={nf.blockLevel}>
-              <option value="MODERATE">Moderate</option>
-              <option value="STRICT">Strict</option>
+              <option value="MODERATE">{t('settings.content.levelModerate')}</option>
+              <option value="STRICT">{t('settings.content.levelStrict')}</option>
             </select>
             {#if nf.field === 'TAG'}
-              <label class="cf-weight" title="Minimum AniList tag weight">
+              <label class="cf-weight" title={t('settings.content.minTagWeight')}>
                 <input type="range" min="0" max="100" bind:value={nf.minWeight} />
                 <span>{nf.minWeight}</span>
               </label>
             {/if}
-            <button class="s-btn s-btn-accent" disabled={rulesBusy || !nf.keyword.trim()} onclick={addRule}>Add</button>
+            <button class="s-btn s-btn-accent" disabled={rulesBusy || !nf.keyword.trim()} onclick={addRule}>{t('common.add')}</button>
           </div>
 
           <div class="cf-actions">
-            <button class="s-btn" disabled={rulesBusy} onclick={rescan}>Rescan library</button>
-            <button class="s-btn s-btn-danger" disabled={rulesBusy} onclick={() => confirmReset = true}>Reset to defaults</button>
+            <button class="s-btn" disabled={rulesBusy} onclick={rescan}>{t('settings.content.rescanLibrary')}</button>
+            <button class="s-btn s-btn-danger" disabled={rulesBusy} onclick={() => confirmReset = true}>{t('settings.content.resetToDefaults')}</button>
           </div>
         </div>
       {/if}
@@ -257,17 +263,17 @@
   {/if}
 
   <div class="s-section">
-    <p class="s-section-title">Source Overrides</p>
+    <p class="s-section-title">{t('settings.content.overridesTitle')}</p>
     <div class="s-section-body">
       <label class="s-row">
         <div class="s-row-info">
-          <span class="s-label">Per-source overrides</span>
-          <span class="s-desc">Force-allow or always block a specific source.</span>
+          <span class="s-label">{t('settings.content.perSourceOverrides')}</span>
+          <span class="s-desc">{t('settings.content.perSourceOverridesDesc')}</span>
         </div>
         <button
           role="switch"
           aria-checked={settingsState.settings.sourceOverridesEnabled}
-          aria-label="Enable source overrides"
+          aria-label={t('settings.content.enableOverrides')}
           class="s-toggle"
           class:on={settingsState.settings.sourceOverridesEnabled}
           onclick={() => updateSettings({ sourceOverridesEnabled: !settingsState.settings.sourceOverridesEnabled })}
@@ -276,12 +282,12 @@
 
       {#if settingsState.settings.sourceOverridesEnabled}
         <div class="s-search-wrap">
-          <input class="s-input full" placeholder="Filter sources…" bind:value={sourceSearch} />
+          <input class="s-input full" placeholder={t('settings.content.filterSources')} bind:value={sourceSearch} />
         </div>
         {#if contentSourcesLoading}
-          <p class="s-empty">Loading sources…</p>
+          <p class="s-empty">{t('settings.content.loadingSources')}</p>
         {:else if contentSources.length === 0}
-          <p class="s-empty">No sources found. Check your server connection.</p>
+          <p class="s-empty">{t('settings.content.noSources')}</p>
         {:else}
           <div class="s-source-list">
             {#each contentSourcesFiltered as group (group.name)}
@@ -297,12 +303,12 @@
                 <div class="s-source-info">
                   <span class="s-source-name">{group.name}</span>
                   <span class="s-source-meta">
-                    {group.sources.length > 1 ? `${group.sources.length} languages` : group.sources[0].lang.toUpperCase()}
+                    {group.sources.length > 1 ? t('settings.content.languageCount', { count: group.sources.length }) : group.sources[0].lang.toUpperCase()}
                   </span>
                 </div>
                 <div class="s-source-actions">
-                  <button class="s-source-action-btn" class:allow={isAllowed} onclick={() => toggleSourceAllowed(ids)}>Allow</button>
-                  <button class="s-source-action-btn" class:block={isBlocked} onclick={() => toggleSourceBlocked(ids)}>Block</button>
+                  <button class="s-source-action-btn" class:allow={isAllowed} onclick={() => toggleSourceAllowed(ids)}>{t('settings.content.allow')}</button>
+                  <button class="s-source-action-btn" class:block={isBlocked} onclick={() => toggleSourceBlocked(ids)}>{t('settings.content.block')}</button>
                 </div>
               </div>
             {/each}
@@ -317,11 +323,11 @@
 {#if confirmReset}
   <div class="cf-modal" role="presentation" onclick={() => confirmReset = false}>
     <div class="cf-modal-card" role="presentation" onclick={(e) => e.stopPropagation()}>
-      <p class="cf-modal-title">Reset content filter rules?</p>
-      <p class="s-desc">Removes your custom rules and restores the seeded defaults.</p>
+      <p class="cf-modal-title">{t('settings.content.resetConfirmTitle')}</p>
+      <p class="s-desc">{t('settings.content.resetConfirmBody')}</p>
       <div class="cf-modal-actions">
-        <button class="s-btn" onclick={() => confirmReset = false}>Cancel</button>
-        <button class="s-btn s-btn-danger" onclick={resetRules}>Reset</button>
+        <button class="s-btn" onclick={() => confirmReset = false}>{t('common.cancel')}</button>
+        <button class="s-btn s-btn-danger" onclick={resetRules}>{t('common.reset')}</button>
       </div>
     </div>
   </div>

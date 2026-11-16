@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, currentLocale, type MessageKey } from '$lib/i18n/index.svelte'
   let {
     dailyReadCounts,
   }: {
@@ -18,8 +19,8 @@
   function showTip(e: MouseEvent, cell: { dateStr: string; count: number }) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const label = cell.count === 0
-      ? `Nothing — ${fmtDate(cell.dateStr)}`
-      : `${cell.count} chapter${cell.count !== 1 ? 's' : ''} / episode${cell.count !== 1 ? 's' : ''} — ${fmtDate(cell.dateStr)}`
+      ? t('home.heatmap.tipNothing', { date: fmtDate(cell.dateStr) })
+      : t('home.heatmap.tipCount', { count: cell.count, date: fmtDate(cell.dateStr) })
     if (!tipEl) {
       tipEl = document.createElement('div')
       tipEl.className = 'moku-heatmap-tip'
@@ -39,7 +40,7 @@
   $effect(() => () => { tipEl?.remove(); tipEl = null })
 
   function fmtDate(d: string): string {
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return new Date(d + 'T00:00:00').toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric' })
   }
 
   function localDateStr(d: Date): string {
@@ -99,14 +100,14 @@
       if (!first) return
       const m = new Date(first.dateStr + 'T00:00:00').getMonth()
       if (m !== lastMonth) {
-        labels.push({ label: new Date(first.dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short' }), colIndex: ci })
+        labels.push({ label: new Date(first.dateStr + 'T00:00:00').toLocaleDateString(currentLocale(), { month: 'short' }), colIndex: ci })
         lastMonth = m
       }
     })
     return labels
   })())
 
-  const DAY_LABELS = ['Sun', '', 'Tue', '', 'Thu', '', 'Sat']
+  const DAY_LABELS: (MessageKey | null)[] = ['home.heatmap.daySun', null, 'home.heatmap.dayTue', null, 'home.heatmap.dayThu', null, 'home.heatmap.daySat']
 </script>
 
 <div class="heatmap-wrap" bind:this={wrapEl} style="--cell:{cellSize}px; --cols:{numWeeks};">
@@ -123,7 +124,7 @@
   <div class="grid-row">
     <div class="day-labels">
       {#each DAY_LABELS as d}
-        <span class="day-label">{d}</span>
+        <span class="day-label">{d ? t(d) : ''}</span>
       {/each}
     </div>
     <div class="cell-grid">
@@ -136,7 +137,7 @@
               class:cell-future={cell.isFuture}
               onmouseover={(e) => showTip(e, cell)}
               onmouseleave={hideTip}
-              aria-label="{cell.count} chapters or episodes on {cell.dateStr}"
+              aria-label={t('home.heatmap.cellLabel', { count: cell.count, date: cell.dateStr })}
             ></button>
           {/each}
         </div>
@@ -145,11 +146,11 @@
   </div>
 
   <div class="legend">
-    <span class="legend-label">Less</span>
+    <span class="legend-label">{t('home.heatmap.less')}</span>
     {#each [0, 1, 2, 3, 4] as lvl}
       <div class="legend-cell intensity-{lvl}"></div>
     {/each}
-    <span class="legend-label">More</span>
+    <span class="legend-label">{t('home.heatmap.more')}</span>
   </div>
 </div>
 

@@ -3,6 +3,7 @@
   import Thumbnail from "$lib/components/shared/manga/Thumbnail.svelte";
   import { tsunagu } from "$lib/server-adapters/tsunagu";
   import { addToast } from "$lib/state/notifications.svelte";
+  import { t } from "$lib/i18n/index.svelte";
   import type { SourcePreference } from "$lib/server-adapters/types";
 
   export type SourceEntry = { id: string; displayName: string };
@@ -43,7 +44,7 @@
     try {
       prefs = await tsunagu.sourcePreferences(extensionId);
     } catch (e: any) {
-      loadError = e?.message ?? "Failed to load settings";
+      loadError = e?.message ?? t("extensions.sourceSettings.loadFailed");
     } finally {
       loading = false;
     }
@@ -56,7 +57,7 @@
     try {
       prefs = await tsunagu.setSourcePreference(src.id, key, value);
     } catch (e: any) {
-      addToast({ kind: "error", title: "Couldn't save setting", body: e?.message ?? "" });
+      addToast({ kind: "error", title: t("extensions.sourceSettings.saveFailed"), body: e?.message ?? "" });
     } finally {
       saving = null;
     }
@@ -142,11 +143,11 @@
             onerror={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
         {/if}
         <div class="ext-titles">
-          <span class="ext-eyebrow">Source Settings</span>
+          <span class="ext-eyebrow">{t("extensions.sourceSettings.title")}</span>
           <span class="ext-name">{extensionName}</span>
         </div>
       </div>
-      <button class="close-btn" onclick={dismiss} aria-label="Close">
+      <button class="close-btn" onclick={dismiss} aria-label={t("common.close")}>
         <X size={13} weight="bold" />
       </button>
     </div>
@@ -154,7 +155,7 @@
     {#if sources.length > 1}
       <div class="source-bar">
         <button class="src-arrow" onclick={prevSource}
-          disabled={activeIndex <= 0} aria-label="Previous source">
+          disabled={activeIndex <= 0} aria-label={t("extensions.sourceSettings.previousSource")}>
           <CaretLeft size={11} weight="bold" />
         </button>
         <div class="src-label">
@@ -164,11 +165,11 @@
               <span class="src-lang">{langTag(sources[activeIndex].displayName)}</span>
             {/if}
           {:else}
-            <span class="src-name src-dim">Choose a source</span>
+            <span class="src-name src-dim">{t("extensions.sourceSettings.chooseSource")}</span>
           {/if}
         </div>
         <button class="src-arrow" onclick={nextSource}
-          disabled={activeIndex >= sources.length - 1} aria-label="Next source">
+          disabled={activeIndex >= sources.length - 1} aria-label={t("extensions.sourceSettings.nextSource")}>
           <CaretRight size={11} weight="bold" />
         </button>
       </div>
@@ -196,7 +197,7 @@
         {:else if loadError}
           <div class="center-state dim">{loadError}</div>
         {:else if prefs.length === 0}
-          <div class="center-state dim">No configurable settings.</div>
+          <div class="center-state dim">{t("extensions.sourceSettings.empty")}</div>
         {:else}
           <ul class="pref-list">
             {#each prefs as pref (pref.key)}
@@ -232,7 +233,7 @@
                       {#if summary}<span class="pref-summary">{summary}</span>{/if}
                     </div>
                     {#if !isDefault(pref)}
-                      <button class="reset-btn" title="Reset to default" onclick={() => resetPref(pref)}>
+                      <button class="reset-btn" title={t("extensions.sourceSettings.resetToDefault")} onclick={() => resetPref(pref)}>
                         <ArrowCounterClockwise size={11} weight="bold" />
                       </button>
                     {/if}
@@ -277,9 +278,9 @@
                     <div class="edit-row">
                       <input class="edit-input" bind:value={editValue} disabled={isSaving} autofocus
                         onkeydown={(e) => { if (e.key === "Enter") submitEdit(pref.key); if (e.key === "Escape") editKey = null; }} />
-                      <button class="action-dim" onclick={() => editKey = null}>Cancel</button>
+                      <button class="action-dim" onclick={() => editKey = null}>{t("common.cancel")}</button>
                       <button class="action-btn" onclick={() => submitEdit(pref.key)} disabled={isSaving}>
-                        {#if isSaving}<CircleNotch size={10} weight="light" class="anim-spin" />{:else}Save{/if}
+                        {#if isSaving}<CircleNotch size={10} weight="light" class="anim-spin" />{:else}{t("common.save")}{/if}
                       </button>
                     </div>
                   </li>
@@ -304,7 +305,7 @@
                       {#if summary}<span class="pref-summary">{summary}</span>{/if}
                     </div>
                     {#if !isDefault(pref)}
-                      <button class="reset-btn" title="Reset to default" onclick={() => resetPref(pref)}>
+                      <button class="reset-btn" title={t("extensions.sourceSettings.resetToDefault")} onclick={() => resetPref(pref)}>
                         <ArrowCounterClockwise size={11} weight="bold" />
                       </button>
                     {/if}

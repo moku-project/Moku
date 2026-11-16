@@ -4,6 +4,7 @@
     SortAscending, CaretUp, CaretDown, Star, X, CheckSquare, SquaresFour, Rows, Broadcast,
   } from "phosphor-svelte";
   import LibraryFilters from "./LibraryFilters.svelte";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
   import type { Folder as FolderType } from "$lib/server-adapters/types";
   import type { LibrarySortOption, LibrarySortDir, LibraryStatusFilter, LibraryContentFilter, LibraryViewMode } from "$lib/state/library.svelte";
 
@@ -83,14 +84,14 @@
     else if (ol + ow > pl + cw) tabsEl.scrollTo({ left: ol + ow - cw, behavior: "smooth" });
   });
 
-  const SORT_LABELS: Record<LibrarySortOption, string> = {
-    az:             "A–Z",
-    unreadCount:    "Unread chapters",
-    totalChapters:  "Total chapters",
-    dateAdded:      "Recently added",
-    lastRead:       "Recently read",
-    latestFetched:  "Latest fetched chapter",
-    latestUploaded: "Latest uploaded chapter",
+  const SORT_LABELS: Record<LibrarySortOption, MessageKey> = {
+    az:             "library.toolbar.sortAz",
+    unreadCount:    "library.toolbar.sortUnreadCount",
+    totalChapters:  "library.toolbar.sortTotalChapters",
+    dateAdded:      "library.toolbar.sortDateAdded",
+    lastRead:       "library.toolbar.sortLastRead",
+    latestFetched:  "library.toolbar.sortLatestFetched",
+    latestUploaded: "library.toolbar.sortLatestUploaded",
   };
 
   const ALL_SORT_MODES: LibrarySortOption[] = [
@@ -99,7 +100,7 @@
 </script>
 
 <div class="header">
-  <span class="heading">Library</span>
+  <span class="heading">{t("nav.library")}</span>
 
   <div class="tabs" class:tabs-anims={anims} bind:this={tabsEl} onwheel={onTabsWheel}>
     {#each visibleTabIds as id, idx}
@@ -126,7 +127,7 @@
           {:else if cat && id === completedFolderId}<CheckSquare size={11} weight="bold" />
           {:else if cat}<Folder size={11} weight="bold" />
           {/if}
-          {id === "library" ? "Saved" : id === "downloaded" ? "Downloaded" : (cat?.name ?? id)}
+          {id === "library" ? t("library.toolbar.tabSaved") : id === "downloaded" ? t("library.toolbar.tabDownloaded") : (cat?.name ?? id)}
           <span class="tab-count">{counts[id] ?? 0}</span>
         </button>
         {#if activeDragKind === "tab" && dragInsertIdx === idx + 1}
@@ -139,12 +140,12 @@
   <div class="header-right">
     <div class="search-wrap">
       <MagnifyingGlass size={13} class="search-icon" weight="light" />
-      <input class="search" placeholder="Search" value={search} oninput={(e) => onSearchChange((e.target as HTMLInputElement).value)} />
+      <input class="search" placeholder={t("common.search")} value={search} oninput={(e) => onSearchChange((e.target as HTMLInputElement).value)} />
     </div>
 
     <button
       class="icon-btn"
-      title={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
+      title={viewMode === "grid" ? t("library.toolbar.switchToList") : t("library.toolbar.switchToGrid")}
       onclick={() => onViewModeChange(viewMode === "grid" ? "list" : "grid")}
     >
       {#if viewMode === "grid"}<Rows size={15} weight="bold" />
@@ -153,7 +154,7 @@
 
     <button
       class="icon-btn"
-      title={refreshingLibrary ? "Updating library…" : "Update every series in the library"}
+      title={refreshingLibrary ? t("library.toolbar.updatingLibrary") : t("library.toolbar.updateLibrary")}
       disabled={refreshingLibrary}
       onclick={onRefreshLibrary}
     >
@@ -163,7 +164,7 @@
     <button
       class="icon-btn"
       class:icon-btn-active={!!tabFilters.tracked}
-      title={tabFilters.tracked ? "Showing tracked only" : "Show tracked only"}
+      title={tabFilters.tracked ? t("library.toolbar.showingTrackedOnly") : t("library.toolbar.showTrackedOnly")}
       onclick={() => onFilterToggle("tracked")}
     >
       <Broadcast size={15} weight={tabFilters.tracked ? "fill" : "bold"} />
@@ -173,7 +174,7 @@
       <button
         class="icon-btn"
         class:icon-btn-active={tabSortMode !== "az" || tabSortDir !== "asc"}
-        title="Sort"
+        title={t("library.toolbar.sort")}
         onclick={onSortPanelToggle}
       >
         <SortAscending size={15} weight="bold" />
@@ -181,10 +182,10 @@
       {#if sortPanelOpen}
         <div class="dropdown-panel sort-panel anim-fade-in" role="menu">
           <div class="panel-header">
-            <span class="panel-heading">Sort</span>
+            <span class="panel-heading">{t("library.toolbar.sort")}</span>
           </div>
           <div class="panel-divider"></div>
-          <p class="panel-label">Order by</p>
+          <p class="panel-label">{t("library.toolbar.orderBy")}</p>
           {#each ALL_SORT_MODES as m}
             <button
               class="panel-item"
@@ -192,7 +193,7 @@
               role="menuitem"
               onclick={() => onSortChange(m)}
             >
-              {SORT_LABELS[m]}
+              {t(SORT_LABELS[m])}
               {#if tabSortMode === m}
                 {#if tabSortDir === "asc"}<CaretUp size={11} weight="bold" class="sort-caret" />
                 {:else}<CaretDown size={11} weight="bold" class="sort-caret" />{/if}
@@ -200,7 +201,7 @@
             </button>
           {/each}
           <button class="panel-item dir-toggle" role="menuitem" onclick={onSortDirToggle}>
-            {tabSortDir === "asc" ? "Ascending" : "Descending"}
+            {tabSortDir === "asc" ? t("library.toolbar.ascending") : t("library.toolbar.descending")}
             {#if tabSortDir === "asc"}<CaretUp size={11} weight="bold" />
             {:else}<CaretDown size={11} weight="bold" />{/if}
           </button>

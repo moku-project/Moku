@@ -3,6 +3,7 @@
   import { settingsState, updateSettings } from '$lib/state/settings.svelte';
   import type { CustomTheme, ThemeTokens } from "$lib/types/settings";
   import { DEFAULT_THEME_TOKENS } from "$lib/types/settings";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
   interface Props {
     editingId?: string | null;
@@ -11,48 +12,48 @@
 
   let { editingId = $bindable(null), onClose }: Props = $props();
 
-  const TOKEN_GROUPS: { label: string; tokens: (keyof ThemeTokens)[] }[] = [
-    { label: "Backgrounds", tokens: ["bg-void", "bg-base", "bg-surface", "bg-raised", "bg-overlay", "bg-subtle"] },
-    { label: "Borders",     tokens: ["border-dim", "border-base", "border-strong", "border-focus"] },
-    { label: "Text",        tokens: ["text-primary", "text-secondary", "text-muted", "text-faint", "text-disabled"] },
-    { label: "Accent",      tokens: ["accent", "accent-dim", "accent-muted", "accent-fg", "accent-bright"] },
-    { label: "Semantic",    tokens: ["color-error", "color-error-bg", "color-success", "color-info", "color-info-bg"] },
+  const TOKEN_GROUPS: { label: MessageKey; tokens: (keyof ThemeTokens)[] }[] = [
+    { label: "settings.theme.groupBackgrounds", tokens: ["bg-void", "bg-base", "bg-surface", "bg-raised", "bg-overlay", "bg-subtle"] },
+    { label: "settings.theme.groupBorders",     tokens: ["border-dim", "border-base", "border-strong", "border-focus"] },
+    { label: "settings.theme.groupText",        tokens: ["text-primary", "text-secondary", "text-muted", "text-faint", "text-disabled"] },
+    { label: "settings.theme.groupAccent",      tokens: ["accent", "accent-dim", "accent-muted", "accent-fg", "accent-bright"] },
+    { label: "settings.theme.groupSemantic",    tokens: ["color-error", "color-error-bg", "color-success", "color-info", "color-info-bg"] },
   ];
 
-  const TOKEN_LABELS: Record<keyof ThemeTokens, string> = {
-    "bg-void":    "Void (deepest bg)",
-    "bg-base":    "Base",
-    "bg-surface": "Surface",
-    "bg-raised":  "Raised",
-    "bg-overlay": "Overlay",
-    "bg-subtle":  "Subtle",
-    "border-dim":    "Dim border",
-    "border-base":   "Base border",
-    "border-strong": "Strong border",
-    "border-focus":  "Focus ring",
-    "text-primary":   "Primary text",
-    "text-secondary": "Secondary text",
-    "text-muted":     "Muted text",
-    "text-faint":     "Faint text",
-    "text-disabled":  "Disabled text",
-    "accent":        "Accent",
-    "accent-dim":    "Accent dim",
-    "accent-muted":  "Accent muted",
-    "accent-fg":     "Accent foreground",
-    "accent-bright": "Accent bright",
-    "color-error":    "Error",
-    "color-error-bg": "Error background",
-    "color-success":  "Success",
-    "color-info":     "Info",
-    "color-info-bg":  "Info background",
+  const TOKEN_LABELS: Record<keyof ThemeTokens, MessageKey> = {
+    "bg-void":    "settings.theme.tokens.bgVoid",
+    "bg-base":    "settings.theme.tokens.bgBase",
+    "bg-surface": "settings.theme.tokens.bgSurface",
+    "bg-raised":  "settings.theme.tokens.bgRaised",
+    "bg-overlay": "settings.theme.tokens.bgOverlay",
+    "bg-subtle":  "settings.theme.tokens.bgSubtle",
+    "border-dim":    "settings.theme.tokens.borderDim",
+    "border-base":   "settings.theme.tokens.borderBase",
+    "border-strong": "settings.theme.tokens.borderStrong",
+    "border-focus":  "settings.theme.tokens.borderFocus",
+    "text-primary":   "settings.theme.tokens.textPrimary",
+    "text-secondary": "settings.theme.tokens.textSecondary",
+    "text-muted":     "settings.theme.tokens.textMuted",
+    "text-faint":     "settings.theme.tokens.textFaint",
+    "text-disabled":  "settings.theme.tokens.textDisabled",
+    "accent":        "settings.theme.tokens.accent",
+    "accent-dim":    "settings.theme.tokens.accentDim",
+    "accent-muted":  "settings.theme.tokens.accentMuted",
+    "accent-fg":     "settings.theme.tokens.accentFg",
+    "accent-bright": "settings.theme.tokens.accentBright",
+    "color-error":    "settings.theme.tokens.colorError",
+    "color-error-bg": "settings.theme.tokens.colorErrorBg",
+    "color-success":  "settings.theme.tokens.colorSuccess",
+    "color-info":     "settings.theme.tokens.colorInfo",
+    "color-info-bg":  "settings.theme.tokens.colorInfoBg",
   };
 
   function loadInitial(): { name: string; tokens: ThemeTokens } {
     if (editingId) {
-      const existing = settingsState.settings.customThemes.find(t => t.id === editingId);
+      const existing = settingsState.settings.customThemes.find(th => th.id === editingId);
       if (existing) return { name: existing.name, tokens: { ...existing.tokens } };
     }
-    return { name: "My Theme", tokens: { ...DEFAULT_THEME_TOKENS } };
+    return { name: t("settings.theme.defaultName"), tokens: { ...DEFAULT_THEME_TOKENS } };
   }
 
   const initial = loadInitial();
@@ -61,12 +62,12 @@
   let saveStatus: "idle" | "saved" = $state("idle");
   let importError: string | null   = $state(null);
 
-  function toCssVars(t: ThemeTokens): string {
-    return Object.entries(t).map(([k, v]) => `--${k}: ${v};`).join(" ");
+  function toCssVars(vars: ThemeTokens): string {
+    return Object.entries(vars).map(([k, v]) => `--${k}: ${v};`).join(" ");
   }
 
   function saveCustomTheme(theme: CustomTheme) {
-    const existing = settingsState.settings.customThemes.findIndex(t => t.id === theme.id);
+    const existing = settingsState.settings.customThemes.findIndex(th => th.id === theme.id);
     const next = [...settingsState.settings.customThemes];
     if (existing >= 0) next[existing] = theme;
     else next.push(theme);
@@ -74,11 +75,11 @@
   }
 
   function deleteCustomTheme(id: string) {
-    updateSettings({ customThemes: settingsState.settings.customThemes.filter(t => t.id !== id) });
+    updateSettings({ customThemes: settingsState.settings.customThemes.filter(th => th.id !== id) });
   }
 
   function handleSave() {
-    const name = themeName.trim() || "Untitled Theme";
+    const name = themeName.trim() || t("settings.theme.untitled");
     const id   = editingId ?? `custom:${Math.random().toString(36).slice(2, 10)}`;
     saveCustomTheme({ id, name, tokens: { ...tokens } });
     updateSettings({ theme: id });
@@ -89,7 +90,7 @@
 
   function handleDelete() {
     if (!editingId) { onClose(); return; }
-    if (!confirm(`Delete theme "${themeName}"? This cannot be undone.`)) return;
+    if (!confirm(t("settings.theme.deleteConfirm", { name: themeName }))) return;
     deleteCustomTheme(editingId);
     onClose();
   }
@@ -97,7 +98,7 @@
   async function handleExport() {
     const data: CustomTheme = {
       id:     editingId ?? "custom:export",
-      name:   themeName.trim() || "Untitled Theme",
+      name:   themeName.trim() || t("settings.theme.untitled"),
       tokens: { ...tokens },
     };
     const filename = `${data.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-theme.json`;
@@ -105,7 +106,7 @@
     try {
       const handle = await (window as any).showSaveFilePicker({
         suggestedName: filename,
-        types: [{ description: "Theme JSON", accept: { "application/json": [".json"] } }],
+        types: [{ description: t("settings.theme.fileDescription"), accept: { "application/json": [".json"] } }],
       });
       const writable = await handle.createWritable();
       await writable.write(json);
@@ -130,12 +131,12 @@
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        if (!data.tokens || typeof data.tokens !== "object") throw new Error("Invalid theme file, missing tokens");
+        if (!data.tokens || typeof data.tokens !== "object") throw new Error(t("settings.theme.invalidFile"));
         if (typeof data.name === "string") themeName = data.name;
         tokens      = { ...DEFAULT_THEME_TOKENS, ...data.tokens };
         importError = null;
       } catch (e: any) {
-        importError = e.message ?? "Could not parse theme file";
+        importError = e.message ?? t("settings.theme.parseFailed");
         setTimeout(() => (importError = null), 3000);
       }
     };
@@ -149,36 +150,36 @@
 
 <svelte:window onkeydown={onKey} />
 
-<div class="backdrop" role="button" tabindex="-1" aria-label="Close theme editor" onclick={onClose} onkeydown={(e) => e.key === "Escape" && onClose()}>
-  <div class="shell" role="dialog" aria-label="Theme editor" tabindex="0" style={toCssVars(tokens)} onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+<div class="backdrop" role="button" tabindex="-1" aria-label={t("settings.theme.closeEditor")} onclick={onClose} onkeydown={(e) => e.key === "Escape" && onClose()}>
+  <div class="shell" role="dialog" aria-label={t("settings.theme.dialogLabel")} tabindex="0" style={toCssVars(tokens)} onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 
     <header class="header">
       <div class="header-left">
-        <button class="icon-btn" onclick={onClose} title="Close editor">
+        <button class="icon-btn" onclick={onClose} title={t("settings.theme.closeEditorTitle")}>
           <ArrowLeft size={14} weight="bold" />
         </button>
-        <input bind:value={themeName} class="name-input" placeholder="Theme name" maxlength={40} spellcheck={false} />
+        <input bind:value={themeName} class="name-input" placeholder={t("settings.theme.namePlaceholder")} maxlength={40} spellcheck={false} />
       </div>
       <div class="header-actions">
         {#if importError}
           <span class="import-err">{importError}</span>
         {/if}
-        <button class="action-btn" onclick={handleImport} title="Import from JSON">
-          <UploadSimple size={13} /><span>Import</span>
+        <button class="action-btn" onclick={handleImport} title={t("settings.theme.importTitle")}>
+          <UploadSimple size={13} /><span>{t("settings.theme.import")}</span>
         </button>
-        <button class="action-btn" onclick={handleExport} title="Export as JSON">
-          <DownloadSimple size={13} /><span>Export</span>
+        <button class="action-btn" onclick={handleExport} title={t("settings.theme.exportTitle")}>
+          <DownloadSimple size={13} /><span>{t("settings.theme.export")}</span>
         </button>
-        <button class="action-btn ghost" onclick={resetToDefaults} title="Reset all to dark defaults">Reset</button>
+        <button class="action-btn ghost" onclick={resetToDefaults} title={t("settings.theme.resetTitle")}>{t("common.reset")}</button>
         {#if editingId}
-          <button class="action-btn danger" onclick={handleDelete} title="Delete theme">
+          <button class="action-btn danger" onclick={handleDelete} title={t("settings.theme.deleteTheme")}>
             <Trash size={13} />
           </button>
         {/if}
         <button class="save-btn" class:saved={saveStatus === "saved"} onclick={handleSave}>
-          <FloppyDisk size={13} /><span>{saveStatus === "saved" ? "Saved!" : "Save Theme"}</span>
+          <FloppyDisk size={13} /><span>{saveStatus === "saved" ? t("settings.theme.saved") : t("settings.theme.saveTheme")}</span>
         </button>
-        <button class="icon-btn" onclick={onClose} title="Close">
+        <button class="icon-btn" onclick={onClose} title={t("common.close")}>
           <X size={14} weight="bold" />
         </button>
       </div>
@@ -186,7 +187,7 @@
 
     <div class="body">
       <aside class="preview-pane">
-        <div class="pane-label">Live Preview</div>
+        <div class="pane-label">{t("settings.theme.livePreview")}</div>
         <div class="preview-ui" style={toCssVars(tokens)}>
           <div class="prv-sidebar">
             {#each [true, false, false, false] as active}
@@ -232,11 +233,11 @@
       <div class="editor-pane">
         {#each TOKEN_GROUPS as group}
           <div class="group">
-            <div class="group-label">{group.label}</div>
+            <div class="group-label">{t(group.label)}</div>
             <div class="token-list">
               {#each group.tokens as token}
                 <div class="token-row">
-                  <label class="color-swatch" style="background:{tokens[token]}" title="Pick colour">
+                  <label class="color-swatch" style="background:{tokens[token]}" title={t("settings.theme.pickColour")}>
                     <input
                       type="color"
                       class="color-picker"
@@ -244,7 +245,7 @@
                       oninput={(e) => { tokens = { ...tokens, [token]: (e.target as HTMLInputElement).value }; }}
                     />
                   </label>
-                  <span class="token-name">{TOKEN_LABELS[token]}</span>
+                  <span class="token-name">{t(TOKEN_LABELS[token])}</span>
                   <span class="token-key">{token}</span>
                   <input
                     type="text"

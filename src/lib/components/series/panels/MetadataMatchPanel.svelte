@@ -4,6 +4,7 @@
   import { addToast } from "$lib/state/notifications.svelte";
   import type { Manga } from "$lib/types";
   import type { MediaMetadata, MetadataCandidate } from "$lib/server-adapters/types";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     manga:     Manga;
@@ -50,7 +51,7 @@
     try {
       current = await tsunagu.applyMetadataMatch(mediaId, c.providerId, c.provider);
       onChanged(current);
-      addToast({ kind: "success", title: "Metadata linked", body: c.title });
+      addToast({ kind: "success", title: t("series.metadataMatch.linkedToast"), body: c.title });
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -65,7 +66,7 @@
     try {
       current = await tsunagu.refreshMetadataMatch(mediaId);
       onChanged(current);
-      addToast({ kind: "success", title: "Metadata refreshed" });
+      addToast({ kind: "success", title: t("series.metadataMatch.refreshedToast") });
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -81,7 +82,7 @@
       await tsunagu.unlinkMetadata(mediaId);
       current = null;
       onChanged(null);
-      addToast({ kind: "info", title: "Metadata unlinked" });
+      addToast({ kind: "info", title: t("series.metadataMatch.unlinkedToast") });
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     } finally {
@@ -93,7 +94,7 @@
 <div class="modal-overlay" role="presentation" onclick={onClose}>
   <div class="panel" role="presentation" onclick={(e) => e.stopPropagation()}>
     <div class="head">
-      <span class="title"><Database size={12} weight="bold" /> Metadata Match</span>
+      <span class="title"><Database size={12} weight="bold" /> {t("series.metadataMatch.title")}</span>
       <button class="icon-x" onclick={onClose}><X size={14} weight="bold" /></button>
     </div>
 
@@ -103,9 +104,9 @@
           <div class="current-info">
             <span class="current-provider">{providerLabel(current.provider)}</span>
             {#if current.confidence != null}
-              <span class="current-conf">{Math.round(current.confidence * 100)}% match</span>
+              <span class="current-conf">{t("series.metadataMatch.confidence", { percent: Math.round(current.confidence * 100) })}</span>
             {/if}
-            {#if current.locked}<span class="current-lock">locked</span>{/if}
+            {#if current.locked}<span class="current-lock">{t("series.metadataMatch.locked")}</span>{/if}
           </div>
           <div class="current-actions">
             <a class="mini-btn" href={current.url} target="_blank" rel="noreferrer"><ArrowSquareOut size={12} weight="light" /> {providerLabel(current.provider)}</a>
@@ -113,15 +114,15 @@
               <a class="mini-btn" href={current.malUrl} target="_blank" rel="noreferrer"><ArrowSquareOut size={12} weight="light" /> MAL</a>
             {/if}
             <button class="mini-btn" onclick={refresh} disabled={!!busy}>
-              {#if busy === "refresh"}<CircleNotch size={12} weight="light" class="anim-spin" />{:else}<ArrowClockwise size={12} weight="light" />{/if} Refresh
+              {#if busy === "refresh"}<CircleNotch size={12} weight="light" class="anim-spin" />{:else}<ArrowClockwise size={12} weight="light" />{/if} {t("common.refresh")}
             </button>
             <button class="mini-btn danger" onclick={unlink} disabled={!!busy}>
-              {#if busy === "unlink"}<CircleNotch size={12} weight="light" class="anim-spin" />{:else}<LinkBreak size={12} weight="light" />{/if} Unlink
+              {#if busy === "unlink"}<CircleNotch size={12} weight="light" class="anim-spin" />{:else}<LinkBreak size={12} weight="light" />{/if} {t("series.metadataMatch.unlink")}
             </button>
           </div>
         </div>
       {:else}
-        <div class="unlinked">No metadata provider linked.</div>
+        <div class="unlinked">{t("series.metadataMatch.noneLinked")}</div>
       {/if}
 
       <div class="search-row">
@@ -129,13 +130,13 @@
           <MagnifyingGlass size={12} weight="light" class="search-icon" />
           <input
             class="search"
-            placeholder="Search AniList…"
+            placeholder={t("series.metadataMatch.searchPlaceholder")}
             bind:value={query}
             onkeydown={(e) => e.key === "Enter" && search()}
           />
         </div>
         <button class="search-btn" onclick={search} disabled={searching || !query.trim()}>
-          {#if searching}<CircleNotch size={13} weight="light" class="anim-spin" />{:else}Search{/if}
+          {#if searching}<CircleNotch size={13} weight="light" class="anim-spin" />{:else}{t("common.search")}{/if}
         </button>
       </div>
 
@@ -152,15 +153,15 @@
                 {providerLabel(r.provider)}{r.startYear ? ` · ${r.startYear}` : ""}{r.status ? ` · ${r.status}` : ""}
               </span>
             </div>
-            <a class="result-open" href={r.url} target="_blank" rel="noreferrer" title="Open"><ArrowSquareOut size={12} weight="light" /></a>
+            <a class="result-open" href={r.url} target="_blank" rel="noreferrer" title={t("common.open")}><ArrowSquareOut size={12} weight="light" /></a>
             <button class="result-link" class:on={active} onclick={() => apply(r)} disabled={!!busy}>
               {#if busy === r.providerId}<CircleNotch size={12} weight="light" class="anim-spin" />
-              {:else if active}<Check size={12} weight="bold" /> Linked
-              {:else}Link{/if}
+              {:else if active}<Check size={12} weight="bold" /> {t("series.metadataMatch.linked")}
+              {:else}{t("series.metadataMatch.link")}{/if}
             </button>
           </div>
         {:else}
-          {#if !searching}<div class="empty">No results.</div>{/if}
+          {#if !searching}<div class="empty">{t("series.metadataMatch.noResults")}</div>{/if}
         {/each}
       </div>
     </div>

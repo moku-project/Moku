@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack }      from 'svelte'
-  import { readPastTense } from '$lib/core/contentTypeLabels'
+  import { t } from '$lib/i18n/index.svelte'
   import { goto }         from '$app/navigation'
   import SeriesHeader     from '$lib/components/series/SeriesHeader.svelte'
   import SeriesActions    from '$lib/components/series/SeriesActions.svelte'
@@ -250,7 +250,7 @@
       } catch (e: any) {
         if (e?.name === 'AbortError') return cached?.data ?? null
         console.error(`loadMangaData: failed to load ${id}`, e)
-        if (!cached) addToast({ kind: 'error', title: 'Could not load series', body: e?.message ?? 'Unknown error' })
+        if (!cached) addToast({ kind: 'error', title: t('series.detail.loadFailed'), body: e?.message ?? t('series.detail.unknownError') })
         return cached?.data ?? null
       } finally {
         if (!ctrl.signal.aborted) loadingManga = false
@@ -309,8 +309,9 @@
     if (!manga || !realMediaId || togglingLibrary) return
     const next = !manga.inLibrary
     if (!next && mangaFolders.length && !confirm(
-      `This series is in ${mangaFolders.length === 1 ? `the "${mangaFolders[0].name}" folder` : `${mangaFolders.length} folders`}. `
-      + `Removing it from the library also removes it from ${mangaFolders.length === 1 ? 'that folder' : 'those folders'}. Continue?`
+      mangaFolders.length === 1
+        ? t('series.detail.confirmRemoveInFolder', { folder: mangaFolders[0].name })
+        : t('series.detail.confirmRemoveInFolders', { count: mangaFolders.length })
     )) return
     togglingLibrary = true
     try {
@@ -327,9 +328,9 @@
       cache.clear(CACHE_KEYS.MANGA(mangaId))
       cache.clear(CACHE_KEYS.MANGA(realMediaId))
       await loadLibrary(true)
-      addToast({ kind: 'success', title: next ? 'Added to library' : 'Removed from library' })
+      addToast({ kind: 'success', title: next ? t('series.detail.addedToLibrary') : t('series.detail.removedFromLibrary') })
     } catch (e) {
-      addToast({ kind: 'error', title: next ? "Couldn't add to library" : "Couldn't remove", body: String(e) })
+      addToast({ kind: 'error', title: next ? t('series.detail.addFailed') : t('series.detail.removeFailed'), body: String(e) })
     } finally {
       togglingLibrary = false
     }
@@ -339,7 +340,7 @@
     e.stopPropagation()
     enqueueing = new Set(enqueueing).add(ch.id)
     const allowed = await downloadStore.enqueue(ch.id, realMediaId)
-    if (allowed) addToast({ kind: 'download', title: 'Download queued', body: ch.name })
+    if (allowed) addToast({ kind: 'download', title: t('series.detail.downloadQueued'), body: ch.name })
     enqueueing.delete(ch.id); enqueueing = new Set(enqueueing)
     seriesState.loadChapters(mangaId, { force: true, mediaId: realMediaId })
   }
@@ -350,7 +351,7 @@
       const allowed = await downloadStore.enqueue(id, realMediaId)
       if (!allowed) return
     }
-    addToast({ kind: 'download', title: 'Download queued', body: `${chapterIds.length} chapter${chapterIds.length !== 1 ? 's' : ''} added` })
+    addToast({ kind: 'download', title: t('series.detail.downloadQueued'), body: t('series.detail.chaptersAdded', { count: chapterIds.length }) })
     seriesState.loadChapters(mangaId, { force: true, mediaId: realMediaId })
   }
 
@@ -460,16 +461,16 @@
 
   async function refreshChapters() {
     if (refreshing || isLocal) return
-    if (!manga?.libraryEntryId) { addToast({ kind: 'error', title: 'Add to library first', body: 'Chapters refresh automatically for series not yet in your library.' }); return }
+    if (!manga?.libraryEntryId) { addToast({ kind: 'error', title: t('series.detail.addToLibraryFirst'), body: t('series.detail.refreshNotInLibrary') }); return }
     refreshing = true
     seriesState.invalidateChapters(mangaId)
     tsunagu.syncChapters(manga.libraryEntryId)
       .then(() => seriesState.loadChapters(mangaId, { force: true, mediaId: realMediaId }))
       .then(() => {
         const count = seriesState.chaptersFor(mangaId).length
-        addToast({ kind: 'success', title: 'Chapters refreshed', body: `${count} chapter${count !== 1 ? 's' : ''} available` })
+        addToast({ kind: 'success', title: t('series.detail.chaptersRefreshed'), body: t('series.detail.chaptersAvailable', { count }) })
       })
-      .catch(e => addToast({ kind: 'error', title: 'Refresh failed', body: e?.message }))
+      .catch(e => addToast({ kind: 'error', title: t('series.detail.refreshFailed'), body: e?.message }))
       .finally(() => { refreshing = false })
   }
 
@@ -477,25 +478,24 @@
     const above = sortedChapters.slice(0, idx + 1)
     const below = sortedChapters.slice(idx)
     const last  = sortedChapters.length - 1
-    const done   = readPastTense(manga?.contentType)
-    const undone = `un${done}`
+    const anime  = manga?.contentType === 'ANIME'
     const items: MenuEntry[] = [
-      { label: ch.read ? `Mark as ${undone}` : `Mark as ${done}`, icon: ch.read ? Circle : CheckCircle, onClick: () => markRead(ch.id, !ch.read) },
-      { label: 'Select', icon: CheckSquare, onClick: () => { const next = new Set(selectedIds); next.add(ch.id); selectedIds = next } },
+      { label: ch.read ? t(anime ? 'series.menu.markUnwatched' : 'series.menu.markUnread') : t(anime ? 'series.menu.markWatched' : 'series.menu.markRead'), icon: ch.read ? Circle : CheckCircle, onClick: () => markRead(ch.id, !ch.read) },
+      { label: t('series.menu.select'), icon: CheckSquare, onClick: () => { const next = new Set(selectedIds); next.add(ch.id); selectedIds = next } },
       { separator: true },
-      { label: `Mark above as ${done}`,   icon: ArrowFatLinesUp,   onClick: () => markAboveRead(idx),   disabled: above.filter(c => !c.read).length === 0 },
-      { label: `Mark above as ${undone}`, icon: ArrowFatLineUp,    onClick: () => markAboveUnread(idx), disabled: above.filter(c => c.read).length === 0 },
+      { label: t(anime ? 'series.menu.markAboveWatched' : 'series.menu.markAboveRead'),   icon: ArrowFatLinesUp,   onClick: () => markAboveRead(idx),   disabled: above.filter(c => !c.read).length === 0 },
+      { label: t(anime ? 'series.menu.markAboveUnwatched' : 'series.menu.markAboveUnread'), icon: ArrowFatLineUp,    onClick: () => markAboveUnread(idx), disabled: above.filter(c => c.read).length === 0 },
       { separator: true },
-      { label: `Mark below as ${done}`,   icon: ArrowFatLinesDown, onClick: () => markBelowRead(idx),   disabled: idx === last || below.filter(c => !c.read).length === 0 },
-      { label: `Mark below as ${undone}`, icon: ArrowFatLineDown,  onClick: () => markBelowUnread(idx), disabled: idx === last || below.filter(c => c.read).length === 0 },
+      { label: t(anime ? 'series.menu.markBelowWatched' : 'series.menu.markBelowRead'),   icon: ArrowFatLinesDown, onClick: () => markBelowRead(idx),   disabled: idx === last || below.filter(c => !c.read).length === 0 },
+      { label: t(anime ? 'series.menu.markBelowUnwatched' : 'series.menu.markBelowUnread'), icon: ArrowFatLineDown,  onClick: () => markBelowUnread(idx), disabled: idx === last || below.filter(c => c.read).length === 0 },
     ]
     if (!isLocal) {
       items.push(
         { separator: true },
-        { label: ch.downloaded ? 'Delete download' : 'Download', icon: ch.downloaded ? Trash : Download, danger: ch.downloaded, onClick: () => ch.downloaded ? deleteDownloaded(ch.id) : downloadStore.enqueue(ch.id, realMediaId) },
+        { label: ch.downloaded ? t('series.menu.deleteDownload') : t('series.menu.download'), icon: ch.downloaded ? Trash : Download, danger: ch.downloaded, onClick: () => ch.downloaded ? deleteDownloaded(ch.id) : downloadStore.enqueue(ch.id, realMediaId) },
         { separator: true },
-        { label: 'Download next 5 from here', icon: DownloadSimple, onClick: () => enqueueMultiple(sortedChapters.slice(idx, idx + 5).filter(c => !c.downloaded).map(c => c.id)) },
-        { label: 'Download all from here',    icon: DownloadSimple, onClick: () => enqueueMultiple(sortedChapters.slice(idx).filter(c => !c.downloaded).map(c => c.id)) },
+        { label: t('series.menu.downloadNext5'), icon: DownloadSimple, onClick: () => enqueueMultiple(sortedChapters.slice(idx, idx + 5).filter(c => !c.downloaded).map(c => c.id)) },
+        { label: t('series.menu.downloadAllFromHere'),    icon: DownloadSimple, onClick: () => enqueueMultiple(sortedChapters.slice(idx).filter(c => !c.downloaded).map(c => c.id)) },
       )
     }
     return items
@@ -549,7 +549,7 @@
   }
 
   async function toggleFolder(folder: Folder) {
-    if (!manga?.libraryEntryId) { addToast({ kind: 'error', title: 'Add to library first', body: 'Folders only apply to series in your library.' }); return }
+    if (!manga?.libraryEntryId) { addToast({ kind: 'error', title: t('series.detail.addToLibraryFirst'), body: t('series.detail.foldersNeedLibrary') }); return }
     const inFolder = mangaFolders.some(f => f.id === folder.id)
     try {
       if (inFolder) await tsunagu.removeEntryFromFolder(manga.libraryEntryId, folder.id)
@@ -563,7 +563,7 @@
 
   async function createNewFolder(name: string) {
     if (!name) return
-    if (!manga?.libraryEntryId) { addToast({ kind: 'error', title: 'Add to library first', body: 'Folders only apply to series in your library.' }); return }
+    if (!manga?.libraryEntryId) { addToast({ kind: 'error', title: t('series.detail.addToLibraryFirst'), body: t('series.detail.foldersNeedLibrary') }); return }
     try {
       const folder = await tsunagu.createFolder(name)
       await tsunagu.addEntryToFolder(manga.libraryEntryId, folder.id)

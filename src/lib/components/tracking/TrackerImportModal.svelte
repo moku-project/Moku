@@ -12,6 +12,7 @@
   import { toBrowseManga, toSource } from "$lib/components/browse/lib/searchFilter";
   import { sourceErrorLabel } from "$lib/core/sourceErrors";
   import { canonicalLang, langBadge, LANG_ALL } from "$lib/core/lang";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
   import {
     STATUS_KEYS, EMPTY_LEDGER, LEDGER_VER,
     SEARCH_GAP_MS, SEARCH_QUERY_GAP_MS, ANILIST_GAP_MS, SNAPSHOT_TTL_MS, MATCH_THRESHOLD, GOOD_ENOUGH,
@@ -62,15 +63,15 @@
   let retryingIds = $state<string[]>([]);
 
   const isAnime = $derived(importKind === "ANIME");
-  const progressWord = $derived(isAnime ? "ep." : "ch.");
+  const progressWord = $derived(isAnime ? t('trackerImport.epAbbr') : t('trackerImport.chAbbr'));
   const statusChips = $derived(STATUS_KEYS.map(key => ({
     key,
-    label: key === "CURRENT" ? (isAnime ? "Watching" : "Reading")
-      : key === "REPEATING" ? (isAnime ? "Rewatching" : "Rereading")
-      : key === "PLANNING" ? "Planning"
-      : key === "COMPLETED" ? "Completed"
-      : key === "PAUSED" ? "On hold"
-      : "Dropped",
+    label: (key === "CURRENT" ? (isAnime ? "trackerImport.statusWatching" : "trackerImport.statusReading")
+      : key === "REPEATING" ? (isAnime ? "trackerImport.statusRewatching" : "trackerImport.statusRereading")
+      : key === "PLANNING" ? "trackerImport.statusPlanning"
+      : key === "COMPLETED" ? "trackerImport.statusCompleted"
+      : key === "PAUSED" ? "trackerImport.statusPaused"
+      : "trackerImport.statusDropped") as MessageKey,
   })));
   const allSources = $derived(installedSources.filter(s => s.contentType === importKind));
   const availableLangs = $derived.by(() => {
@@ -269,8 +270,8 @@
 
   function draftSourceName(): string {
     if (!draft) return "";
-    if (!draft.sourceId) return "Library only";
-    return allSources.find(s => s.id === draft!.sourceId)?.displayName ?? "source";
+    if (!draft.sourceId) return t('trackerImport.libraryOnly');
+    return allSources.find(s => s.id === draft!.sourceId)?.displayName ?? t('trackerImport.sourceFallback');
   }
 
   function onKey(e: KeyboardEvent) {
@@ -416,7 +417,7 @@
       fromCache = loaded.fromCache;
     } catch (e: any) {
       phase = "pick-target";
-      addToast({ kind: "error", title: "Couldn't fetch AniList list", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t('trackerImport.fetchListFailedToast'), body: e?.message ?? String(e) });
       return;
     }
     if (cancelled || halt) return;
@@ -470,7 +471,7 @@
     applyCache(draft);
     selectedIds = [];
     if (!stubImport && !targetSource) {
-      addToast({ kind: "error", title: "Source no longer installed" });
+      addToast({ kind: "error", title: t('trackerImport.sourceGoneToast') });
       return;
     }
     if (!stubImport && pendingCount > 0) {
@@ -583,8 +584,8 @@
       return;
     }
     const src = sourceById(entry.sourceId);
-    if (!src) throw new Error("No source for this title");
-    if (!entry.match?.sourceEntryId) throw new Error("No match for this title");
+    if (!src) throw new Error(t('trackerImport.noSourceError'));
+    if (!entry.match?.sourceEntryId) throw new Error(t('trackerImport.noMatchError'));
     const info = await tsunagu.mangaInfo(src.id, entry.match.sourceEntryId, true);
     if (!info.inLibrary) await tsunagu.setInLibrary(info.id, true);
     const link = await tsunagu.bindTrack(info.id, trackerKey, entry.remote.remoteId);
@@ -671,8 +672,8 @@
       phase = "assign";
       addToast({
         kind: "success",
-        title: dryRun ? "Dry run complete" : stubImport ? "Imported library stubs" : "Imported matched titles",
-        body: `${importProgress.done - importProgress.failed} imported, ${noMatchCount + pendingCount} still unmatched`,
+        title: dryRun ? t('trackerImport.dryRunCompleteToast') : stubImport ? t('trackerImport.importedStubsToast') : t('trackerImport.importedMatchedToast'),
+        body: t('trackerImport.importedUnmatchedBody', { imported: importProgress.done - importProgress.failed, unmatched: noMatchCount + pendingCount }),
       });
       return;
     }
@@ -681,8 +682,8 @@
     phase = "done";
     addToast({
       kind: "success",
-      title: dryRun ? "Dry run complete" : "Import complete",
-      body: `${importProgress.done - importProgress.failed} imported, ${importProgress.failed} failed`,
+      title: dryRun ? t('trackerImport.dryRunCompleteToast') : t('trackerImport.importCompleteToast'),
+      body: t('trackerImport.importedFailedBody', { imported: importProgress.done - importProgress.failed, failed: importProgress.failed }),
     });
   }
 
@@ -716,7 +717,7 @@
     <div class="modal-header">
       <div class="header-left">
         {#if phase === "matching" || phase === "assign" || phase === "done"}
-          <button class="header-nav-btn" onclick={goBack} title="Back to import options">
+          <button class="header-nav-btn" onclick={goBack} title={t('trackerImport.backToOptions')}>
             <ArrowLeft size={14} weight="light" />
           </button>
         {/if}
@@ -725,17 +726,17 @@
             <TrackerLogo trackerKey={trackerKey} size={22} />
           </div>
           <div class="source-context-info">
-            <span class="modal-eyebrow">Library import</span>
-            <span class="modal-title">Import from {trackerName}</span>
+            <span class="modal-eyebrow">{t('trackerImport.eyebrow')}</span>
+            <span class="modal-title">{t('trackerImport.title', { tracker: trackerName })}</span>
             <span class="modal-sub">
               <Warning size={12} weight="bold" />
-              AniList rate-limits bulk imports, so matching on a source will be slower
+              {t('trackerImport.rateLimitNote')}
             </span>
           </div>
         </div>
       </div>
       {#if phase !== "importing"}
-        <button class="header-nav-btn" onclick={close} title="Close"><X size={14} weight="light" /></button>
+        <button class="header-nav-btn" onclick={close} title={t('common.close')}><X size={14} weight="light" /></button>
       {/if}
     </div>
 
@@ -745,30 +746,30 @@
         {#if draft}
           <div class="resume-banner">
             <div class="resume-copy">
-              <span class="resume-title">Resume import</span>
-              <span class="resume-sub">{isAnime ? "Anime" : "Manga"} · {draftSourceName()} · {draft.searchDone} / {draft.searchTotal} searched</span>
+              <span class="resume-title">{t('trackerImport.resumeTitle')}</span>
+              <span class="resume-sub">{t('trackerImport.resumeSub', { kind: isAnime ? t('nav.contentAnime') : t('nav.contentManga'), source: draftSourceName(), done: draft.searchDone, total: draft.searchTotal })}</span>
             </div>
-            <button class="back-btn" onclick={clearCache}><Trash size={12} weight="light" /> Discard</button>
+            <button class="back-btn" onclick={clearCache}><Trash size={12} weight="light" /> {t('trackerImport.discard')}</button>
             <button class="migrate-btn" onclick={() => void resumeFromDraft()}>
-              <Play size={12} weight="bold" /> Resume
+              <Play size={12} weight="bold" /> {t('trackerImport.resume')}
             </button>
           </div>
         {/if}
         <div class="pick">
           <div class="pick-chrome">
             <div class="phase-label-row">
-              <span class="phase-label">Type</span>
+              <span class="phase-label">{t('trackerImport.typeLabel')}</span>
             </div>
             <div class="kind-seg">
               <button class="kind-seg-btn" class:kind-seg-active={importKind === "MANGA"} onclick={() => setImportKind("MANGA")}>
-                <Books size={12} weight={importKind === "MANGA" ? "fill" : "regular"} /> Manga
+                <Books size={12} weight={importKind === "MANGA" ? "fill" : "regular"} /> {t('nav.contentManga')}
               </button>
               <button class="kind-seg-btn" class:kind-seg-active={importKind === "ANIME"} onclick={() => setImportKind("ANIME")}>
-                <FilmSlate size={12} weight={importKind === "ANIME" ? "fill" : "regular"} /> Anime
+                <FilmSlate size={12} weight={importKind === "ANIME" ? "fill" : "regular"} /> {t('nav.contentAnime')}
               </button>
             </div>
             <div class="phase-label-row">
-              <span class="phase-label">List statuses</span>
+              <span class="phase-label">{t('trackerImport.statusesLabel')}</span>
             </div>
             <div class="status-chips">
               {#each statusChips as s}
@@ -777,9 +778,9 @@
                   class:status-chip-active={selectedStatuses.includes(s.key)}
                   onclick={() => toggleStatus(s.key)}
                 >
-                  {s.label}
+                  {t(s.label)}
                   {#if statusCounts[s.key]?.neu}
-                    <span class="chip-badge chip-badge-new">{statusCounts[s.key].left} · {statusCounts[s.key].neu} new</span>
+                    <span class="chip-badge chip-badge-new">{t('trackerImport.chipNew', { left: statusCounts[s.key].left, count: statusCounts[s.key].neu })}</span>
                   {:else if statusCounts[s.key]?.left}
                     <span class="chip-badge">{statusCounts[s.key].left}</span>
                   {/if}
@@ -787,19 +788,19 @@
               {/each}
             </div>
             {#if snapshotLoading}
-              <p class="list-hint">Checking AniList lists…</p>
+              <p class="list-hint">{t('trackerImport.checkingLists')}</p>
             {:else if listSnapshot.length > 0}
               <p class="list-hint">
-                {leftoverTotal} not in library
-                {#if newTotal > 0} · {newTotal} new on AniList{/if}
+                {t('trackerImport.notInLibrary', { count: leftoverTotal })}
+                {#if newTotal > 0} · {t('trackerImport.newOnAniList', { count: newTotal })}{/if}
                 {#if ledger.lastFetchedAt}
-                  · last sync {new Date(ledger.lastFetchedAt).toLocaleDateString()}
+                  · {t('trackerImport.lastSync', { date: new Date(ledger.lastFetchedAt).toLocaleDateString() })}
                 {/if}
               </p>
             {/if}
 
             <div class="phase-label-row">
-              <span class="phase-label">Import into library</span>
+              <span class="phase-label">{t('trackerImport.importIntoLabel')}</span>
             </div>
             <div class="source-list source-list-tight">
               <button class="source-row source-row-library" onclick={() => void startMatchRun("stub")}>
@@ -811,8 +812,8 @@
                   {/if}
                 </div>
                 <div class="source-info">
-                  <span class="source-name">Library only · no source</span>
-                  <span class="source-meta">Titles and AniList tracking (assign a source later)</span>
+                  <span class="source-name">{t('trackerImport.libraryOnlyNoSource')}</span>
+                  <span class="source-meta">{t('trackerImport.libraryOnlyDesc')}</span>
                 </div>
                 <ArrowRight size={13} weight="light" class="source-arrow" />
               </button>
@@ -821,12 +822,12 @@
 
           <div class="pick-sources">
             <div class="phase-label-row">
-              <span class="phase-label">Or match on a source</span>
+              <span class="phase-label">{t('trackerImport.matchOnSourceLabel')}</span>
             </div>
             {#if loadingSources}
               <div class="centered"><CircleNotch size={16} weight="light" class="anim-spin" style="color:var(--text-faint)" /></div>
             {:else if allSources.length === 0}
-              <div class="centered"><span class="hint">Install {isAnime ? "an anime" : "a manga"} source to match titles.</span></div>
+              <div class="centered"><span class="hint">{isAnime ? t('trackerImport.installAnimeSource') : t('trackerImport.installMangaSource')}</span></div>
             {:else}
               {#if hasMultipleLangs}
                 <div class="src-lang-bar">
@@ -834,7 +835,7 @@
                     <button class="src-lang-nav" onclick={() => scrollLangStrip(-1)}>‹</button>
                   {/if}
                   <div class="src-lang-chips" bind:this={langStripEl}>
-                    <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === LANG_ALL} onclick={() => selectedLang = LANG_ALL}>All</button>
+                    <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === LANG_ALL} onclick={() => selectedLang = LANG_ALL}>{t('common.all')}</button>
                     {#each availableLangs as lang}
                       <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === lang} onclick={() => selectedLang = lang}>
                         {langBadge(lang)}
@@ -888,7 +889,7 @@
                     <Books size={12} weight="light" />
                   {/if}
                 </div>
-                <span class="review-source-name">Library only</span>
+                <span class="review-source-name">{t('trackerImport.libraryOnly')}</span>
               </div>
             {/if}
           </div>
@@ -900,13 +901,13 @@
               </div>
               <span class="review-progress-label">
                 {#if searchProgress.done < searchProgress.total}
-                  Searching {searchProgress.done} / {searchProgress.total}…
+                  {t('trackerImport.searchingProgress', { done: searchProgress.done, total: searchProgress.total })}
                 {:else}
-                  {foundCount} found · {alreadyCount} already · {noMatchCount} missing
+                  {t('trackerImport.matchSummary', { found: foundCount, already: alreadyCount, missing: noMatchCount })}
                 {/if}
               </span>
-              <button class="stop-btn" onclick={stopWork} title="Stop matching">
-                <Pause size={11} weight="fill" /> Stop
+              <button class="stop-btn" onclick={stopWork} title={t('trackerImport.stopMatching')}>
+                <Pause size={11} weight="fill" /> {t('trackerImport.stop')}
               </button>
             </div>
           {:else}
@@ -914,9 +915,9 @@
               <div class="review-progress-bar">
                 <div class="review-progress-fill" style="width:{importProgress.total ? (importProgress.done / importProgress.total) * 100 : 0}%"></div>
               </div>
-              <span class="review-progress-label">{dryRun ? "Dry run" : "Importing"} {importProgress.done} / {importProgress.total}…</span>
-              <button class="stop-btn" onclick={stopWork} title="Stop import">
-                <Pause size={11} weight="fill" /> Stop
+              <span class="review-progress-label">{dryRun ? t('trackerImport.dryRunProgress', { done: importProgress.done, total: importProgress.total }) : t('trackerImport.importingProgress', { done: importProgress.done, total: importProgress.total })}</span>
+              <button class="stop-btn" onclick={stopWork} title={t('trackerImport.stopImport')}>
+                <Pause size={11} weight="fill" /> {t('trackerImport.stop')}
               </button>
             </div>
           {/if}
@@ -931,7 +932,7 @@
               <div class="entry-info">
                 <span class="entry-title">
                   <span class="entry-title-text">{displayTitle(entry.remote)}</span>
-                  {#if entry.fresh}<span class="new-pill">New</span>{/if}
+                  {#if entry.fresh}<span class="new-pill">{t('trackerImport.newPill')}</span>{/if}
                 </span>
                 {#if displaySub(entry.remote)}
                   <span class="entry-sub">{displaySub(entry.remote)}</span>
@@ -944,19 +945,19 @@
                     <span class="entry-prog">{progressWord} {entry.remote.progress}</span>
                   </span>
                 {:else if entry.status === "found"}
-                  <span class="entry-match">Library stub · {progressWord} {entry.remote.progress}</span>
+                  <span class="entry-match">{t('trackerImport.libraryStub', { unit: progressWord, progress: entry.remote.progress })}</span>
                 {:else if entry.status === "no-match"}
-                  <span class="entry-no-match">No match found</span>
+                  <span class="entry-no-match">{t('trackerImport.noMatchFound')}</span>
                 {:else if entry.status === "already"}
-                  <span class="entry-already-label">Already in library</span>
+                  <span class="entry-already-label">{t('trackerImport.alreadyInLibrary')}</span>
                 {:else if entry.status === "skipped"}
-                  <span class="entry-no-match">Skipped</span>
+                  <span class="entry-no-match">{t('trackerImport.skipped')}</span>
                 {:else if entry.status === "searching"}
-                  <span class="entry-searching">Searching…</span>
+                  <span class="entry-searching">{t('trackerImport.searching')}</span>
                 {:else if entry.status === "imported"}
-                  <span class="entry-done">{dryRun ? "Would import" : "Imported"}</span>
+                  <span class="entry-done">{dryRun ? t('trackerImport.wouldImport') : t('trackerImport.imported')}</span>
                 {:else if entry.status === "failed"}
-                  <span class="entry-fail">{entry.error ?? "Failed"}</span>
+                  <span class="entry-fail">{entry.error ?? t('trackerImport.failed')}</span>
                 {:else if !displaySub(entry.remote)}
                   <span class="entry-searching">{entry.remote.status} · {progressWord} {entry.remote.progress}</span>
                 {/if}
@@ -983,15 +984,15 @@
       {:else if phase === "assign"}
         <div class="assign-summary">
           <span class="assign-stats">
-            {#if foundCount > 0}<span class="stat-ready">{foundCount} ready to import</span>{/if}
+            {#if foundCount > 0}<span class="stat-ready">{t('trackerImport.readyCount', { count: foundCount })}</span>{/if}
             {#if foundCount > 0 && missingEntries.length > 0}<span class="stat-dot">·</span>{/if}
-            {#if missingEntries.length > 0}<span class="stat-unmatched">{missingEntries.length} unmatched</span>{/if}
+            {#if missingEntries.length > 0}<span class="stat-unmatched">{t('trackerImport.unmatchedCount', { count: missingEntries.length })}</span>{/if}
             {#if (foundCount > 0 || missingEntries.length > 0) && alreadyCount > 0}<span class="stat-dot">·</span>{/if}
-            {#if alreadyCount > 0}<span class="stat-already">{alreadyCount} already in library</span>{/if}
+            {#if alreadyCount > 0}<span class="stat-already">{t('trackerImport.alreadyInLibraryCount', { count: alreadyCount })}</span>{/if}
           </span>
           {#if assignSources.length > 0 && !stubImport}
             <label class="assign-default">
-              Default
+              {t('common.default')}
               <select
                 class="src-select"
                 value={targetSource?.id ?? massSourceId}
@@ -1010,7 +1011,7 @@
         <div class="mass-bar">
           <label class="mass-check">
             <input class="s-check" type="checkbox" checked={allMissingSelected} onchange={toggleAllMissing} />
-            {selectedMissing} selected
+            {t('trackerImport.selectedCount', { count: selectedMissing })}
           </label>
           <button
             class="migrate-btn mass-search-btn"
@@ -1018,7 +1019,7 @@
             disabled={selectedMissing === 0 || !(massSourceId || targetSource)}
           >
             <ArrowsClockwise size={12} weight="bold" />
-            Search {selectedMissing}
+            {t('trackerImport.searchCount', { count: selectedMissing })}
           </button>
         </div>
         {/if}
@@ -1028,10 +1029,10 @@
             <thead>
               <tr>
                 <th class="col-check"></th>
-                <th class="col-title">Title</th>
-                <th class="col-prog">{isAnime ? "Ep." : "Ch."}</th>
-                {#if !stubImport}<th class="col-src">Source</th>{/if}
-                <th class="col-stat">{stubImport ? "Status" : "Match"}</th>
+                <th class="col-title">{t('trackerImport.colTitle')}</th>
+                <th class="col-prog">{isAnime ? t('trackerImport.colEp') : t('trackerImport.colCh')}</th>
+                {#if !stubImport}<th class="col-src">{t('trackerImport.colSource')}</th>{/if}
+                <th class="col-stat">{stubImport ? t('trackerImport.colStatus') : t('trackerImport.colMatch')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1056,7 +1057,7 @@
                         <div class="entry-info">
                           <span class="entry-title">
                             <span class="entry-title-text">{displayTitle(entry.remote)}</span>
-                            {#if entry.fresh}<span class="new-pill">New</span>{/if}
+                            {#if entry.fresh}<span class="new-pill">{t('trackerImport.newPill')}</span>{/if}
                           </span>
                           {#if entry.match && (entry.status === "found" || entry.status === "imported")}
                             <span class="entry-sub">{entry.match.title}</span>
@@ -1091,29 +1092,29 @@
                         {#if entry.status === "searching" || retryingIds.includes(entry.remote.remoteId)}
                           <CircleNotch size={13} weight="light" class="anim-spin" style="color:var(--text-faint)" />
                         {:else if entry.status === "pending"}
-                          <span class="entry-searching">Not searched</span>
+                          <span class="entry-searching">{t('trackerImport.notSearched')}</span>
                         {:else if entry.status === "found"}
                           <Check size={13} weight="bold" style="color:var(--color-success)" />
-                          <span class="entry-done">{stubImport ? "Ready" : "Matched"}</span>
+                          <span class="entry-done">{stubImport ? t('trackerImport.ready') : t('trackerImport.matched')}</span>
                           {#if stubImport}
-                            <button class="entry-exclude-btn" onclick={() => excludeEntry(idx)} title="Skip this title">
+                            <button class="entry-exclude-btn" onclick={() => excludeEntry(idx)} title={t('trackerImport.skipTitle')}>
                               <X size={10} weight="bold" />
                             </button>
                           {/if}
                         {:else if entry.status === "imported"}
                           <Check size={13} weight="bold" style="color:var(--color-success)" />
-                          <span class="entry-done">Imported</span>
+                          <span class="entry-done">{t('trackerImport.imported')}</span>
                         {:else if entry.status === "failed"}
                           <Warning size={13} weight="light" style="color:var(--color-error)" />
                           <span class="entry-fail" title={entry.error}>{sourceErrorLabel(entry.error)}</span>
-                          <button class="entry-exclude-btn" onclick={() => void retryImport(entry.remote.remoteId)} title="Retry import">
+                          <button class="entry-exclude-btn" onclick={() => void retryImport(entry.remote.remoteId)} title={t('trackerImport.retryImport')}>
                             <ArrowsClockwise size={11} weight="bold" />
                           </button>
                         {:else if entry.status === "skipped"}
-                          <span class="entry-no-match">Skipped</span>
+                          <span class="entry-no-match">{t('trackerImport.skipped')}</span>
                         {:else}
-                          <span class="entry-no-match">No match</span>
-                          <button class="entry-exclude-btn" onclick={() => excludeEntry(idx)} title="Skip this title">
+                          <span class="entry-no-match">{t('trackerImport.noMatch')}</span>
+                          <button class="entry-exclude-btn" onclick={() => excludeEntry(idx)} title={t('trackerImport.skipTitle')}>
                             <X size={10} weight="bold" />
                           </button>
                         {/if}
@@ -1127,47 +1128,47 @@
 
         <div class="review-actions">
           <div class="dry-run">
-            <span>Dry run</span>
+            <span>{t('trackerImport.dryRun')}</span>
             <button
               type="button"
               class="s-toggle"
               class:on={dryRun}
               role="switch"
               aria-checked={dryRun}
-              aria-label="Dry run"
+              aria-label={t('trackerImport.dryRun')}
               onclick={() => (dryRun = !dryRun)}
             ><span class="s-toggle-thumb"></span></button>
           </div>
           {#if pendingCount > 0 && !stubImport}
             <button class="back-btn" onclick={() => void continueMatching()}>
-              <Play size={12} weight="bold" /> Resume search
+              <Play size={12} weight="bold" /> {t('trackerImport.resumeSearch')}
             </button>
           {/if}
           <button class="migrate-btn" onclick={() => void startImport()} disabled={foundCount === 0}>
             <TrayArrowDown size={13} weight="bold" />
-            Import {foundCount}{stubImport ? "" : " matched"}
+            {stubImport ? t('trackerImport.importCount', { count: foundCount }) : t('trackerImport.importMatchedCount', { count: foundCount })}
           </button>
         </div>
 
       {:else if phase === "done"}
         <div class="welcome">
           <div class="welcome-check"><Check size={22} weight="bold" /></div>
-          <h2 class="welcome-title">{helloName ? `Welcome home, ${helloName}` : "Welcome home"}</h2>
+          <h2 class="welcome-title">{helloName ? t('trackerImport.welcomeNamed', { name: helloName }) : t('trackerImport.welcome')}</h2>
           <p class="welcome-sub">
-            {importedCount} imported
-            {#if alreadyCount > 0} · {alreadyCount} already in library{/if}
-            {#if skippedCount > 0} · {skippedCount} skipped{/if}
-            {#if failedCount > 0} · {failedCount} failed{/if}
-            {#if dryRun} · dry run{/if}
+            {t('trackerImport.doneImported', { count: importedCount })}
+            {#if alreadyCount > 0} · {t('trackerImport.alreadyInLibraryCount', { count: alreadyCount })}{/if}
+            {#if skippedCount > 0} · {t('trackerImport.doneSkipped', { count: skippedCount })}{/if}
+            {#if failedCount > 0} · {t('trackerImport.doneFailed', { count: failedCount })}{/if}
+            {#if dryRun} · {t('trackerImport.doneDryRun')}{/if}
           </p>
         </div>
         <div class="review-actions">
           {#if noMatchCount + failedCount + skippedCount > 0}
             <button class="back-btn" onclick={exportFailed}>
-              <DownloadSimple size={12} weight="light" /> Export leftover
+              <DownloadSimple size={12} weight="light" /> {t('trackerImport.exportLeftover')}
             </button>
           {/if}
-            <button class="migrate-btn" onclick={() => { clearCache(); onDone(); }}><Check size={13} weight="bold" /> Done</button>
+            <button class="migrate-btn" onclick={() => { clearCache(); onDone(); }}><Check size={13} weight="bold" /> {t('common.done')}</button>
         </div>
       {/if}
 

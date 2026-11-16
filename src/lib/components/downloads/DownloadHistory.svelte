@@ -5,6 +5,7 @@
   import { timeAgo } from "$lib/core/util";
   import { formatBytes } from "$lib/components/downloads/lib/downloadQueue";
   import type { Download } from "$lib/server-adapters/types";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     completed: Download[];
@@ -24,8 +25,8 @@
   }
 
   function whenMs(iso: string | null): number {
-    const t = iso ? Date.parse(iso) : NaN;
-    return Number.isNaN(t) ? 0 : t;
+    const ms = iso ? Date.parse(iso) : NaN;
+    return Number.isNaN(ms) ? 0 : ms;
   }
 
   const groups = $derived((() => {
@@ -40,7 +41,7 @@
       const manga = libraryState.items.find((m) => m.id === mangaId) ?? null;
       out.push({
         mangaId,
-        mangaTitle:   manga?.title ?? "Unknown series",
+        mangaTitle:   manga?.title ?? t("recent.unknownSeries"),
         thumbnailUrl: manga?.thumbnailUrl ?? "",
         contentType:  manga?.contentType,
         items,
@@ -62,9 +63,9 @@
 </script>
 
 {#if loading && completed.length === 0}
-  <div class="empty">Loading…</div>
+  <div class="empty">{t("common.loading")}</div>
 {:else if completed.length === 0}
-  <div class="empty">No completed downloads.</div>
+  <div class="empty">{t("downloads.historyEmpty")}</div>
 {:else}
   <div class="list">
     {#each shown as group (group.mangaId)}
@@ -75,7 +76,7 @@
             class="expand-btn"
             class:expanded={isExpanded}
             onclick={() => toggle(group.mangaId)}
-            title={isExpanded ? "Collapse chapters" : "Expand chapters"}
+            title={isExpanded ? t("downloads.collapseChapters") : t("downloads.expandChapters")}
           >
             {#if isExpanded}<CaretDown size={12} weight="bold" />{:else}<CaretRight size={12} weight="bold" />{/if}
           </button>
@@ -87,7 +88,7 @@
           <div class="series-info">
             <div class="series-title-row">
               <span class="series-title">{group.mangaTitle}</span>
-              <span class="series-count-badge">{group.items.length} {group.items.length === 1 ? "chapter" : "chapters"}</span>
+              <span class="series-count-badge">{t("downloads.chapterCount", { count: group.items.length })}</span>
             </div>
             <div class="series-meta">
               <span class="check"><CheckCircle size={12} weight="fill" /></span>
@@ -101,7 +102,7 @@
           <div class="sub-item-list">
             {#each group.items as item (item.id || item.chapterId)}
               <div class="sub-row">
-                <span class="sub-title">{item.chapter.title ?? "Chapter"}</span>
+                <span class="sub-title">{item.chapter.title ?? t("downloads.chapter")}</span>
                 <span class="sub-meta">
                   {#if formatBytes(item.finalSizeBytes)}<span>{formatBytes(item.finalSizeBytes)}</span>{/if}
                   {#if whenMs(item.completedAt)}<span class="sub-when">{timeAgo(whenMs(item.completedAt))}</span>{/if}

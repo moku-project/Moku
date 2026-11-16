@@ -1,32 +1,33 @@
 import type { Manga, Source } from "$lib/types";
 import type { Settings }      from "$lib/types";
+import { t, currentLocale } from "$lib/i18n/index.svelte";
 
 export function timeAgo(ts: number): string {
   const diff = Date.now() - ts, m = Math.floor(diff / 60000);
-  if (m < 1)  return "Just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1)  return t("time.justNow");
+  if (m < 60) return t("time.minutesAgo", { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
+  if (h < 24) return t("time.hoursAgo", { count: h });
   const d = Math.floor(h / 24);
-  if (d < 7)  return `${d}d ago`;
-  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (d < 7)  return t("time.daysAgo", { count: d });
+  return new Date(ts).toLocaleDateString(currentLocale(), { month: "short", day: "numeric" });
 }
 
 export function dayLabel(ts: number): string {
   const d = new Date(ts), now = new Date();
-  if (d.toDateString() === now.toDateString()) return "Today";
+  if (d.toDateString() === now.toDateString()) return t("time.today");
   const yest = new Date(now); yest.setDate(now.getDate() - 1);
-  if (d.toDateString() === yest.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  if (d.toDateString() === yest.toDateString()) return t("time.yesterday");
+  return d.toLocaleDateString(currentLocale(), { weekday: "long", month: "long", day: "numeric" });
 }
 
 export function formatReadTime(mins: number): string {
-  if (mins < 1)  return `${Math.round(mins * 60)}s`;
-  if (mins < 60) return `${Math.round(mins)}m`;
+  if (mins < 1)  return t("time.durationSeconds", { s: Math.round(mins * 60) });
+  if (mins < 60) return t("time.durationMinutes", { m: Math.round(mins) });
   const h = Math.floor(mins / 60), r = Math.round(mins % 60);
-  if (h < 24) return r === 0 ? `${h}h` : `${h}h ${r}m`;
+  if (h < 24) return r === 0 ? t("time.durationHours", { h }) : t("time.durationHoursMinutes", { h, m: r });
   const d = Math.floor(h / 24), rh = h % 24;
-  return rh === 0 ? `${d}d` : `${d}d ${rh}h`;
+  return rh === 0 ? t("time.durationDays", { d }) : t("time.durationDaysHours", { d, h: rh });
 }
 
 const STRICT_TAGS: string[] = [

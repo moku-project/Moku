@@ -9,6 +9,7 @@
   import { matchesFilter, groupExtensions, validateUrl, type Filter, type Panel } from "$lib/components/extensions/lib/extensionHelpers";
   import { libraryCountByPkg, type LibraryManga } from "$lib/components/extensions/lib/extensionLibrary";
   import { LANG_ALL } from "$lib/core/lang";
+  import { t } from "$lib/i18n/index.svelte";
   import ExtensionFilters       from "$lib/components/extensions/ExtensionFilters.svelte";
   import ExtensionCard          from "$lib/components/extensions/ExtensionCard.svelte";
   import ExtensionSettingsPanel from "$lib/components/extensions/panels/ExtensionSettingsPanel.svelte";
@@ -179,11 +180,11 @@
       if (serverTab) await resetBrowse();
       const updates = installedExts.filter((e) => e.needsUpdate).length;
       addToast(updates
-        ? { kind: "info", title: "Extensions refreshed", body: `${updates} update${updates === 1 ? "" : "s"} available` }
-        : { kind: "success", title: "Extensions refreshed", body: "Everything is up to date" });
+        ? { kind: "info", title: t("extensions.toast.refreshed"), body: t("extensions.toast.updatesAvailable", { count: updates }) }
+        : { kind: "success", title: t("extensions.toast.refreshed"), body: t("extensions.toast.upToDate") });
     } catch (e) {
       console.error(e);
-      addToast({ kind: "error", title: "Refresh failed", body: e instanceof Error ? e.message : String(e) });
+      addToast({ kind: "error", title: t("extensions.toast.refreshFailed"), body: e instanceof Error ? e.message : String(e) });
     } finally { refreshing = false; }
   }
 
@@ -202,13 +203,13 @@
     const url = newRepoUrl.trim();
     const err = validateUrl(url);
     if (err) { repoError = err; return; }
-    if (repos.includes(url)) { repoError = "Repo already added"; return; }
+    if (repos.includes(url)) { repoError = t("extensions.repos.alreadyAdded"); return; }
     repoError = null; newRepoUrl = "";
     savingRepos = true;
     try {
       const repo = await tsunagu.addRepository(url);
       await loadRepos();
-      addToast({ kind: "success", title: "Repo added", body: url });
+      addToast({ kind: "success", title: t("extensions.toast.repoAdded"), body: url });
       try {
         await tsunagu.syncRepository(repo.id);
         await load();
@@ -218,7 +219,7 @@
         await resetBrowse();
       } catch (e) { console.error(e); }
     } catch (e: any) {
-      repoError = e instanceof Error ? e.message : "Failed to save";
+      repoError = e instanceof Error ? e.message : t("extensions.repos.saveFailed");
     } finally { savingRepos = false; }
   }
 
@@ -229,9 +230,9 @@
     try {
       await tsunagu.deleteRepository(target.id);
       await loadRepos();
-      addToast({ kind: "info", title: "Repo removed", body: url });
+      addToast({ kind: "info", title: t("extensions.toast.repoRemoved"), body: url });
     } catch (e: any) {
-      repoError = e instanceof Error ? e.message : "Failed to remove";
+      repoError = e instanceof Error ? e.message : t("extensions.repos.removeFailed");
     } finally { savingRepos = false; }
   }
 
@@ -256,13 +257,13 @@
       else                         await tsunagu.uninstallExtension(pkgName);
       if (reload) await refreshAfterMutate();
       if (reload) addToast({
-        install:   { kind: "download" as const, title: "Extension installed", body: label },
-        update:    { kind: "success"  as const, title: "Extension updated",   body: label },
-        uninstall: { kind: "info"     as const, title: "Extension removed",   body: label },
+        install:   { kind: "download" as const, title: t("extensions.toast.installed"), body: label },
+        update:    { kind: "success"  as const, title: t("extensions.toast.updated"),   body: label },
+        uninstall: { kind: "info"     as const, title: t("extensions.toast.removed"),   body: label },
       }[op]);
     } catch (e: any) {
       if (reload) await refreshAfterMutate();
-      addToast({ kind: "error", title: "Extension error", body: e instanceof Error ? e.message : String(e) });
+      addToast({ kind: "error", title: t("extensions.toast.error"), body: e instanceof Error ? e.message : String(e) });
     } finally {
       working.delete(pkgName); working = new Set(working);
     }
@@ -275,7 +276,7 @@
     for (const ext of pending) await mutate(ext.packageName, "update", false);
     await refreshAfterMutate();
     updatingAll = false;
-    addToast({ kind: "success", title: "All extensions updated", body: `${pending.length} extension${pending.length === 1 ? "" : "s"} updated` });
+    addToast({ kind: "success", title: t("extensions.toast.allUpdated"), body: t("extensions.toast.allUpdatedBody", { count: pending.length }) });
   }
 
   async function installExternal() {
@@ -287,11 +288,11 @@
       await tsunagu.installExternalExtension(url);
       installSuccess = true; externalUrl = "";
       await refreshAfterMutate();
-      addToast({ kind: "download", title: "Extension installed", body: url.split("/").pop() ?? url });
+      addToast({ kind: "download", title: t("extensions.toast.installed"), body: url.split("/").pop() ?? url });
       setTimeout(() => { panel = null; installSuccess = false; }, 1500);
     } catch (e: any) {
-      installError = e instanceof Error ? e.message : "Install failed";
-      addToast({ kind: "error", title: "Install failed", body: installError });
+      installError = e instanceof Error ? e.message : t("extensions.toast.installFailed");
+      addToast({ kind: "error", title: t("extensions.toast.installFailed"), body: installError });
     } finally { installing = false; }
   }
 
@@ -305,11 +306,11 @@
       const ext = await tsunagu.installExtensionFile(file.name, file.bytes);
       installSuccess = true;
       await refreshAfterMutate();
-      addToast({ kind: "download", title: "Extension installed", body: ext.name || file.name });
+      addToast({ kind: "download", title: t("extensions.toast.installed"), body: ext.name || file.name });
       setTimeout(() => { panel = null; installSuccess = false; }, 1500);
     } catch (e: any) {
-      installError = e instanceof Error ? e.message : "Install failed";
-      addToast({ kind: "error", title: "Install failed", body: installError });
+      installError = e instanceof Error ? e.message : t("extensions.toast.installFailed");
+      addToast({ kind: "error", title: t("extensions.toast.installFailed"), body: installError });
     } finally { installing = false; }
   }
 
@@ -420,10 +421,10 @@
     {#if panel === "apk"}
       <div class="ext-panel" class:ext-panel-anim={anims}>
         <div class="panel-header">
-          <span class="panel-title-wrap"><span class="panel-title">Install Extension</span></span>
+          <span class="panel-title-wrap"><span class="panel-title">{t("extensions.install.title")}</span></span>
         </div>
         {#if canPickFile}
-          <p class="panel-hint">Paste a link, or pick a local .apk, .jar or LNReader .js file.</p>
+          <p class="panel-hint">{t("extensions.install.hint")}</p>
         {/if}
         <div class="ext-row">
           <input
@@ -437,12 +438,12 @@
           <button class="install-btn" class:success={installSuccess}
             onclick={installExternal} disabled={installing || !externalUrl.trim()}>
             {#if installing}<CircleNotch size={13} weight="light" class="anim-spin" />
-            {:else if installSuccess}<Check size={13} weight="bold" /> Done
-            {:else}Install{/if}
+            {:else if installSuccess}<Check size={13} weight="bold" /> {t("common.done")}
+            {:else}{t("common.install")}{/if}
           </button>
           {#if canPickFile}
-            <button class="install-btn" onclick={installFile} disabled={installing} title="Install from a local file">
-              <FileArrowUp size={13} weight="light" /> File
+            <button class="install-btn" onclick={installFile} disabled={installing} title={t("extensions.install.fromFile")}>
+              <FileArrowUp size={13} weight="light" /> {t("extensions.install.file")}
             </button>
           {/if}
         </div>
@@ -453,20 +454,20 @@
     {#if panel === "repos"}
       <div class="ext-panel" class:ext-panel-anim={anims}>
         <div class="panel-header">
-          <span class="panel-title-wrap"><span class="panel-title">Extension Repositories</span></span>
+          <span class="panel-title-wrap"><span class="panel-title">{t("extensions.repos.title")}</span></span>
         </div>
-        <p class="panel-hint">Compatible with Mihon/Tachiyomi- and Aniyomi-format extension repositories, plus LNReader.</p>
+        <p class="panel-hint">{t("extensions.repos.hint")}</p>
         {#if reposLoading}
           <div class="repo-loading"><CircleNotch size={14} weight="light" class="anim-spin" style="color:var(--text-faint)" /></div>
         {:else}
           {#if repos.length === 0}
-            <div class="repo-empty">No repos configured.</div>
+            <div class="repo-empty">{t("extensions.repos.empty")}</div>
           {:else}
             <div class="repo-list">
               {#each repos as url}
                 <div class="repo-row">
                   <span class="repo-url">{url}</span>
-                  <button class="repo-remove" onclick={() => removeRepo(url)} disabled={savingRepos} title="Remove repo">
+                  <button class="repo-remove" onclick={() => removeRepo(url)} disabled={savingRepos} title={t("extensions.repos.remove")}>
                     {#if savingRepos}<CircleNotch size={12} weight="light" class="anim-spin" />{:else}<X size={12} weight="bold" />{/if}
                   </button>
                 </div>
@@ -482,7 +483,7 @@
               onkeydown={(e) => e.key === "Enter" && !savingRepos && addRepo()}
             />
             <button class="install-btn" onclick={addRepo} disabled={savingRepos || !newRepoUrl.trim()}>
-              {#if savingRepos}<CircleNotch size={13} weight="light" class="anim-spin" />{:else}Add{/if}
+              {#if savingRepos}<CircleNotch size={13} weight="light" class="anim-spin" />{:else}{t("common.add")}{/if}
             </button>
           </div>
           {#if repoError}<div class="panel-error">{repoError}</div>{/if}
@@ -495,15 +496,15 @@
     {:else}
       <div class="list" bind:this={listEl} onscroll={onListScroll}>
         {#if showLocal}
-          <button type="button" class="local-row" data-tour="local-source" onclick={() => libraryTarget = { pkgName: '__local__', extensionName: 'Local Source', iconUrl: '' }} title="Open local source">
+          <button type="button" class="local-row" data-tour="local-source" onclick={() => libraryTarget = { pkgName: '__local__', extensionName: t('extensions.local.name'), iconUrl: '' }} title={t('extensions.local.open')}>
             <div class="local-icon">
               <HardDrives size={18} weight="bold" />
             </div>
             <div class="info">
-              <span class="name">Local Source</span>
-              <span class="meta">Built-in · {localMangaCount} {localMangaCount === "1" ? "title" : "titles"}</span>
+              <span class="name">{t("extensions.local.name")}</span>
+              <span class="meta">{t("extensions.local.meta", { count: Number(localMangaCount) })}</span>
             </div>
-            <span class="local-badge">Built-in</span>
+            <span class="local-badge">{t("extensions.local.builtIn")}</span>
           </button>
         {/if}
         {#each groups as { base, primary, variants }}
@@ -518,12 +519,12 @@
           />
         {/each}
         {#if !showLocal && groups.length === 0 && !browseLoading}
-          <div class="empty" style="flex:1">No extensions found.</div>
+          <div class="empty" style="flex:1">{t("extensions.list.empty")}</div>
         {/if}
         {#if serverTab && browseLoading}
           <div class="more-row"><CircleNotch size={14} weight="light" class="anim-spin" style="color:var(--text-faint)" /></div>
         {:else if serverTab && browse.length > 0 && browse.length >= browseTotal}
-          <div class="more-row more-end">{browseTotal} extension{browseTotal === 1 ? "" : "s"}</div>
+          <div class="more-row more-end">{t("extensions.list.total", { count: browseTotal })}</div>
         {/if}
       </div>
     {/if}

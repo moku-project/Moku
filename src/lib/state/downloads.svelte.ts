@@ -2,6 +2,7 @@ import type { Download, DownloaderStatus, Chapter } from "$lib/server-adapters/t
 import { tsunagu } from "$lib/server-adapters/tsunagu";
 import { settingsState, updateSettings } from "$lib/state/settings.svelte";
 import { addToast }                      from "$lib/state/notifications.svelte";
+import { t }                             from "$lib/i18n/index.svelte";
 import { libraryState }                  from "$lib/state/library.svelte";
 import { seriesState }                   from "$lib/state/series.svelte";
 import {
@@ -46,7 +47,7 @@ class DownloadStore {
   get autoRetryEnabled() { return settingsState.settings.downloadAutoRetry ?? false; }
 
   private mangaTitleFor(libraryEntryId: string): string {
-    return libraryState.items.find(m => m.id === libraryEntryId)?.title ?? "Unknown series";
+    return libraryState.items.find(m => m.id === libraryEntryId)?.title ?? t("notices.downloads.unknownSeries");
   }
 
   private mediaIdFor(chapterId: string): string {
@@ -107,9 +108,9 @@ class DownloadStore {
       const failed    = nextItem?.status === "FAILED" && item.status !== "FAILED";
       if (completed) libraryState.patchDownloadCount(item.mediaId, 1);
       if (!toasts) continue;
-      const label = `${this.mangaTitleFor(item.mediaId)} — ${item.chapter.title ?? "Chapter"}`;
-      if (completed)   addToast({ kind: "download", title: "Chapter downloaded", body: label, duration: 4000 });
-      else if (failed) addToast({ kind: "error",    title: "Download failed",    body: label, duration: 5000 });
+      const label = t("notices.downloads.itemLabel", { series: this.mangaTitleFor(item.mediaId), chapter: item.chapter.title ?? t("notices.downloads.chapterFallback") });
+      if (completed)   addToast({ kind: "download", title: t("notices.downloads.completed"), body: label, duration: 4000 });
+      else if (failed) addToast({ kind: "error",    title: t("notices.downloads.failed"),    body: label, duration: 5000 });
     }
     this.prevQueue = next.slice();
   }
@@ -159,7 +160,7 @@ class DownloadStore {
     try {
       await tsunagu.enqueueDownload(mediaId, chapterId);
     } catch (e) {
-      addToast({ kind: "error", title: "Couldn't queue download", body: e instanceof Error ? e.message : String(e), duration: 5000 });
+      addToast({ kind: "error", title: t("notices.downloads.queueFailed"), body: e instanceof Error ? e.message : String(e), duration: 5000 });
       return false;
     }
     await this.poll().catch(() => {});
@@ -169,7 +170,7 @@ class DownloadStore {
   toggleToasts() {
     const next = !this.toastsEnabled;
     updateSettings({ downloadToastsEnabled: next });
-    addToast({ kind: "info", title: next ? "Notifications enabled" : "Notifications muted", duration: 2500 });
+    addToast({ kind: "info", title: next ? t("notices.downloads.toastsEnabled") : t("notices.downloads.toastsMuted"), duration: 2500 });
   }
 
   private syncAutoRetry() {
@@ -189,7 +190,7 @@ class DownloadStore {
     const enable = !this.autoRetryEnabled;
     updateSettings({ downloadAutoRetry: enable });
     this.syncAutoRetry();
-    addToast({ kind: "info", title: enable ? "Auto-retry enabled" : "Auto-retry disabled", duration: enable ? 3000 : 2500 });
+    addToast({ kind: "info", title: enable ? t("notices.downloads.autoRetryEnabled") : t("notices.downloads.autoRetryDisabled"), duration: enable ? 3000 : 2500 });
   }
 
   async togglePlay() {
@@ -210,7 +211,7 @@ class DownloadStore {
     this.queue    = [];
     try {
       await tsunagu.clearDownloads(["QUEUED", "DOWNLOADING", "FAILED"]);
-      addToast({ kind: "info", title: "Queue cleared", duration: 2500 });
+      addToast({ kind: "info", title: t("notices.downloads.queueCleared"), duration: 2500 });
     } catch { await this.poll(); }
     finally { this.clearing = false; }
   }
@@ -222,7 +223,7 @@ class DownloadStore {
     this.completed = [];
     try {
       await tsunagu.clearDownloads(["DONE"]);
-      addToast({ kind: "info", title: "Download history cleared", duration: 2500 });
+      addToast({ kind: "info", title: t("notices.downloads.historyCleared"), duration: 2500 });
     } catch { this.completed = prev; await this.poll(); }
     finally { this.clearing = false; }
   }
@@ -248,7 +249,7 @@ class DownloadStore {
     this.queue = this.queue.filter(i => !idSet.has(i.chapterId));
     try {
       await Promise.all(ids.map(id => tsunagu.dequeueDownload(mids.get(id) ?? "", id)));
-      addToast({ kind: "info", title: `Removed ${ids.length} download${ids.length !== 1 ? "s" : ""}`, duration: 2500 });
+      addToast({ kind: "info", title: t("notices.downloads.removed", { count: ids.length }), duration: 2500 });
       await this.poll();
     } catch { await this.poll(); }
     finally { this.batchWorking = false; }
@@ -276,7 +277,7 @@ class DownloadStore {
     try {
       await Promise.all(ids.map(id => tsunagu.dequeueDownload(mids.get(id) ?? "", id)));
       for (const id of ids) await tsunagu.enqueueDownload(mids.get(id) ?? "", id);
-      addToast({ kind: "info", title: `Retrying ${ids.length} failed download${ids.length !== 1 ? "s" : ""}`, duration: 3000 });
+      addToast({ kind: "info", title: t("notices.downloads.retrying", { count: ids.length }), duration: 3000 });
       await this.poll();
     } catch { await this.poll(); }
     finally { this.batchWorking = false; }
@@ -293,7 +294,7 @@ class DownloadStore {
       if (ids.length) {
         await Promise.all(ids.map(id => tsunagu.dequeueDownload(mids.get(id) ?? "", id)));
         for (const id of ids) await tsunagu.enqueueDownload(mids.get(id) ?? "", id);
-        addToast({ kind: "info", title: `Retrying ${ids.length} failed download${ids.length !== 1 ? "s" : ""}`, duration: 3000 });
+        addToast({ kind: "info", title: t("notices.downloads.retrying", { count: ids.length }), duration: 3000 });
       }
       await this.poll();
     } catch { await this.poll(); }

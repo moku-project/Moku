@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { t } from '$lib/i18n/index.svelte'
 	import { Terminal, ArrowLineDown, Copy, Check, Broom, X } from 'phosphor-svelte'
 
 	let { onClose }: { onClose: () => void } = $props()
@@ -95,11 +96,11 @@
 	}
 </script>
 
-<section class="panel" style="height:{height}vh" aria-label="Server log">
+<section class="panel" style="height:{height}vh" aria-label={t('chrome.backendLog.label')}>
 	<div
 		class="grip"
 		role="separator"
-		aria-label="Resize"
+		aria-label={t('chrome.backendLog.resize')}
 		aria-orientation="horizontal"
 		tabindex="-1"
 		onpointerdown={startResize}
@@ -107,29 +108,29 @@
 
 	<header>
 		<Terminal size={14} weight="bold" class="hdr-icon" />
-		<span class="title">Server Log</span>
+		<span class="title">{t('chrome.backendLog.title')}</span>
 		<span class="count">{lines.length}</span>
-		<span class:live={follow} class="dot" title={follow ? 'Live' : 'Paused'}></span>
+		<span class:live={follow} class="dot" title={follow ? t('chrome.backendLog.live') : t('chrome.backendLog.paused')}></span>
 
 		<span class="spacer"></span>
 
-		<button class:active={follow} onclick={enableFollow} title="Jump to latest">
+		<button class:active={follow} onclick={enableFollow} title={t('chrome.backendLog.jumpToLatest')}>
 			<ArrowLineDown size={13} weight="bold" />
 		</button>
-		<button onclick={copyAll} title="Copy all">
+		<button onclick={copyAll} title={t('chrome.backendLog.copyAll')}>
 			{#if copied}<Check size={13} weight="bold" />{:else}<Copy size={13} weight="regular" />{/if}
 		</button>
-		<button onclick={() => (lines = [])} title="Clear">
+		<button onclick={() => (lines = [])} title={t('common.clear')}>
 			<Broom size={13} weight="regular" />
 		</button>
-		<button class="close" onclick={onClose} title="Close (Esc)">
+		<button class="close" onclick={onClose} title={t('chrome.backendLog.closeEsc')}>
 			<X size={13} weight="bold" />
 		</button>
 	</header>
 
 	<div class="body" bind:this={box} onscroll={onScroll}>
 		{#if lines.length === 0}
-			<p class="empty">Waiting for server output…</p>
+			<p class="empty">{t('chrome.backendLog.empty')}</p>
 		{:else}
 			{#each lines as line, i (i)}
 				<div class="line {classify(line)}">{line}</div>

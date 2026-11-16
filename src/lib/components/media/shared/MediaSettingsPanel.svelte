@@ -3,6 +3,7 @@
   import { fade, fly } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import type { Snippet } from "svelte";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     title:        string;
@@ -20,7 +21,7 @@
   });
 </script>
 
-<div class="msp-backdrop" role="button" tabindex="-1" aria-label="Close settings"
+<div class="msp-backdrop" role="button" tabindex="-1" aria-label={t("media.settings.close")}
   onclick={onClose} onkeydown={(e) => e.key === "Enter" && onClose()}
   transition:fade={{ duration: 140 }}></div>
 
@@ -36,7 +37,7 @@
   <header class="msp-header">
     <span class="msp-title">{title}</span>
     {#if subtitle}<span class="msp-sub">{subtitle}</span>{/if}
-    <button class="msp-close" aria-label="Close" onclick={onClose}><X size={14} weight="light" /></button>
+    <button class="msp-close" aria-label={t("common.close")} onclick={onClose}><X size={14} weight="light" /></button>
   </header>
 
   <div class="msp-body">

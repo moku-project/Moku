@@ -1,17 +1,18 @@
 <script lang="ts">
   import logoUrl                                    from '$lib/assets/moku-icon-splash.svg'
   import { onboardingState, completeOnboarding, skipOnboarding, startTour } from '$lib/state/onboarding.svelte'
+  import { t } from '$lib/i18n/index.svelte'
 </script>
 
 {#if onboardingState.open}
   <div class="overlay">
     <div class="card">
       <img src={logoUrl} alt="Moku" class="logo" style="--i:0" />
-      <p class="title" style="--i:1">welcome to moku</p>
-      <p class="body" style="--i:2">A quick tour of the essentials, or skip straight in.</p>
+      <p class="title" style="--i:1">{t('onboarding.welcomeTitle')}</p>
+      <p class="body" style="--i:2">{t('onboarding.welcomeBody')}</p>
 
-      <button class="btn" style="--i:3" onclick={() => { completeOnboarding(); startTour() }}>Get started</button>
-      <button class="btn btn--ghost" style="--i:4" onclick={skipOnboarding}>Skip</button>
+      <button class="btn" style="--i:3" onclick={() => { completeOnboarding(); startTour() }}>{t('onboarding.getStarted')}</button>
+      <button class="btn btn--ghost" style="--i:4" onclick={skipOnboarding}>{t('onboarding.skip')}</button>
     </div>
   </div>
 {/if}

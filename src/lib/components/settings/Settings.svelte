@@ -7,6 +7,7 @@
   import type { Keybinds } from '$lib/core/keybinds/defaultBinds'
   import { selectPortal } from '$lib/core/ui/selectPortal'
   import { trackerState } from '$lib/state/trackers.svelte'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
   import GeneralSettings     from './sections/GeneralSettings.svelte'
   import AppearanceSettings  from './sections/AppearanceSettings.svelte'
@@ -33,26 +34,26 @@
   let { onclose, onOpenThemeEditor }: Props = $props()
 
   type Tab = 'general'|'appearance'|'reader'|'player'|'library'|'automation'|'tracking'|'performance'|'keybinds'|'storage'|'content'|'sync'|'server'|'auth'|'about'
-  const TABS: { id: Tab; label: string; icon: any }[] = [
-    { id: 'general',     label: 'General',     icon: Gear        },
-    { id: 'appearance',  label: 'Appearance',  icon: PaintBrush  },
-    { id: 'reader',      label: 'Reader',      icon: Book        },
-    { id: 'player',      label: 'Player',      icon: FilmSlate   },
-    { id: 'library',     label: 'Library',     icon: Image       },
-    { id: 'automation',  label: 'Automation',  icon: Robot       },
-    { id: 'tracking',    label: 'Tracking',    icon: Broadcast   },
-    { id: 'performance', label: 'Performance', icon: Sliders     },
-    { id: 'keybinds',    label: 'Keybinds',    icon: Keyboard    },
-    { id: 'storage',     label: 'Storage',     icon: HardDrives  },
-    { id: 'content',     label: 'Content',     icon: ShieldCheck },
-    { id: 'sync',        label: 'Sync',        icon: ArrowsClockwise },
-    { id: 'server',      label: 'Server',      icon: Database    },
-    { id: 'auth',        label: 'Auth',        icon: LockKey     },
-    { id: 'about',       label: 'About',       icon: Info        },
+  const TABS: { id: Tab; label: MessageKey; icon: any }[] = [
+    { id: 'general',     label: 'settings.shell.tabGeneral',     icon: Gear        },
+    { id: 'appearance',  label: 'settings.shell.tabAppearance',  icon: PaintBrush  },
+    { id: 'reader',      label: 'settings.shell.tabReader',      icon: Book        },
+    { id: 'player',      label: 'settings.shell.tabPlayer',      icon: FilmSlate   },
+    { id: 'library',     label: 'settings.shell.tabLibrary',     icon: Image       },
+    { id: 'automation',  label: 'settings.shell.tabAutomation',  icon: Robot       },
+    { id: 'tracking',    label: 'settings.shell.tabTracking',    icon: Broadcast   },
+    { id: 'performance', label: 'settings.shell.tabPerformance', icon: Sliders     },
+    { id: 'keybinds',    label: 'settings.shell.tabKeybinds',    icon: Keyboard    },
+    { id: 'storage',     label: 'settings.shell.tabStorage',     icon: HardDrives  },
+    { id: 'content',     label: 'settings.shell.tabContent',     icon: ShieldCheck },
+    { id: 'sync',        label: 'settings.shell.tabSync',        icon: ArrowsClockwise },
+    { id: 'server',      label: 'settings.shell.tabServer',      icon: Database    },
+    { id: 'auth',        label: 'settings.shell.tabAuth',        icon: LockKey     },
+    { id: 'about',       label: 'settings.shell.tabAbout',       icon: Info        },
   ]
 
   const anims = $derived(settingsState.settings.qolAnimations ?? true)
-  let tab: Tab           = $state((TABS.some(t => t.id === app.settingsTab) ? app.settingsTab : 'general') as Tab)
+  let tab: Tab           = $state((TABS.some(x => x.id === app.settingsTab) ? app.settingsTab : 'general') as Tab)
   let prevTabIndex       = $state(0)
   let tabSlideDir        = $state<'up'|'down'>('down')
   let tabIconKey         = $state(0)
@@ -61,12 +62,13 @@
   let bugReporterOpen    = $state(false)
   let importKey          = $state<string | null>(null)
   let syncPopupOpen      = $state(false)
+  const activeTab        = $derived(TABS.find(x => x.id === tab))
 
   $effect(() => { tab; tick().then(() => contentBodyEl?.scrollTo({ top: 0 })) })
 
   function setTab(id: Tab) {
     if (anims) {
-      const next = TABS.findIndex(t => t.id === id)
+      const next = TABS.findIndex(x => x.id === id)
       tabSlideDir = next > prevTabIndex ? 'down' : 'up'
       prevTabIndex = next
       tabIconKey++
@@ -75,8 +77,8 @@
   }
 
   $effect(() => {
-    const t = app.settingsTab
-    untrack(() => { if (t !== tab && TABS.some(x => x.id === t)) setTab(t as Tab) })
+    const want = app.settingsTab
+    untrack(() => { if (want !== tab && TABS.some(x => x.id === want)) setTab(want as Tab) })
   })
 
   function close() { onclose?.() }
@@ -130,8 +132,8 @@
   $effect(() => {
     const handler = (e: MouseEvent) => {
       if (!selectOpen) return
-      const t = e.target as HTMLElement
-      if (t.closest('.s-select') || t.closest('.s-select-menu')) return
+      const target = e.target as HTMLElement
+      if (target.closest('.s-select') || target.closest('.s-select-menu')) return
       closeSelect()
     }
     document.addEventListener('mousedown', handler)
@@ -143,28 +145,28 @@
 <div class="s-backdrop" role="presentation" tabindex="-1"
   onclick={(e) => { if (e.target === e.currentTarget) close() }}
   onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }}>
-  <div class="s-modal" role="dialog" aria-label="Settings" bind:this={modalEl}>
+  <div class="s-modal" role="dialog" aria-label={t('nav.settings')} bind:this={modalEl}>
 
     <div class="s-sidebar">
-      <p class="s-sidebar-title">Settings</p>
+      <p class="s-sidebar-title">{t('nav.settings')}</p>
       <nav>
-        {#each TABS as t}
-          <button class="s-nav-item" class:active={tab === t.id} class:anims data-tour={`settings-tab-${t.id}`} onclick={() => setTab(t.id)}>
+        {#each TABS as item}
+          <button class="s-nav-item" class:active={tab === item.id} class:anims data-tour={`settings-tab-${item.id}`} onclick={() => setTab(item.id)}>
             <span class="s-nav-icon"
-              class:slide-down={anims && tab === t.id && tabSlideDir === 'down'}
-              class:slide-up={anims && tab === t.id && tabSlideDir === 'up'}>
-              {#key anims && tab === t.id ? tabIconKey : 0}
-                <t.icon size={14} weight={tab === t.id ? 'regular' : 'light'} />
+              class:slide-down={anims && tab === item.id && tabSlideDir === 'down'}
+              class:slide-up={anims && tab === item.id && tabSlideDir === 'up'}>
+              {#key anims && tab === item.id ? tabIconKey : 0}
+                <item.icon size={14} weight={tab === item.id ? 'regular' : 'light'} />
               {/key}
             </span>
-            <span>{t.label}</span>
+            <span>{t(item.label)}</span>
           </button>
         {/each}
       </nav>
       <div class="s-sidebar-spacer"></div>
       <button class="s-nav-item s-bug-btn" class:anims onclick={() => (bugReporterOpen = true)}>
         <Bug size={14} weight="light" />
-        <span>Report an Issue</span>
+        <span>{t('settings.shell.reportIssue')}</span>
       </button>
     </div>
 
@@ -175,16 +177,16 @@
             class:slide-down={anims && tabSlideDir === 'down'}
             class:slide-up={anims && tabSlideDir === 'up'}>
             {#key tabIconKey}
-              {#each TABS as t}
-                {#if t.id === tab}
-                  <t.icon size={13} weight="light" />
+              {#each TABS as item}
+                {#if item.id === tab}
+                  <item.icon size={13} weight="light" />
                 {/if}
               {/each}
             {/key}
           </span>
-          <p class="s-content-title">{TABS.find(t => t.id === tab)?.label}</p>
+          <p class="s-content-title">{activeTab ? t(activeTab.label) : ''}</p>
         </div>
-        <button class="s-close-btn" aria-label="Close settings" onclick={close}><X size={15} weight="light" /></button>
+        <button class="s-close-btn" aria-label={t('settings.shell.closeSettings')} onclick={close}><X size={15} weight="light" /></button>
       </div>
 
       <div class="s-content-body" bind:this={contentBodyEl}>
@@ -232,11 +234,11 @@
 {/if}
 
 {#if importKey}
-  {@const t = trackerState.byKey(importKey)}
+  {@const tracker = trackerState.byKey(importKey)}
   <TrackerImportModal
     trackerKey={importKey}
-    trackerName={t?.name ?? "AniList"}
-    username={t?.username ?? null}
+    trackerName={tracker?.name ?? "AniList"}
+    username={tracker?.username ?? null}
     onClose={() => (importKey = null)}
     onDone={() => (importKey = null)}
   />

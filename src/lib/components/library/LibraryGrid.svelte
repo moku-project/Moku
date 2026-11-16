@@ -11,6 +11,7 @@
   import type { Manga } from '$lib/types'
   import type { Folder as FolderType } from '$lib/server-adapters/types'
   import type { LibraryViewMode } from '$lib/state/library.svelte'
+  import { t } from '$lib/i18n/index.svelte'
 
   interface Props {
     items:                  Manga[]
@@ -43,7 +44,7 @@
   let movePanelOpen = $state(false)
   let trackManga = $state<Manga | null>(null)
 
-  const trackIcon = (key: string) => trackerState.list.find(t => t.key === key)?.iconUrl ?? null
+  const trackIcon = (key: string) => trackerState.list.find(tr => tr.key === key)?.iconUrl ?? null
 
   const statsAlways = $derived(settingsState.settings.libraryStatsAlways ?? false)
   const cropCovers  = $derived(settingsState.settings.libraryCropCovers  ?? true)
@@ -89,14 +90,14 @@
 
 {#if selectMode}
   <div class="select-bar">
-    <span class="sel-count">{selected.size} selected</span>
-    <button class="sel-text-btn" onclick={onSelectAll}>Select all</button>
+    <span class="sel-count">{t('library.grid.selectedCount', { count: selected.size })}</span>
+    <button class="sel-text-btn" onclick={onSelectAll}>{t('library.grid.selectAll')}</button>
     <div class="sel-right">
       {#if visibleFolders.length > 0}
         <div class="move-wrap">
           <button
             class="sel-icon-btn"
-            title="Move to folder"
+            title={t('library.grid.moveToFolder')}
             disabled={selected.size === 0 || bulkWorking}
             onclick={() => movePanelOpen = !movePanelOpen}
           >
@@ -122,7 +123,7 @@
       {#if isFolderTab}
         <button
           class="sel-icon-btn"
-          title="Remove from folder"
+          title={t('library.grid.removeFromFolder')}
           disabled={selected.size === 0 || bulkWorking}
           onclick={onBulkRemoveFromFolder}
         >
@@ -132,7 +133,7 @@
 
       <button
         class="sel-icon-btn sel-icon-danger"
-        title="Remove from library"
+        title={t('library.menu.removeFromLibrary')}
         disabled={selected.size === 0 || bulkWorking}
         onclick={onBulkRemove}
       >
@@ -164,15 +165,15 @@
       <ImageSquare size={26} weight="light" />
       <span class="empty-title">
         {tab === 'downloaded'
-          ? 'Nothing downloaded yet'
+          ? t('library.grid.emptyDownloaded')
           : isFolderTab
-            ? 'This folder is empty'
-            : 'Your library is empty'}
+            ? t('library.grid.emptyFolder')
+            : t('library.grid.emptyLibrary')}
       </span>
       <span class="empty-sub">
         {tab === 'downloaded'
-          ? 'Downloaded chapters and episodes show up here.'
-          : 'Browse sources and add series to get started.'}
+          ? t('library.grid.emptyDownloadedHint')
+          : t('library.grid.emptyLibraryHint')}
       </span>
     </div>
 
@@ -195,12 +196,12 @@
             <span class="row-title">{m.title}</span>
             <div class="row-badges">
               {#if m.trackLinks?.length}
-                <button class="row-track" title="Manage tracking" onclick={(e) => { e.stopPropagation(); trackManga = m }}>
+                <button class="row-track" title={t('library.grid.manageTracking')} onclick={(e) => { e.stopPropagation(); trackManga = m }}>
                   <TrackerLogo trackerKey={m.trackLinks[0].trackerKey} iconUrl={trackIcon(m.trackLinks[0].trackerKey)} size={13} />
                 </button>
               {/if}
               {#if isCompleted}
-                <span class="badge badge-done">✓ Done</span>
+                <span class="badge badge-done">{t('library.grid.badgeDone')}</span>
               {/if}
               {#if m.downloadCount}
                 <span class="badge badge-dl" class:badge-dl-new={m.unreadCount}>↓ {m.downloadCount}</span>
@@ -248,7 +249,7 @@
             {/if}
             <div class="badges">
               {#if isCompleted}
-                <span class="badge badge-done">✓ Done</span>
+                <span class="badge badge-done">{t('library.grid.badgeDone')}</span>
               {/if}
               {#if m.downloadCount}
                 <span class="badge badge-dl" class:badge-dl-new={m.unreadCount}>↓ {m.downloadCount}</span>
@@ -260,7 +261,9 @@
               {@const statusText = statusLabel(link.status, trackerState.byKey(link.trackerKey), m.contentType)}
               <button
                 class="track-strip"
-                title={`${statusText} · ${link.lastChapterRead}/${total || '?'}${m.trackLinks.length > 1 ? ` · +${m.trackLinks.length - 1} more` : ''}`}
+                title={m.trackLinks.length > 1
+                  ? t('library.grid.trackStatusMore', { status: statusText, read: link.lastChapterRead, total: total || '?', more: m.trackLinks.length - 1 })
+                  : t('library.grid.trackStatus', { status: statusText, read: link.lastChapterRead, total: total || '?' })}
                 onclick={(e) => { e.stopPropagation(); trackManga = m }}
               >
                 <TrackerLogo trackerKey={link.trackerKey} iconUrl={trackIcon(link.trackerKey)} size={14} />

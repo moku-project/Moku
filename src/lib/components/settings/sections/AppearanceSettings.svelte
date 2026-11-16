@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Pencil, Trash, Plus } from 'phosphor-svelte'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
   interface Props {
     selectOpen: string | null
@@ -11,24 +12,24 @@
   }
   let { selectOpen, closingSelect, toggleSelect, anims, onOpenThemeEditor }: Props = $props()
 
-  const THEMES = [
-    { id: 'original', label: 'Original', description: 'Default near-black',         swatches: ['#101010','#151515','#a8c4a8','#f0efec'] },
-    { id: 'dark',     label: 'Dark',     description: 'Darker base, sharper text',  swatches: ['#080808','#111111','#bcd8bc','#ffffff'] },
-    { id: 'light',    label: 'Light',    description: 'Warm off-white',              swatches: ['#f4f2ee','#faf8f4','#2a5a2a','#1a1916'] },
-    { id: 'midnight', label: 'Midnight', description: 'Deep blue-black tint',        swatches: ['#0c1020','#101428','#a8b4e8','#eeeef8'] },
-    { id: 'warm',     label: 'Warm',     description: 'Amber and sepia tones',       swatches: ['#16130c','#1c1810','#e0b860','#f5f0e0'] },
+  const THEMES: { id: string; label: MessageKey; description: MessageKey; swatches: string[] }[] = [
+    { id: 'original', label: 'settings.appearance.themeOriginal', description: 'settings.appearance.themeOriginalDesc',         swatches: ['#101010','#151515','#a8c4a8','#f0efec'] },
+    { id: 'dark',     label: 'settings.appearance.themeDark',     description: 'settings.appearance.themeDarkDesc',  swatches: ['#080808','#111111','#bcd8bc','#ffffff'] },
+    { id: 'light',    label: 'settings.appearance.themeLight',    description: 'settings.appearance.themeLightDesc',              swatches: ['#f4f2ee','#faf8f4','#2a5a2a','#1a1916'] },
+    { id: 'midnight', label: 'settings.appearance.themeMidnight', description: 'settings.appearance.themeMidnightDesc',        swatches: ['#0c1020','#101428','#a8b4e8','#eeeef8'] },
+    { id: 'warm',     label: 'settings.appearance.themeWarm',     description: 'settings.appearance.themeWarmDesc',       swatches: ['#16130c','#1c1810','#e0b860','#f5f0e0'] },
   ]
 
   const allThemeOptions = $derived([
-    ...THEMES.map(t => ({ id: t.id, label: t.label })),
-    ...(settingsState.settings.customThemes ?? []).map(t => ({ id: t.id, label: t.name })),
+    ...THEMES.map(th => ({ id: th.id, label: t(th.label) })),
+    ...(settingsState.settings.customThemes ?? []).map(th => ({ id: th.id, label: th.name })),
   ])
 
   let triggerDark  = $state<HTMLButtonElement>(null!)
   let triggerLight = $state<HTMLButtonElement>(null!)
 
   function deleteCustomTheme(id: string) {
-    updateSettings({ customThemes: (settingsState.settings.customThemes ?? []).filter(t => t.id !== id) })
+    updateSettings({ customThemes: (settingsState.settings.customThemes ?? []).filter(th => th.id !== id) })
     if (settingsState.settings.theme === id) updateSettings({ theme: 'dark' })
   }
 </script>
@@ -38,12 +39,12 @@
   <div class="s-section">
     <div class="s-row">
       <div class="s-row-info">
-        <span class="s-label">Match system theme</span>
-        <span class="s-desc">Automatically switch theme when your OS switches between light and dark</span>
+        <span class="s-label">{t('settings.appearance.systemSync')}</span>
+        <span class="s-desc">{t('settings.appearance.systemSyncDesc')}</span>
       </div>
       <button class="s-toggle" class:on={settingsState.settings.systemThemeSync}
         onclick={() => updateSettings({ systemThemeSync: !settingsState.settings.systemThemeSync })}
-        role="switch" aria-label="Match system theme" aria-checked={settingsState.settings.systemThemeSync}>
+        role="switch" aria-label={t('settings.appearance.systemSync')} aria-checked={settingsState.settings.systemThemeSync}>
         <span class="s-toggle-thumb"></span>
       </button>
     </div>
@@ -51,10 +52,10 @@
     {#if settingsState.settings.systemThemeSync}
       <div class="s-sync-pair">
         <div class="s-sync-item">
-          <span class="s-sync-label">Dark theme</span>
+          <span class="s-sync-label">{t('settings.appearance.syncDark')}</span>
           <div class="s-select">
             <button bind:this={triggerDark} class="s-select-btn" onclick={() => toggleSelect('sync-dark')}>
-              <span>{allThemeOptions.find(o => o.id === (settingsState.settings.systemThemeDark ?? 'dark'))?.label ?? 'Dark'}</span>
+              <span>{allThemeOptions.find(o => o.id === (settingsState.settings.systemThemeDark ?? 'dark'))?.label ?? t('settings.appearance.themeDark')}</span>
               <svg class="s-select-caret" class:open={selectOpen === 'sync-dark'} width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6" fill="currentColor"/></svg>
             </button>
             {#if selectOpen === 'sync-dark' || closingSelect === 'sync-dark'}
@@ -70,10 +71,10 @@
           </div>
         </div>
         <div class="s-sync-item">
-          <span class="s-sync-label">Light theme</span>
+          <span class="s-sync-label">{t('settings.appearance.syncLight')}</span>
           <div class="s-select">
             <button bind:this={triggerLight} class="s-select-btn" onclick={() => toggleSelect('sync-light')}>
-              <span>{allThemeOptions.find(o => o.id === (settingsState.settings.systemThemeLight ?? 'light'))?.label ?? 'Light'}</span>
+              <span>{allThemeOptions.find(o => o.id === (settingsState.settings.systemThemeLight ?? 'light'))?.label ?? t('settings.appearance.themeLight')}</span>
               <svg class="s-select-caret" class:open={selectOpen === 'sync-light'} width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6" fill="currentColor"/></svg>
             </button>
             {#if selectOpen === 'sync-light' || closingSelect === 'sync-light'}
@@ -93,12 +94,12 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Theme</p>
+    <p class="s-section-title">{t('settings.appearance.themeTitle')}</p>
     <div class="s-theme-grid">
       {#each THEMES as theme}
         {@const active = (settingsState.settings.theme ?? 'dark') === theme.id}
         <div class="s-theme-card" class:active>
-          <button class="s-theme-card" style="border:none;padding:0;width:100%;display:block" onclick={() => updateSettings({ theme: theme.id })} title={theme.description}>
+          <button class="s-theme-card" style="border:none;padding:0;width:100%;display:block" onclick={() => updateSettings({ theme: theme.id })} title={t(theme.description)}>
             <div class="s-theme-preview">
               <div class="s-theme-preview-bg" style="background:{theme.swatches[0]}">
                 <div class="s-theme-preview-sidebar" style="background:{theme.swatches[1]}"></div>
@@ -110,8 +111,8 @@
               </div>
             </div>
             <div class="s-theme-info">
-              <span class="s-theme-name">{theme.label}</span>
-              <span class="s-theme-desc">{theme.description}</span>
+              <span class="s-theme-name">{t(theme.label)}</span>
+              <span class="s-theme-desc">{t(theme.description)}</span>
             </div>
             {#if active}<span class="s-theme-check">✓</span>{/if}
           </button>
@@ -122,13 +123,13 @@
         {@const active = settingsState.settings.theme === custom.id}
         <div class="s-theme-card" class:active>
           <div class="s-theme-actions">
-            <button class="s-theme-action-btn edit" onclick={() => onOpenThemeEditor?.(custom.id)} title="Edit theme"><Pencil size={10} /></button>
+            <button class="s-theme-action-btn edit" onclick={() => onOpenThemeEditor?.(custom.id)} title={t('settings.appearance.editTheme')}><Pencil size={10} /></button>
             <button class="s-theme-action-btn delete"
-              onclick={() => { if (confirm(`Delete theme "${custom.name}"?`)) deleteCustomTheme(custom.id) }}
-              title="Delete theme"><Trash size={10} /></button>
+              onclick={() => { if (confirm(t('settings.appearance.deleteThemeConfirm', { name: custom.name }))) deleteCustomTheme(custom.id) }}
+              title={t('settings.appearance.deleteTheme')}><Trash size={10} /></button>
           </div>
           <button style="border:none;padding:0;width:100%;display:block;background:none;cursor:pointer"
-            onclick={() => updateSettings({ theme: custom.id })} title="Apply {custom.name}">
+            onclick={() => updateSettings({ theme: custom.id })} title={t('settings.appearance.applyTheme', { name: custom.name })}>
             <div class="s-theme-preview">
               <div class="s-theme-preview-bg" style="background:{custom.tokens['bg-base']}">
                 <div class="s-theme-preview-sidebar" style="background:{custom.tokens['bg-surface']}"></div>
@@ -141,18 +142,18 @@
             </div>
             <div class="s-theme-info">
               <span class="s-theme-name">{custom.name}</span>
-              <span class="s-theme-desc" style="color:var(--accent-fg)">Custom</span>
+              <span class="s-theme-desc" style="color:var(--accent-fg)">{t('settings.appearance.custom')}</span>
             </div>
           </button>
           {#if active}<span class="s-theme-check">✓</span>{/if}
         </div>
       {/each}
 
-      <button class="s-theme-card s-theme-new" onclick={() => onOpenThemeEditor?.(null)} title="Create a custom theme">
+      <button class="s-theme-card s-theme-new" onclick={() => onOpenThemeEditor?.(null)} title={t('settings.appearance.createTheme')}>
         <Plus size={18} weight="light" />
         <div class="s-theme-info">
-          <span class="s-theme-name">New Theme</span>
-          <span class="s-theme-desc">Create custom</span>
+          <span class="s-theme-name">{t('settings.appearance.newTheme')}</span>
+          <span class="s-theme-desc">{t('settings.appearance.createCustom')}</span>
         </div>
       </button>
     </div>
@@ -161,12 +162,12 @@
   <div class="s-section">
     <div class="s-row">
       <div class="s-row-info">
-        <span class="s-label">Solid reader &amp; player UI</span>
-        <span class="s-desc">Flat, opaque backgrounds instead of frosted-glass blur.</span>
+        <span class="s-label">{t('settings.appearance.solidChrome')}</span>
+        <span class="s-desc">{t('settings.appearance.solidChromeDesc')}</span>
       </div>
       <button class="s-toggle" class:on={settingsState.settings.readerSolidChrome}
         onclick={() => updateSettings({ readerSolidChrome: !settingsState.settings.readerSolidChrome })}
-        role="switch" aria-label="Solid reader and player UI" aria-checked={settingsState.settings.readerSolidChrome}>
+        role="switch" aria-label={t('settings.appearance.solidChromeAria')} aria-checked={settingsState.settings.readerSolidChrome}>
         <span class="s-toggle-thumb"></span>
       </button>
     </div>

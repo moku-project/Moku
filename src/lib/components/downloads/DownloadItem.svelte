@@ -5,6 +5,7 @@
   import type { Download } from "$lib/server-adapters/types";
   import { libraryState } from "$lib/state/library.svelte";
   import { pageProgress } from "$lib/components/downloads/lib/downloadQueue";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     item:       Download;
@@ -55,7 +56,7 @@
 
   <div class="info">
     {#if manga?.title}<span class="manga-title">{manga.title}</span>{/if}
-    <span class="chapter-name">{item.chapter.title ?? "Chapter"}</span>
+    <span class="chapter-name">{item.chapter.title ?? t("downloads.chapter")}</span>
     {#if pages > 0}
       <div class="progress-row">
         <div class="progress-wrap">
@@ -65,9 +66,9 @@
           {#if isActive}
             {prog.done}/{prog.total}
           {:else if isError}
-            failed
+            {t("downloads.failed")}
           {:else}
-            {prog.total}p
+            {t("downloads.pageCount", { count: prog.total })}
           {/if}
         </span>
       </div>
@@ -78,12 +79,12 @@
     <span class="state-label" class:state-error={isError}>{item.status}</span>
     <div class="actions">
       {#if isError}
-        <button class="action-btn retry" onclick={(e) => { e.stopPropagation(); onRetry(item.chapterId); }} disabled={isRemoving} title="Retry">
+        <button class="action-btn retry" onclick={(e) => { e.stopPropagation(); onRetry(item.chapterId); }} disabled={isRemoving} title={t("common.retry")}>
           {#if isRemoving}<CircleNotchIcon size={11} weight="light" class="anim-spin" />{:else}<ArrowClockwiseIcon size={11} weight="bold" />{/if}
         </button>
       {/if}
       {#if !isActive}
-        <button class="action-btn remove" onclick={(e) => { e.stopPropagation(); onRemove(item.chapterId); }} disabled={isRemoving} title="Remove">
+        <button class="action-btn remove" onclick={(e) => { e.stopPropagation(); onRemove(item.chapterId); }} disabled={isRemoving} title={t("common.remove")}>
           {#if isRemoving}<CircleNotchIcon size={11} weight="light" class="anim-spin" />{:else}<XIcon size={12} weight="light" />{/if}
         </button>
       {/if}

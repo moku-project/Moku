@@ -1,6 +1,7 @@
 <script lang="ts">
   import { appState, dismissChangelog } from '$lib/state/app.svelte'
   import logoUrl from '$lib/assets/moku-icon-splash.svg'
+  import { t } from '$lib/i18n/index.svelte'
   import {
     Bug,
     Sparkle,
@@ -64,16 +65,16 @@
   {@const entry = appState.changelogEntry}
   <div class="scrim" onclick={dismissChangelog}></div>
   <div class="card-wrap">
-    <div class="card" role="dialog" aria-modal="true" aria-label="What's new in Moku">
-      <button class="close" onclick={dismissChangelog} aria-label="Close">
+    <div class="card" role="dialog" aria-modal="true" aria-label={t('chrome.changelog.dialogLabel')}>
+      <button class="close" onclick={dismissChangelog} aria-label={t('common.close')}>
         <X size={16} weight="bold" />
       </button>
 
       <div class="header">
         <img src={logoUrl} alt="Moku" class="logo" />
         <div class="header-text">
-          <p class="eyebrow">what's new</p>
-          <h2 class="version">Moku v{entry.version}</h2>
+          <p class="eyebrow">{t('chrome.changelog.eyebrow')}</p>
+          <h2 class="version">{t('chrome.changelog.version', { version: entry.version })}</h2>
           {#if entry.released}<p class="released">{entry.released}</p>{/if}
         </div>
       </div>
@@ -117,10 +118,10 @@
       <div class="footer">
         {#if entry.compareUrl}
           <a class="compare" href={entry.compareUrl} target="_blank" rel="noreferrer">
-            Full changelog <ArrowSquareOut size={13} weight="bold" />
+            {t('chrome.changelog.fullChangelog')} <ArrowSquareOut size={13} weight="bold" />
           </a>
         {/if}
-        <button class="btn" onclick={dismissChangelog}>Got it</button>
+        <button class="btn" onclick={dismissChangelog}>{t('chrome.changelog.gotIt')}</button>
       </div>
     </div>
   </div>

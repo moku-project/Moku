@@ -3,6 +3,7 @@ import {
   loadSettings, saveSettings,
   saveLibrary, migrateLibrary, libraryVersion,
 } from "$lib/core/persistence/persist";
+import { t } from "$lib/i18n/index.svelte";
 
 // History, stats and resume points live on the server and are backed up with it, so only settings go here.
 async function collectStoreFiles(): Promise<{ name: string; bytes: Uint8Array }[]> {
@@ -21,7 +22,7 @@ export async function importAppData(): Promise<void> {
 
   const decode = (name: string) => {
     const bytes = files.get(name);
-    if (!bytes) throw new Error(`Backup is missing ${name}`);
+    if (!bytes) throw new Error(t("backup.missingFile", { name }));
     return JSON.parse(new TextDecoder().decode(bytes));
   };
 
@@ -74,7 +75,7 @@ function showExitModal(): Promise<void> {
 
     const title = document.createElement("p");
     title.style.cssText = "margin:0;font-size:var(--text-sm);font-weight:var(--weight-medium);color:var(--text-primary);letter-spacing:0.01em";
-    title.textContent = "Import complete";
+    title.textContent = t("backup.importCompleteTitle");
     header.appendChild(title);
 
     const body = document.createElement("div");
@@ -82,11 +83,11 @@ function showExitModal(): Promise<void> {
 
     const sub = document.createElement("p");
     sub.style.cssText = "margin:0;font-family:var(--font-ui);font-size:var(--text-xs);color:var(--text-faint);letter-spacing:var(--tracking-wide);line-height:var(--leading-snug)";
-    sub.textContent = "Your settings have been restored. Moku will close so you can relaunch with the imported data.";
+    sub.textContent = t("backup.importCompleteBody");
 
     const counter = document.createElement("p");
     counter.style.cssText = "margin:0;font-family:var(--font-ui);font-size:var(--text-xs);color:var(--text-faint);letter-spacing:var(--tracking-wide)";
-    counter.textContent = "Closing in 3…";
+    counter.textContent = t("backup.closingIn", { count: 3 });
 
     body.append(sub, counter);
 
@@ -95,7 +96,7 @@ function showExitModal(): Promise<void> {
 
     const btn = document.createElement("button");
     btn.className = "s-btn s-btn-danger";
-    btn.textContent = "Close now";
+    btn.textContent = t("backup.closeNow");
 
     footer.appendChild(btn);
     modal.append(header, body, footer);
@@ -105,7 +106,7 @@ function showExitModal(): Promise<void> {
     let secs = 3;
     const tick = setInterval(() => {
       secs--;
-      counter.textContent = secs > 0 ? `Closing in ${secs}…` : "Closing…";
+      counter.textContent = secs > 0 ? t("backup.closingIn", { count: secs }) : t("backup.closing");
       if (secs <= 0) { clearInterval(tick); backdrop.remove(); resolve(); }
     }, 1000);
 

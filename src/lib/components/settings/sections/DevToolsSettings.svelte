@@ -7,6 +7,7 @@
 	import { replayOnboarding } from '$lib/state/onboarding.svelte'
 	import { invoke } from '@tauri-apps/api/core'
 	import { devTestChangelog } from '$lib/state/app.svelte'
+	import { t } from '$lib/i18n/index.svelte'
 
 	interface PerfSnapshot { cacheEntries: number; cacheKeys: string[]; oldestEntryMs: number | null; newestEntryMs: number | null }
 
@@ -48,10 +49,10 @@
 	function fmtAge(ts: number | null) {
 		if (ts === null) return '-'
 		const secs = Math.floor((Date.now() - ts) / 1000)
-		if (secs < 60) return `${secs}s ago`
+		if (secs < 60) return t('settings.devtools.secondsAgo', { n: secs })
 		const mins = Math.floor(secs / 60)
-		if (mins < 60) return `${mins}m ago`
-		return `${Math.floor(mins / 60)}h ago`
+		if (mins < 60) return t('settings.devtools.minutesAgo', { n: mins })
+		return t('settings.devtools.hoursAgo', { n: Math.floor(mins / 60) })
 	}
 
 	function triggerSplash() {
@@ -65,7 +66,7 @@
 		changelogTestError = ''
 		try {
 			const entry = await devTestChangelog(appVersion)
-			if (!entry) changelogTestError = `No release found for tag v${appVersion}`
+			if (!entry) changelogTestError = t('settings.devtools.noReleaseForTag', { tag: appVersion })
 		} catch (e: any) {
 			changelogTestError = String(e?.message ?? e)
 		}
@@ -75,7 +76,7 @@
 		changelogTestError = ''
 		try {
 			const entry = await devTestChangelog(changelogTestVersion.trim())
-			if (!entry) changelogTestError = `No release found for tag v${changelogTestVersion.trim()}`
+			if (!entry) changelogTestError = t('settings.devtools.noReleaseForTag', { tag: changelogTestVersion.trim() })
 		} catch (e: any) {
 			changelogTestError = String(e?.message ?? e)
 		}
@@ -84,8 +85,8 @@
 	async function testWindowsHello() {
 		helloBusy = true
 		try {
-			await invoke('windows_hello_authenticate', { reason: 'Moku devtools test' })
-			toast({ kind: 'success', title: 'Windows Hello', body: 'Verified successfully' })
+			await invoke('windows_hello_authenticate', { reason: t('settings.devtools.helloReason') })
+			toast({ kind: 'success', title: 'Windows Hello', body: t('settings.devtools.helloVerified') })
 		} catch (e: any) {
 			toast({ kind: 'error', title: 'Windows Hello', body: String(e) })
 		} finally { helloBusy = false }
@@ -95,10 +96,10 @@
 <div class="s-panel">
 
 	<div class="s-section">
-		<p class="s-section-title">Toasts</p>
+		<p class="s-section-title">{t('settings.devtools.toastsTitle')}</p>
 		<div class="s-section-body">
 			<div class="s-row">
-				<div class="s-row-info"><span class="s-label">Fire test toast</span><span class="s-desc">Triggers each kind with realistic content</span></div>
+				<div class="s-row-info"><span class="s-label">{t('settings.devtools.fireToast')}</span><span class="s-desc">{t('settings.devtools.fireToastDesc')}</span></div>
 				<div class="s-dev-pill-group">
 					{#each (['success', 'error', 'info', 'download'] as const) as kind (kind)}
 						{@const label = kind === 'success' ? 'S' : kind === 'error' ? 'E' : kind === 'info' ? 'I' : 'D'}
@@ -112,36 +113,36 @@
 	</div>
 
 	<div class="s-section">
-		<p class="s-section-title">Onboarding</p>
+		<p class="s-section-title">{t('settings.devtools.onboardingTitle')}</p>
 		<div class="s-section-body">
 			<div class="s-row">
-				<div class="s-row-info"><span class="s-label">Replay onboarding</span><span class="s-desc">Reopens the welcome flow</span></div>
-				<button class="s-btn" onclick={replayOnboarding}>Replay</button>
+				<div class="s-row-info"><span class="s-label">{t('settings.devtools.replayOnboarding')}</span><span class="s-desc">{t('settings.devtools.replayOnboardingDesc')}</span></div>
+				<button class="s-btn" onclick={replayOnboarding}>{t('settings.devtools.replay')}</button>
 			</div>
 		</div>
 	</div>
 
 	<div class="s-section">
-		<p class="s-section-title">Changelog</p>
+		<p class="s-section-title">{t('settings.devtools.changelogTitle')}</p>
 		<div class="s-section-body">
 			<div class="s-row">
 				<div class="s-row-info">
-					<span class="s-label">Fetch &amp; show for current version</span>
-					<span class="s-desc">Pulls the release matching {appVersion}</span>
+					<span class="s-label">{t('settings.devtools.fetchCurrent')}</span>
+					<span class="s-desc">{t('settings.devtools.fetchCurrentDesc', { version: appVersion })}</span>
 				</div>
 				<button class="s-btn" disabled={appState.changelogLoading} onclick={testChangelogCurrent}>
-					{appState.changelogLoading ? '…' : 'Test'}
+					{appState.changelogLoading ? '…' : t('settings.devtools.test')}
 				</button>
 			</div>
 			<div class="s-row">
 				<div class="s-row-info">
-					<span class="s-label">Fetch &amp; show for version</span>
-					<span class="s-desc">Enter a tag like 0.10.1</span>
+					<span class="s-label">{t('settings.devtools.fetchVersion')}</span>
+					<span class="s-desc">{t('settings.devtools.fetchVersionDesc', { example: '0.10.1' })}</span>
 				</div>
 				<div class="s-btn-row">
 					<input class="s-dev-input" bind:value={changelogTestVersion} placeholder="0.10.1" />
 					<button class="s-btn s-btn-accent" disabled={appState.changelogLoading || !changelogTestVersion} onclick={testChangelogVersion}>
-						{appState.changelogLoading ? '…' : 'Fetch'}
+						{appState.changelogLoading ? '…' : t('settings.devtools.fetch')}
 					</button>
 				</div>
 			</div>
@@ -152,25 +153,25 @@
 	</div>
 
 	<div class="s-section">
-		<p class="s-section-title">Previews</p>
+		<p class="s-section-title">{t('settings.devtools.previewsTitle')}</p>
 		<div class="s-section-body">
 			<div class="s-row">
-				<div class="s-row-info"><span class="s-label">Idle splash</span><span class="s-desc">Dismiss with any click or key</span></div>
-				<button class="s-btn" class:s-btn-accent={splashTriggered} onclick={triggerSplash}>Show</button>
+				<div class="s-row-info"><span class="s-label">{t('settings.devtools.idleSplash')}</span><span class="s-desc">{t('settings.devtools.idleSplashDesc')}</span></div>
+				<button class="s-btn" class:s-btn-accent={splashTriggered} onclick={triggerSplash}>{t('settings.devtools.show')}</button>
 			</div>
 		</div>
 	</div>
 
 	<div class="s-section">
-		<p class="s-section-title">Biometrics</p>
+		<p class="s-section-title">{t('settings.devtools.biometricsTitle')}</p>
 		<div class="s-section-body">
 			<div class="s-row">
 				<div class="s-row-info">
 					<span class="s-label">Windows Hello</span>
-					<span class="s-desc">Available: {helloAvailable === null ? '…' : helloAvailable ? 'yes' : 'no'}</span>
+					<span class="s-desc">{t('settings.devtools.helloAvailable', { value: helloAvailable === null ? '…' : helloAvailable ? t('settings.devtools.yes') : t('settings.devtools.no') })}</span>
 				</div>
 				<button class="s-btn" disabled={!helloAvailable || helloBusy} onclick={testWindowsHello}>
-					{helloBusy ? '…' : 'Test'}
+					{helloBusy ? '…' : t('settings.devtools.test')}
 				</button>
 			</div>
 		</div>
@@ -178,13 +179,13 @@
 
 	<div class="s-section">
 		<button class="s-collapsible-trigger" onclick={() => expOpen = !expOpen} aria-expanded={expOpen}>
-			<span class="s-label">Experimental</span>
+			<span class="s-label">{t('settings.devtools.experimental')}</span>
 			<svg class="s-collapsible-caret" class:open={expOpen} width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6" fill="currentColor"/></svg>
 		</button>
 		{#if expOpen}
 			<div class="s-collapsible-body">
 				<div class="s-row" style="flex-direction:column;align-items:flex-start;gap:var(--sp-3)">
-					<span class="s-desc">3D tilt cards on hover</span>
+					<span class="s-desc">{t('settings.devtools.tiltCards')}</span>
 					<div style="display:flex;gap:var(--sp-3)">
 						{#each [{ title: 'Berserk', sub: 'Ch. 372', hue: '265' }, { title: 'Vinland Saga', sub: 'Ch. 208', hue: '200' }, { title: 'Dungeon Meshi', sub: 'Ch. 97', hue: '140' }] as card (card.title)}
 							<ThreeDCard>
@@ -201,24 +202,24 @@
 	</div>
 
 	<div class="s-section">
-		<p class="s-section-title">Runtime</p>
+		<p class="s-section-title">{t('settings.devtools.runtimeTitle')}</p>
 		<div class="s-section-body">
 			<div class="s-dev-grid">
-				<span class="s-dev-key">Filter</span>  <span class="s-dev-val">{appState.libraryFilter}</span>
-				<span class="s-dev-key">Folders</span> <span class="s-dev-val">{appState.categories.filter(c => c.id !== 0).map(c => c.name).join(', ') || 'none'}</span>
-				<span class="s-dev-key">History</span> <span class="s-dev-val">{appState.history?.length ?? 0} entries</span>
-				<span class="s-dev-key">Cache</span>   <span class="s-dev-val">{perfSnapshot?.cacheEntries ?? '-'} entries</span>
-				<span class="s-dev-key">Toasts</span> <span class="s-dev-val">{appState.toasts.length} queued</span>
-				<span class="s-dev-key">Version</span> <span class="s-dev-val">{appVersion} · {import.meta.env.MODE}</span>
+				<span class="s-dev-key">{t('settings.devtools.filter')}</span>  <span class="s-dev-val">{appState.libraryFilter}</span>
+				<span class="s-dev-key">{t('settings.devtools.folders')}</span> <span class="s-dev-val">{appState.categories.filter(c => c.id !== 0).map(c => c.name).join(', ') || t('settings.devtools.none')}</span>
+				<span class="s-dev-key">{t('settings.devtools.history')}</span> <span class="s-dev-val">{t('settings.devtools.entries', { count: appState.history?.length ?? 0 })}</span>
+				<span class="s-dev-key">{t('settings.devtools.cache')}</span>   <span class="s-dev-val">{perfSnapshot ? t('settings.devtools.entries', { count: perfSnapshot.cacheEntries }) : t('settings.devtools.entriesUnknown')}</span>
+				<span class="s-dev-key">{t('settings.devtools.toasts')}</span> <span class="s-dev-val">{t('settings.devtools.queued', { count: appState.toasts.length })}</span>
+				<span class="s-dev-key">{t('settings.devtools.version')}</span> <span class="s-dev-val">{appVersion} · {import.meta.env.MODE}</span>
 			</div>
 			<div class="s-row">
 				<div class="s-row-info">
 					{#if perfSnapshot && perfSnapshot.cacheEntries > 0}
 						<span class="s-desc">{perfSnapshot.cacheKeys.join(', ')}</span>
-						<span class="s-desc">Oldest: {fmtAge(perfSnapshot.oldestEntryMs)} · Newest: {fmtAge(perfSnapshot.newestEntryMs)}</span>
+						<span class="s-desc">{t('settings.devtools.cacheAges', { oldest: fmtAge(perfSnapshot.oldestEntryMs), newest: fmtAge(perfSnapshot.newestEntryMs) })}</span>
 					{/if}
 				</div>
-				<button class="s-btn-icon" onclick={refreshPerfMetrics} title="Refresh cache stats">↺</button>
+				<button class="s-btn-icon" onclick={refreshPerfMetrics} title={t('settings.devtools.refreshCacheStats')}>↺</button>
 			</div>
 		</div>
 	</div>

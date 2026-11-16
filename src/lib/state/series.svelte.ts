@@ -9,6 +9,7 @@ import { buildChapterList }                           from '$lib/components/seri
 import { clearPageCache }                             from '$lib/core/cache/pageCache'
 import { sourceErrorInfo }                            from '$lib/core/sourceErrors'
 import { goto }                                       from '$app/navigation'
+import { t }                                          from '$lib/i18n/index.svelte'
 
 export type { BookmarkEntry } from '$lib/types/history'
 export type { MangaPrefs }                              from '$lib/types/settings'
@@ -220,7 +221,7 @@ class SeriesStore {
       if ((e as { name?: string }).name === 'AbortError') return
       const info = sourceErrorInfo(e)
       const msg = info
-        ? (info.cloudflare ? 'This source is behind Cloudflare protection.' : `${info.label} — ${info.message}`)
+        ? (info.cloudflare ? t('series.errors.cloudflare') : `${info.label} — ${info.message}`)
         : (e instanceof Error ? e.message : String(e))
       this.#errors = new Map(this.#errors).set(key, msg)
     } finally {

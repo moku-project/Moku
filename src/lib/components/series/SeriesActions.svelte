@@ -8,6 +8,19 @@
   import type { Chapter } from '$lib/types'
   import type { Folder } from '$lib/server-adapters/types'
   import type { ChapterSortMode, ChapterSortDir } from './lib/chapterList'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
+
+  const SORT_BUTTON_LABELS: Record<ChapterSortMode, MessageKey> = {
+    source:        'series.actions.sortSource',
+    chapterNumber: 'series.actions.sortChapterNumberShort',
+    uploadDate:    'series.actions.sortUploadDate',
+  }
+
+  const SORT_OPTIONS: [ChapterSortMode, MessageKey][] = [
+    ['source',        'series.actions.sortSource'],
+    ['chapterNumber', 'series.actions.sortChapterNumber'],
+    ['uploadDate',    'series.actions.sortUploadDate'],
+  ]
 
   interface ContinueChapter {
     chapter:    Chapter
@@ -148,36 +161,36 @@
 <div class="list-header">
   <div class="list-header-left">
     {#if hasSelection}
-      <span class="sel-count">{selectedCount} selected</span>
-      <button class="sel-action-btn" onclick={onDownloadSelected} title="Download selected"><Download size={13} weight="light" /></button>
-      <button class="sel-action-btn sel-action-danger" onclick={onDeleteSelected} title="Delete selected downloads"><Trash size={13} weight="light" /></button>
-      <button class="sel-action-btn" onclick={() => onMarkSelectedRead(true)} title="Mark selected as read"><CheckCircle size={13} weight="light" /></button>
-      <button class="sel-action-btn" onclick={() => onMarkSelectedRead(false)} title="Mark selected as unread"><Circle size={13} weight="light" /></button>
-      <button class="sel-action-btn" onclick={onClearSelection} title="Clear selection"><X size={13} weight="light" /></button>
+      <span class="sel-count">{t('series.actions.selectedCount', { count: selectedCount })}</span>
+      <button class="sel-action-btn" onclick={onDownloadSelected} title={t('series.actions.downloadSelected')}><Download size={13} weight="light" /></button>
+      <button class="sel-action-btn sel-action-danger" onclick={onDeleteSelected} title={t('series.actions.deleteSelected')}><Trash size={13} weight="light" /></button>
+      <button class="sel-action-btn" onclick={() => onMarkSelectedRead(true)} title={t('series.actions.markSelectedRead')}><CheckCircle size={13} weight="light" /></button>
+      <button class="sel-action-btn" onclick={() => onMarkSelectedRead(false)} title={t('series.actions.markSelectedUnread')}><Circle size={13} weight="light" /></button>
+      <button class="sel-action-btn" onclick={onClearSelection} title={t('series.actions.clearSelection')}><X size={13} weight="light" /></button>
     {:else}
       <div class="sort-wrap">
         <button class="sort-btn" onclick={() => sortMenuOpen = !sortMenuOpen}>
           {#if sortDir === 'desc'}<SortDescending size={14} weight="light" />{:else}<SortAscending size={14} weight="light" />{/if}
-          {{ source: 'Source order', chapterNumber: 'Ch. number', uploadDate: 'Upload date' }[sortMode]}
+          {t(SORT_BUTTON_LABELS[sortMode])}
           <CaretDown size={10} weight="light" />
         </button>
         {#if sortMenuOpen}
           <div class="sort-menu" role="presentation" onmouseleave={() => sortMenuOpen = false}>
-            {#each [['source','Source order'],['chapterNumber','Chapter number'],['uploadDate','Upload date']] as [val, label]}
+            {#each SORT_OPTIONS as [val, label]}
               <button
                 class="sort-option"
                 class:active={sortMode === val}
                 onclick={() => { onSortModeChange(val as ChapterSortMode); sortMenuOpen = false }}
-              >{label}</button>
+              >{t(label)}</button>
             {/each}
             <div class="sort-divider"></div>
             <button class="sort-option" onclick={() => { onSortDirChange(sortDir === 'desc' ? 'asc' : 'desc'); sortMenuOpen = false }}>
-              {sortDir === 'desc' ? '↑ Ascending' : '↓ Descending'}
+              {sortDir === 'desc' ? t('series.actions.ascending') : t('series.actions.descending')}
             </button>
           </div>
         {/if}
       </div>
-      <button class="icon-btn" class:active={viewMode === 'grid'} onclick={onViewModeToggle} title={viewMode === 'list' ? 'Grid view' : 'List view'}>
+      <button class="icon-btn" class:active={viewMode === 'grid'} onclick={onViewModeToggle} title={viewMode === 'list' ? t('series.actions.gridView') : t('series.actions.listView')}>
         {#if viewMode === 'list'}<SquaresFour size={14} weight="light" />{:else}<List size={14} weight="light" />{/if}
       </button>
     {/if}
@@ -186,22 +199,22 @@
   <div class="list-header-right">
 
     <div class="jump-wrap">
-      <button class="icon-btn" class:active={jumpOpen} onclick={() => { jumpOpen = !jumpOpen; jumpInput = '' }} title="Jump to chapter">
+      <button class="icon-btn" class:active={jumpOpen} onclick={() => { jumpOpen = !jumpOpen; jumpInput = '' }} title={t('series.actions.jumpToChapter')}>
         <MagnifyingGlass size={14} weight="light" />
       </button>
       {#if jumpOpen}
         <div class="jump-popover">
           <input
             class="jump-input"
-            placeholder="Chapter # or name…"
+            placeholder={t('series.actions.jumpPlaceholder')}
             bind:value={jumpInput}
             use:focusOnMount
             onkeydown={(e) => { if (e.key === 'Enter') doJump(); if (e.key === 'Escape') { jumpOpen = false; jumpInput = '' } }}
           />
           {#if jumpChapter}
-            <button class="jump-go" onclick={doJump}>Go · {jumpChapter.name}</button>
+            <button class="jump-go" onclick={doJump}>{t('series.actions.jumpGo', { name: jumpChapter.name })}</button>
           {:else if jumpInput.trim()}
-            <p class="jump-none">No match</p>
+            <p class="jump-none">{t('series.actions.noMatch')}</p>
           {/if}
         </div>
       {/if}
@@ -213,7 +226,7 @@
           class="icon-btn"
           class:active={scanlatorFilter.length > 0 || scanlatorBlacklist.length > 0}
           onclick={() => scanFilterOpen = !scanFilterOpen}
-          title="Filter by scanlator"
+          title={t('series.actions.filterByScanlator')}
         >
           <Funnel size={14} weight={scanlatorFilter.length > 0 || scanlatorBlacklist.length > 0 ? 'fill' : 'light'} />
         </button>
@@ -221,21 +234,21 @@
           <div class="scan-filter-panel" role="menu">
             <div class="scan-filter-header">
               <div class="scan-filter-tabs">
-                <button class="scan-filter-tab" class:scan-filter-tab-active={scanTab === 'prefer'} onclick={() => scanTab = 'prefer'}>Prefer</button>
-                <button class="scan-filter-tab" class:scan-filter-tab-active={scanTab === 'block'}  onclick={() => scanTab = 'block'}>Block</button>
+                <button class="scan-filter-tab" class:scan-filter-tab-active={scanTab === 'prefer'} onclick={() => scanTab = 'prefer'}>{t('series.actions.prefer')}</button>
+                <button class="scan-filter-tab" class:scan-filter-tab-active={scanTab === 'block'}  onclick={() => scanTab = 'block'}>{t('series.actions.block')}</button>
               </div>
               {#if scanTab === 'prefer' && scanlatorFilter.length > 0}
-                <button class="scan-filter-clear" onclick={() => { onSetScanlatorFilter([]); onSetScanlatorForce(false) }}>Clear</button>
+                <button class="scan-filter-clear" onclick={() => { onSetScanlatorFilter([]); onSetScanlatorForce(false) }}>{t('common.clear')}</button>
               {:else if scanTab === 'block' && scanlatorBlacklist.length > 0}
-                <button class="scan-filter-clear" onclick={() => { onSetScanlatorBlacklist([]) }}>Clear</button>
+                <button class="scan-filter-clear" onclick={() => { onSetScanlatorBlacklist([]) }}>{t('common.clear')}</button>
               {/if}
             </div>
             <div class="scan-filter-divider"></div>
             {#if scanTab === 'prefer'}
               <div class="scan-filter-force-row">
-                <span class="scan-filter-force-label" title="Hide chapters with no preferred group match, rather than falling back to any available group.">Enforce</span>
+                <span class="scan-filter-force-label" title={t('series.actions.enforceHint')}>{t('series.actions.enforce')}</span>
                 <button class="scan-force-toggle" class:scan-force-on={scanlatorForce} onclick={() => { onSetScanlatorForce(!scanlatorForce) }}>
-                  {scanlatorForce ? 'On' : 'Off'}
+                  {scanlatorForce ? t('common.on') : t('common.off')}
                 </button>
               </div>
               <div class="scan-filter-divider"></div>
@@ -274,13 +287,13 @@
     {/if}
 
     {#if !isLocal}
-      <button class="icon-btn" onclick={onRefresh} disabled={refreshing} title="Refresh chapters">
+      <button class="icon-btn" onclick={onRefresh} disabled={refreshing} title={t('series.actions.refreshChapters')}>
         <ArrowsClockwise size={14} weight="light" class={refreshing ? 'anim-spin' : ''} />
       </button>
     {/if}
 
     {#if downloadedCount > 0 && canOpenFolder()}
-      <button class="icon-btn" onclick={onOpenFolder} title="Open manga folder">
+      <button class="icon-btn" onclick={onOpenFolder} title={t('series.actions.openFolder')}>
         <FolderOpen size={14} weight="light" />
       </button>
     {/if}
@@ -292,9 +305,9 @@
       {#if folderPickerOpen}
         <div class="fp-menu">
           {#if catsLoading}
-            <p class="fp-empty">Loading…</p>
+            <p class="fp-empty">{t('common.loading')}</p>
           {:else if allFolders.length === 0 && !folderCreating}
-            <p class="fp-empty">No folders yet</p>
+            <p class="fp-empty">{t('series.actions.noFolders')}</p>
           {/if}
           {#each allFolders as folder}
             {@const isIn = mangaFolders.some(f => f.id === folder.id)}
@@ -307,16 +320,16 @@
             <div class="fp-create">
               <input
                 class="fp-input"
-                placeholder="Folder name…"
+                placeholder={t('series.actions.folderNamePlaceholder')}
                 bind:value={folderNewName}
                 use:focusOnMount
                 onkeydown={(e) => { if (e.key === 'Enter') submitNewFolder(); if (e.key === 'Escape') { folderCreating = false; folderNewName = '' } }}
               />
-              <button class="fp-confirm" onclick={submitNewFolder} disabled={!folderNewName.trim()}>Add</button>
+              <button class="fp-confirm" onclick={submitNewFolder} disabled={!folderNewName.trim()}>{t('common.add')}</button>
               <button class="fp-cancel" onclick={() => { folderCreating = false; folderNewName = '' }}><X size={12} weight="light" /></button>
             </div>
           {:else}
-            <button class="fp-new" onclick={() => folderCreating = true}>+ New folder</button>
+            <button class="fp-new" onclick={() => folderCreating = true}>{t('series.actions.newFolder')}</button>
           {/if}
         </div>
       {/if}
@@ -324,25 +337,25 @@
 
     {#if chapters.length > 0 && !isLocal}
       <div class="dl-wrap" bind:this={dlDropRef}>
-        <button class="icon-btn dl-unified-btn" class:active={dlOpen} class:dl-has-count={downloadedCount > 0} onclick={() => dlOpen = !dlOpen} title="Download options">
+        <button class="icon-btn dl-unified-btn" class:active={dlOpen} class:dl-has-count={downloadedCount > 0} onclick={() => dlOpen = !dlOpen} title={t('series.actions.downloadOptions')}>
           <Download size={13} weight={downloadedCount > 0 ? 'fill' : 'light'} />
           {#if downloadedCount > 0}<span class="dl-unified-count">{downloadedCount}</span>{/if}
         </button>
         {#if dlOpen}
           <div class="dl-dropdown">
             {#if downloadedCount > 0}
-              <p class="dl-section-label">{downloadedCount} / {totalCount} downloaded</p>
+              <p class="dl-section-label">{t('series.actions.downloadedOfTotal', { downloaded: downloadedCount, total: totalCount })}</p>
               <div class="dl-divider"></div>
             {/if}
             {#if continueChapter}
               {@const contIdx = sortedChapters.indexOf(continueChapter.chapter)}
               {#if contIdx >= 0}
-                <p class="dl-section-label">From Ch.{continueChapter.chapter.chapterNumber}</p>
+                <p class="dl-section-label">{t('series.actions.fromChapter', { number: continueChapter.chapter.chapterNumber })}</p>
                 <div class="dl-next-row">
                   {#each [5, 10, 25] as n}
                     {@const avail = sortedChapters.slice(contIdx, contIdx + n).filter(c => !c.downloaded).length}
                     <button class="dl-next-btn" disabled={avail === 0} onclick={() => { onEnqueueNext(n); dlOpen = false }}>
-                      <span>Next {n}</span><span class="dl-next-sub">{avail} new</span>
+                      <span>{t('series.actions.nextN', { count: n })}</span><span class="dl-next-sub">{t('series.actions.newCount', { count: avail })}</span>
                     </button>
                   {/each}
                 </div>
@@ -351,29 +364,29 @@
             {/if}
             {#if !showRange}
               <button class="dl-item" onclick={() => showRange = true}>
-                <span>Custom range…</span><span class="dl-item-sub">Enter chapter numbers</span>
+                <span>{t('series.actions.customRange')}</span><span class="dl-item-sub">{t('series.actions.customRangeHint')}</span>
               </button>
             {:else}
               <div class="dl-range-row">
                 <button class="dl-range-back" onclick={() => showRange = false}>‹</button>
-                <input class="dl-range-input" placeholder="From" bind:value={rangeFrom} onkeydown={(e) => e.key === 'Enter' && enqueueRange()} use:focusOnMount />
+                <input class="dl-range-input" placeholder={t('series.actions.rangeFrom')} bind:value={rangeFrom} onkeydown={(e) => e.key === 'Enter' && enqueueRange()} use:focusOnMount />
                 <span class="dl-range-sep">–</span>
-                <input class="dl-range-input" placeholder="To" bind:value={rangeTo} onkeydown={(e) => e.key === 'Enter' && enqueueRange()} />
-                <button class="dl-range-go" disabled={!rangeFrom.trim() || !rangeTo.trim()} onclick={enqueueRange}>Go</button>
+                <input class="dl-range-input" placeholder={t('series.actions.rangeTo')} bind:value={rangeTo} onkeydown={(e) => e.key === 'Enter' && enqueueRange()} />
+                <button class="dl-range-go" disabled={!rangeFrom.trim() || !rangeTo.trim()} onclick={enqueueRange}>{t('series.actions.go')}</button>
               </div>
             {/if}
             <div class="dl-divider"></div>
             <button class="dl-item" onclick={() => { onEnqueueMultiple(sortedChapters.filter(c => !c.read && !c.downloaded).map(c => c.id)); dlOpen = false }}>
-              <span>Unread chapters</span><span class="dl-item-sub">{sortedChapters.filter(c => !c.read && !c.downloaded).length} remaining</span>
+              <span>{t('series.actions.unreadChapters')}</span><span class="dl-item-sub">{t('series.actions.remainingCount', { count: sortedChapters.filter(c => !c.read && !c.downloaded).length })}</span>
             </button>
             <button class="dl-item" onclick={() => { onEnqueueMultiple(sortedChapters.filter(c => !c.downloaded).map(c => c.id)); dlOpen = false }}>
-              <span>Download all</span><span class="dl-item-sub">{sortedChapters.filter(c => !c.downloaded).length} not downloaded</span>
+              <span>{t('series.actions.downloadAll')}</span><span class="dl-item-sub">{t('series.actions.notDownloadedCount', { count: sortedChapters.filter(c => !c.downloaded).length })}</span>
             </button>
             {#if downloadedCount > 0}
               <div class="dl-divider"></div>
               <button class="dl-item dl-item-danger" onclick={() => { onDeleteAll(); dlOpen = false }} disabled={deletingAll}>
-                <span>{deletingAll ? 'Deleting…' : 'Delete all downloads'}</span>
-                <span class="dl-item-sub">{downloadedCount} downloaded</span>
+                <span>{deletingAll ? t('series.actions.deleting') : t('series.actions.deleteAllDownloads')}</span>
+                <span class="dl-item-sub">{t('series.actions.downloadedCount', { count: downloadedCount })}</span>
               </button>
             {/if}
           </div>

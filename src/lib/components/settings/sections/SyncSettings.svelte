@@ -5,6 +5,7 @@
   import type { SyncStatus, SyncNearbyDevice, SyncPairPreview } from '$lib/server-adapters/tsunagu/sync'
   import { addToast } from '$lib/state/notifications.svelte'
   import { timeAgo } from '$lib/core/util'
+  import { t } from '$lib/i18n/index.svelte'
 
   interface Props { popupOpen?: boolean }
   let { popupOpen = $bindable(false) }: Props = $props()
@@ -69,14 +70,14 @@
   // Online dots and last-seen times only stay true while they're refreshed.
   $effect(() => {
     load()
-    const t = setInterval(load, 4000)
-    return () => clearInterval(t)
+    const timer = setInterval(load, 4000)
+    return () => clearInterval(timer)
   })
 
   $effect(() => {
     if (!code) return
-    const t = setInterval(() => { now = Date.now() }, 1000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => { now = Date.now() }, 1000)
+    return () => clearInterval(timer)
   })
 
   let scannedOnce = false
@@ -127,7 +128,7 @@
       code = { code: c.code, expiresAt: new Date(c.expiresAt).getTime() }
       codeOpen = true
     } catch (e) {
-      addToast({ kind: 'error', title: 'Couldn’t make a pairing code', body: message(e) })
+      addToast({ kind: 'error', title: t('settings.sync.codeErrorToast'), body: message(e) })
     } finally {
       codeBusy = false
     }
@@ -172,7 +173,7 @@
     pairError = ''
     try {
       const peer = await tsunagu.connectSyncPeer(target.address, cleanCode(codeInput), preview.node)
-      addToast({ kind: 'success', title: `Paired with ${peer.name}`, body: 'Your libraries will merge over the next few seconds.' })
+      addToast({ kind: 'success', title: t('settings.sync.pairedToast', { name: peer.name }), body: t('settings.sync.pairedToastBody') })
       target = null
       preview = null
       manualAddr = ''
@@ -191,7 +192,7 @@
       status = await tsunagu.removeSyncPeer(node)
       nearby = nearby.map(d => (d.node === node ? { ...d, paired: false } : d))
     } catch (e) {
-      addToast({ kind: 'error', title: 'Couldn’t remove the device', body: message(e) })
+      addToast({ kind: 'error', title: t('settings.sync.removeErrorToast'), body: message(e) })
     } finally {
       confirmRemove = null
     }
@@ -203,7 +204,7 @@
     try {
       status = await tsunagu.syncNow()
     } catch (e) {
-      addToast({ kind: 'error', title: 'Sync didn’t finish', body: message(e) })
+      addToast({ kind: 'error', title: t('settings.sync.syncErrorToast'), body: message(e) })
       await load()
     } finally {
       syncing = false
@@ -214,20 +215,19 @@
     installing = { ...installing, [pkg]: true }
     try {
       await tsunagu.installSyncExtension(pkg)
-      addToast({ kind: 'success', title: `${name} installed`, body: 'Its titles will appear in your library shortly.' })
+      addToast({ kind: 'success', title: t('settings.sync.installedToast', { name }), body: t('settings.sync.installedToastBody') })
       await load()
     } catch (e) {
-      addToast({ kind: 'error', title: `Couldn’t install ${name}`, body: message(e) })
+      addToast({ kind: 'error', title: t('settings.sync.installErrorToast', { name }), body: message(e) })
     } finally {
       installing = { ...installing, [pkg]: false }
     }
   }
 
   function lastSeen(at: string | null): string {
-    return at ? `Last seen ${timeAgo(new Date(at).getTime())}` : 'Hasn’t connected yet'
+    return at ? t('settings.sync.lastSeen', { time: timeAgo(new Date(at).getTime()) }) : t('settings.sync.neverConnected')
   }
 
-  const plural = (n: number, one: string, many = one + 's') => `${n.toLocaleString()} ${n === 1 ? one : many}`
   const groupCode = (c: string) => c.length === 8 ? `${c.slice(0, 4)} ${c.slice(4)}` : c
   const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 </script>
@@ -236,21 +236,21 @@
   {#if !status}
     <div class="s-section">
       <div class="s-section-body">
-        <div class="s-row"><span class="s-desc" class:sy-err={!!loadError}>{loadError ? `Can’t reach the server: ${loadError}` : 'Loading…'}</span></div>
+        <div class="s-row"><span class="s-desc" class:sy-err={!!loadError}>{loadError ? t('settings.sync.unreachable', { error: loadError }) : t('common.loading')}</span></div>
       </div>
     </div>
 
   {:else if !named}
     <div class="s-section">
-      <p class="s-section-title">Name this device</p>
+      <p class="s-section-title">{t('settings.sync.nameTitle')}</p>
       <div class="s-section-body">
         <div class="s-row sy-stack">
-          <span class="s-desc">Your other devices will see this name.</span>
+          <span class="s-desc">{t('settings.sync.nameDesc')}</span>
           <form class="sy-inline" onsubmit={(e) => { e.preventDefault(); saveName() }}>
-            <input id="sync-name" class="s-input full" maxlength={NAME_MAX} placeholder="e.g. Desk" autocomplete="off"
+            <input id="sync-name" class="s-input full" maxlength={NAME_MAX} placeholder={t('settings.sync.namePlaceholder')} autocomplete="off"
               bind:value={nameDraft} disabled={nameBusy} />
             <button class="s-btn s-btn-accent" type="submit" disabled={nameBusy || !nameDraft.trim()}>
-              {nameBusy ? 'Saving…' : 'Continue'}
+              {nameBusy ? t('settings.sync.saving') : t('common.continue')}
             </button>
           </form>
           {#if nameError}<span class="s-desc sy-err">{nameError}</span>{/if}
@@ -260,14 +260,14 @@
 
   {:else}
     <div class="s-section">
-      <p class="s-section-title">This device</p>
+      <p class="s-section-title">{t('settings.sync.thisDeviceTitle')}</p>
       <div class="s-section-body">
         {#if renaming}
           <div class="s-row sy-stack">
             <form class="sy-inline" onsubmit={(e) => { e.preventDefault(); saveName() }}>
               <input id="sync-rename" class="s-input full" maxlength={NAME_MAX} autocomplete="off" bind:value={nameDraft} disabled={nameBusy} />
-              <button class="s-btn s-btn-accent" type="submit" disabled={nameBusy || !nameDraft.trim()}>{nameBusy ? 'Saving…' : 'Save'}</button>
-              <button class="s-btn" type="button" onclick={() => (renaming = false)}>Cancel</button>
+              <button class="s-btn s-btn-accent" type="submit" disabled={nameBusy || !nameDraft.trim()}>{nameBusy ? t('settings.sync.saving') : t('common.save')}</button>
+              <button class="s-btn" type="button" onclick={() => (renaming = false)}>{t('common.cancel')}</button>
             </form>
             {#if nameError}<span class="s-desc sy-err">{nameError}</span>{/if}
           </div>
@@ -275,35 +275,35 @@
           <div class="s-row">
             <div class="s-row-info">
               <span class="s-label">{status.name}</span>
-              <span class="s-desc">Shown on your other devices.</span>
+              <span class="s-desc">{t('settings.sync.nameShown')}</span>
             </div>
-            <button class="s-btn" onclick={startRename}>Rename</button>
+            <button class="s-btn" onclick={startRename}>{t('common.rename')}</button>
           </div>
         {/if}
         <div class="s-row">
           <div class="s-row-info">
-            <span class="s-label">Sync</span>
+            <span class="s-label">{t('settings.sync.syncLabel')}</span>
             <span class="s-desc">
               {#if status.pendingTitles > 0}
-                {plural(status.pendingTitles, 'title')} still loading.
+                {t('settings.sync.pendingTitles', { count: status.pendingTitles })}
               {:else if status.peers.some(p => p.online)}
-                Up to date.
+                {t('settings.sync.upToDate')}
               {:else if status.peers.length}
-                No devices connected.
+                {t('settings.sync.noneConnected')}
               {:else}
-                No devices paired.
+                {t('settings.sync.nonePaired')}
               {/if}
             </span>
           </div>
           <button class="s-btn" disabled={syncing || !status.peers.length} onclick={syncNow}>
-            {syncing ? 'Syncing…' : 'Sync now'}
+            {syncing ? t('settings.sync.syncing') : t('settings.sync.syncNow')}
           </button>
         </div>
       </div>
     </div>
 
     <div class="s-section">
-      <p class="s-section-title">Paired devices</p>
+      <p class="s-section-title">{t('settings.sync.pairedTitle')}</p>
       <div class="s-section-body">
         {#each status.peers as p (p.node)}
           <div class="s-row">
@@ -311,54 +311,54 @@
               <span class="sy-dot" class:on={p.online} aria-hidden="true"></span>
               <div class="s-row-info">
                 <span class="s-label">{p.name}</span>
-                <span class="s-desc">{p.online ? 'Connected' : lastSeen(p.lastSeenAt)}</span>
+                <span class="s-desc">{p.online ? t('settings.sync.connected') : lastSeen(p.lastSeenAt)}</span>
               </div>
             </div>
             {#if confirmRemove === p.node}
               <div class="s-btn-row">
-                <span class="s-desc">Remove {p.name}?</span>
-                <button class="s-btn s-btn-danger" onclick={() => remove(p.node)}>Remove</button>
-                <button class="s-btn" onclick={() => (confirmRemove = null)}>Cancel</button>
+                <span class="s-desc">{t('settings.sync.removeConfirm', { name: p.name })}</span>
+                <button class="s-btn s-btn-danger" onclick={() => remove(p.node)}>{t('common.remove')}</button>
+                <button class="s-btn" onclick={() => (confirmRemove = null)}>{t('common.cancel')}</button>
               </div>
             {:else}
-              <button class="s-btn" onclick={() => (confirmRemove = p.node)}>Remove</button>
+              <button class="s-btn" onclick={() => (confirmRemove = p.node)}>{t('common.remove')}</button>
             {/if}
           </div>
         {:else}
-          <div class="s-row"><span class="s-desc">None yet.</span></div>
+          <div class="s-row"><span class="s-desc">{t('settings.sync.noneYet')}</span></div>
         {/each}
       </div>
     </div>
 
     <div class="s-section">
-      <p class="s-section-title">Pair a device</p>
+      <p class="s-section-title">{t('settings.sync.pairTitle')}</p>
       <div class="s-section-body">
         {#if target}
           <div class="s-row sy-stack">
-            <span class="s-label">Pair with {preview?.name ?? target.name ?? target.address}</span>
+            <span class="s-label">{t('settings.sync.pairWith', { name: preview?.name ?? target.name ?? target.address })}</span>
             {#if !preview}
-              <span class="s-desc">Enter the code shown on {target.name ?? 'that device'} under Sync › Show code.</span>
+              <span class="s-desc">{target.name ? t('settings.sync.enterCodeNamed', { name: target.name }) : t('settings.sync.enterCodeUnnamed')}</span>
               <form class="sy-inline" onsubmit={(e) => { e.preventDefault(); runPreview() }}>
                 <input id="sync-code" class="s-input mono sy-code-input" placeholder="XXXX XXXX" maxlength={11} autocomplete="off"
                   spellcheck="false" bind:value={codeInput} disabled={pairBusy} />
                 <button class="s-btn s-btn-accent" type="submit" disabled={pairBusy || cleanCode(codeInput).length !== 8}>
-                  {pairBusy ? 'Checking…' : 'Continue'}
+                  {pairBusy ? t('settings.sync.checking') : t('common.continue')}
                 </button>
-                <button class="s-btn" type="button" onclick={cancelPairing}>Cancel</button>
+                <button class="s-btn" type="button" onclick={cancelPairing}>{t('common.cancel')}</button>
               </form>
             {:else}
-              <span class="s-desc">Libraries merge. Nothing is removed.</span>
+              <span class="s-desc">{t('settings.sync.mergeNote')}</span>
               <ul class="sy-preview">
-                <li><b>{plural(preview.newTitles, 'title')}</b> added here</li>
-                <li><b>{plural(preview.sentTitles, 'title')}</b> sent there</li>
-                <li><b>{plural(preview.readChapters, 'read chapter')}</b></li>
+                <li><b>{t('settings.sync.titleCount', { count: preview.newTitles })}</b> {t('settings.sync.addedHere')}</li>
+                <li><b>{t('settings.sync.titleCount', { count: preview.sentTitles })}</b> {t('settings.sync.sentThere')}</li>
+                <li><b>{t('settings.sync.readChapterCount', { count: preview.readChapters })}</b></li>
                 {#if preview.mergingFolders.length}
-                  <li>Merging folders: {preview.mergingFolders.join(', ')}</li>
+                  <li>{t('settings.sync.mergingFolders', { folders: preview.mergingFolders.join(', ') })}</li>
                 {/if}
               </ul>
               <div class="s-btn-row">
-                <button class="s-btn s-btn-accent" disabled={pairBusy} onclick={confirmPair}>{pairBusy ? 'Pairing…' : `Pair with ${preview.name}`}</button>
-                <button class="s-btn" onclick={cancelPairing}>Cancel</button>
+                <button class="s-btn s-btn-accent" disabled={pairBusy} onclick={confirmPair}>{pairBusy ? t('settings.sync.pairing') : t('settings.sync.pairWith', { name: preview.name })}</button>
+                <button class="s-btn" onclick={cancelPairing}>{t('common.cancel')}</button>
               </div>
             {/if}
             {#if pairError}<span class="s-desc sy-err">{pairError}</span>{/if}
@@ -366,10 +366,10 @@
         {:else}
           <div class="s-row">
             <div class="s-row-info">
-              <span class="s-label">Nearby</span>
-              <span class="s-desc">On this network.</span>
+              <span class="s-label">{t('settings.sync.nearby')}</span>
+              <span class="s-desc">{t('settings.sync.nearbyDesc')}</span>
             </div>
-            <button class="s-btn-icon" aria-label="Look again" title="Look again" disabled={scanning} onclick={scan}>
+            <button class="s-btn-icon" aria-label={t('settings.sync.lookAgain')} title={t('settings.sync.lookAgain')} disabled={scanning} onclick={scan}>
               <span class:sy-spin={scanning}><ArrowsClockwise size={14} weight="light" /></span>
             </button>
           </div>
@@ -381,38 +381,38 @@
                   <span class="s-desc">{d.address.replace(/^https?:\/\//, '')}</span>
                 {/if}
               </div>
-              <button class="s-btn s-btn-accent" onclick={() => pairWith(d.address, d.name)}>Pair</button>
+              <button class="s-btn s-btn-accent" onclick={() => pairWith(d.address, d.name)}>{t('settings.sync.pair')}</button>
             </div>
           {:else}
             <div class="s-row">
               <span class="s-desc" class:sy-err={!!scanError}>
-                {#if scanning}Looking…{:else if scanError}{scanError}{:else}Nothing found. Open Moku on the other device.{/if}
+                {#if scanning}{t('settings.sync.looking')}{:else if scanError}{scanError}{:else}{t('settings.sync.nothingFound')}{/if}
               </span>
             </div>
           {/each}
 
           <div class="s-row">
             <div class="s-row-info">
-              <span class="s-label">Show a code</span>
-              <span class="s-desc">Scan it on a phone, or type it on another device.</span>
+              <span class="s-label">{t('settings.sync.showCodeLabel')}</span>
+              <span class="s-desc">{t('settings.sync.showCodeDesc')}</span>
             </div>
             <button class="s-btn" disabled={codeBusy} onclick={showCode}>
-              <QrCode size={13} weight="light" /> Show code
+              <QrCode size={13} weight="light" /> {t('settings.sync.showCode')}
             </button>
           </div>
 
           <div class="s-row">
             <div class="s-row-info">
-              <span class="s-label">Pair by address</span>
-              <span class="s-desc">Tailscale or HTTPS address.</span>
+              <span class="s-label">{t('settings.sync.pairByAddress')}</span>
+              <span class="s-desc">{t('settings.sync.pairByAddressDesc')}</span>
             </div>
             {#if manualOpen}
               <form class="sy-inline" onsubmit={(e) => { e.preventDefault(); if (manualAddr.trim()) pairWith(manualAddr.trim()) }}>
                 <input id="sync-address" class="s-input mono" placeholder="http://192.168.1.20:6008" spellcheck="false" bind:value={manualAddr} />
-                <button class="s-btn" type="submit" disabled={!manualAddr.trim()}>Next</button>
+                <button class="s-btn" type="submit" disabled={!manualAddr.trim()}>{t('common.next')}</button>
               </form>
             {:else}
-              <button class="s-btn" onclick={() => (manualOpen = true)}>Enter address</button>
+              <button class="s-btn" onclick={() => (manualOpen = true)}>{t('settings.sync.enterAddress')}</button>
             {/if}
           </div>
         {/if}
@@ -421,20 +421,20 @@
 
     {#if status.missingExtensions.length}
       <div class="s-section">
-        <p class="s-section-title">Extensions to install</p>
+        <p class="s-section-title">{t('settings.sync.missingExtTitle')}</p>
         <div class="s-section-body">
                     {#each status.missingExtensions as m (m.packageName)}
             <div class="s-row">
               <div class="s-row-info">
                 <span class="s-label">{m.name} <span class="sy-meta">{m.lang.toUpperCase()} · {m.contentType}</span></span>
                 <span class="s-desc">
-                  {plural(m.titles, 'title')}{m.examples.length ? `: ${m.examples.join(', ')}${m.titles > m.examples.length ? '…' : ''}` : ''}
-                  {#if !m.available && !m.repository}<br />Add its repository first.{/if}
+                  {m.examples.length ? t('settings.sync.titleCountExamples', { count: m.titles, examples: `${m.examples.join(', ')}${m.titles > m.examples.length ? '…' : ''}` }) : t('settings.sync.titleCount', { count: m.titles })}
+                  {#if !m.available && !m.repository}<br />{t('settings.sync.addRepoFirst')}{/if}
                 </span>
               </div>
               <button class="s-btn s-btn-accent" disabled={installing[m.packageName] || (!m.available && !m.repository)}
                 onclick={() => install(m.packageName, m.name)}>
-                {installing[m.packageName] ? 'Installing…' : 'Install'}
+                {installing[m.packageName] ? t('settings.sync.installing') : t('common.install')}
               </button>
             </div>
           {/each}
@@ -448,28 +448,28 @@
 
 {#if codeOpen && code && status?.name}
   <div class="sy-backdrop" role="presentation" onclick={(e) => { if (e.target === e.currentTarget) closeCode() }}>
-    <div class="sy-dialog" role="dialog" aria-modal="true" aria-label="Pairing code">
+    <div class="sy-dialog" role="dialog" aria-modal="true" aria-label={t('settings.sync.pairingCode')}>
       <header class="sy-dialog-head">
-        <span class="sy-dialog-title">Pair with {status.name}</span>
-        <button class="sy-close" aria-label="Close" onclick={closeCode}><X size={14} weight="bold" /></button>
+        <span class="sy-dialog-title">{t('settings.sync.pairWith', { name: status.name })}</span>
+        <button class="sy-close" aria-label={t('common.close')} onclick={closeCode}><X size={14} weight="bold" /></button>
       </header>
       <div class="sy-dialog-body" class:dim={expired}>
         {#if qrSvg}
-          <div class="sy-qr" aria-label="QR code for pairing">{@html qrSvg}</div>
+          <div class="sy-qr" aria-label={t('settings.sync.qrLabel')}>{@html qrSvg}</div>
         {/if}
-        <span class="sy-code" aria-label="Pairing code">{groupCode(code.code)}</span>
+        <span class="sy-code" aria-label={t('settings.sync.pairingCode')}>{groupCode(code.code)}</span>
         <span class="s-desc sy-center">
           {#if expired}
-            This code has expired.
+            {t('settings.sync.codeExpired')}
           {:else if qrSvg}
-            Scan with Moku on your phone, or enter the code on another device. Expires in {clock(codeLeft)}.
+            {t('settings.sync.codeHintQr', { time: clock(codeLeft) })}
           {:else}
-            Enter the code on the other device. Expires in {clock(codeLeft)}.
+            {t('settings.sync.codeHint', { time: clock(codeLeft) })}
           {/if}
         </span>
       </div>
       {#if expired}
-        <div class="sy-dialog-foot"><button class="s-btn s-btn-accent" disabled={codeBusy} onclick={showCode}>New code</button></div>
+        <div class="sy-dialog-foot"><button class="s-btn s-btn-accent" disabled={codeBusy} onclick={showCode}>{t('settings.sync.newCode')}</button></div>
       {/if}
     </div>
   </div>

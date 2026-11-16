@@ -1,5 +1,6 @@
 import { settingsState, updateSettings } from '$lib/state/settings.svelte'
 import { app } from '$lib/state/app.svelte'
+import type { MessageKey } from '$lib/i18n/index.svelte'
 
 export const onboardingState = $state({
   open: false,
@@ -24,8 +25,8 @@ export function replayOnboarding() {
 
 export interface TourStep {
   selector:  string
-  title:     string
-  body:      string
+  title:     MessageKey
+  body:      MessageKey
   placement?: 'right' | 'bottom'
   route?:     string
   padding?:   number
@@ -35,50 +36,50 @@ export interface TourStep {
 export const TOUR_STEPS: TourStep[] = [
   {
     selector:  '[data-tour="sidebar-nav"]',
-    title:     'Navigation',
-    body:      'Library, Downloads, Recent and Extensions all live in this rail.',
+    title:     'onboarding.tour.navigationTitle',
+    body:      'onboarding.tour.navigationBody',
     placement: 'right',
     padding:   16,
   },
   {
     selector:  '[data-tour="global-search"]',
-    title:     'Search everything',
-    body:      'Browse searches every installed source at once — by title, tag or genre.',
+    title:     'onboarding.tour.searchTitle',
+    body:      'onboarding.tour.searchBody',
     placement: 'right',
     padding:   12,
   },
   {
     selector:  '[data-tour="content-switch"]',
-    title:     'Manga, novels or anime',
-    body:      'Switch the whole app between content types. “All” shows them together.',
+    title:     'onboarding.tour.contentSwitchTitle',
+    body:      'onboarding.tour.contentSwitchBody',
     placement: 'right',
     padding:   4,
   },
   {
     selector:  '[data-tour="add-source"]',
-    title:     'Add a source',
-    body:      'Add an extension repo here, then install sources to start browsing.',
+    title:     'onboarding.tour.addSourceTitle',
+    body:      'onboarding.tour.addSourceBody',
     placement: 'bottom',
     route:     '/extensions',
   },
   {
     selector:  '[data-tour="local-source"]',
-    title:     'Or use your own files',
-    body:      'Already have manga or anime on disk? Local Source reads straight from a folder you pick — no extension needed.',
+    title:     'onboarding.tour.localSourceTitle',
+    body:      'onboarding.tour.localSourceBody',
     placement: 'bottom',
     route:     '/extensions',
   },
   {
     selector:  '[data-tour="settings-btn"]',
-    title:     'Settings',
-    body:      'Reader and player options, content filtering, themes, server config and backups.',
+    title:     'onboarding.tour.settingsTitle',
+    body:      'onboarding.tour.settingsBody',
     placement: 'right',
     padding:   12,
   },
   {
     selector:  '[data-tour="settings-tab-tracking"]',
-    title:     'Track your progress',
-    body:      'Connect AniList or MyAnimeList under Settings → Tracking to sync what you read and watch.',
+    title:     'onboarding.tour.trackingTitle',
+    body:      'onboarding.tour.trackingBody',
     placement: 'right',
     padding:   3,
     settingsTab: 'tracking',

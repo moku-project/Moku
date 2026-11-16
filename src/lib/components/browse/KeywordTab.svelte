@@ -9,6 +9,7 @@
   import type { Manga, Source } from "$lib/types";
   import { toBrowseManga, coverFirst } from "$lib/components/browse/lib/searchFilter";
   import { canonicalLang, langBadge, LANG_ALL } from "$lib/core/lang";
+  import { t, tSplit } from "$lib/i18n/index.svelte";
 
   interface Props {
     allSources:        Source[];
@@ -142,7 +143,7 @@
         if (info?.code === "SOURCE_NOT_FOUND") {
           kw_results[idx] = { ...kw_results[idx], loading: false, error: null };
         } else {
-          kw_results[idx] = { ...kw_results[idx], loading: false, error: info?.label ?? e.message ?? "Error" };
+          kw_results[idx] = { ...kw_results[idx], loading: false, error: info?.label ?? e.message ?? t("common.error") };
         }
       }
     }));
@@ -191,6 +192,7 @@
   const kw_anyLoading   = $derived(kw_results.some((r) => r.loading));
   const kw_allDone      = $derived(kw_results.length > 0 && kw_results.every((r) => !r.loading));
   const kw_hasResults   = $derived(kw_results.some((r) => r.mangas.length > 0));
+  const kw_searchingParts = $derived(tSplit("browse.keyword.searchingSources", "count", { count: kw_visibleCount }));
 
   const kw_flatResults = $derived.by(() => {
     const all = kw_results.flatMap((r) =>
@@ -271,20 +273,20 @@
       value={kw_localQuery}
       oninput={(e) => kwHandleInput((e.target as HTMLInputElement).value)}
       class="searchInput"
-      placeholder="Search across sources…"
+      placeholder={t("browse.keyword.placeholder")}
     />
     {#if kw_pending || kw_anyLoading}
       <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="anim-spin" style="color:var(--text-faint);flex-shrink:0" aria-hidden="true">
         <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"/>
       </svg>
     {:else if kw_localQuery}
-      <button class="clearBtn" title="Clear" onclick={() => { kwHandleInput(""); kw_inputEl?.focus(); }}>×</button>
+      <button class="clearBtn" title={t("common.clear")} onclick={() => { kwHandleInput(""); kw_inputEl?.focus(); }}>×</button>
     {/if}
     {#if hasMultipleLangs}
       <button
         class="advancedBtn"
         class:advancedBtnActive={kw_showAdvanced}
-        title="Language & filter options"
+        title={t("browse.keyword.advancedOptions")}
         onclick={() => (kw_showAdvanced = !kw_showAdvanced)}
       >
         <svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
@@ -297,10 +299,10 @@
   {#if kw_showAdvanced && hasMultipleLangs}
     <div class="advancedPanel">
       <div class="advancedHeader">
-        <span class="advancedTitle">LANGUAGES</span>
+        <span class="advancedTitle">{t("browse.keyword.languages")}</span>
         <div class="advancedActions">
-          <button class="advancedLink" onclick={() => (kw_selectedLangs = new Set(availableLangs))}>All</button>
-          <button class="advancedLink" onclick={() => (kw_selectedLangs = preferredLang === LANG_ALL ? new Set(availableLangs) : new Set([preferredLang]))}>Reset</button>
+          <button class="advancedLink" onclick={() => (kw_selectedLangs = new Set(availableLangs))}>{t("common.all")}</button>
+          <button class="advancedLink" onclick={() => (kw_selectedLangs = preferredLang === LANG_ALL ? new Set(availableLangs) : new Set([preferredLang]))}>{t("common.reset")}</button>
         </div>
       </div>
       <div class="langGrid">
@@ -312,7 +314,7 @@
       </div>
       <div class="advancedDivider"></div>
       <div class="advancedFooter">
-        Searching <strong>{kw_visibleCount}</strong> source{kw_visibleCount !== 1 ? "s" : ""}
+        {kw_searchingParts[0]}<strong>{kw_visibleCount}</strong>{kw_searchingParts[1]}
       </div>
     </div>
   {/if}
@@ -325,7 +327,7 @@
     </div>
   {:else if popularResults.length > 0}
     <div class="searchHeader">
-      <span class="searchLabel">Popular right now</span>
+      <span class="searchLabel">{t("browse.keyword.popular")}</span>
     </div>
     <div class="searchGrid">
       {#each pop_renderedResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
@@ -333,7 +335,7 @@
           <div class="srchCoverWrap">
             <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={m._priority} id={m.id} contentType={m.contentType} />
             <div class="srchGradient"></div>
-            {#if m.inLibrary}<span class="inLibBadge">Saved</span>{/if}
+            {#if m.inLibrary}<span class="inLibBadge">{t("browse.common.saved")}</span>{/if}
             <div class="srchFooter">
               <p class="srchTitle">{m.title}</p>
               {#if m.sourceName || m.source?.displayName}<p class="srchSource">{m.sourceName ?? m.source?.displayName}</p>{/if}
@@ -354,12 +356,12 @@
       <svg width="36" height="36" viewBox="0 0 256 256" fill="currentColor" class="emptyIcon" aria-hidden="true">
         <path d="M229.66,218.34l-50.07-50.07a88,88,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.31ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/>
       </svg>
-      <p class="emptyText">Search across sources</p>
+      <p class="emptyText">{t("browse.keyword.emptyTitle")}</p>
       <p class="emptyHint">
         {#if hasMultipleLangs}
-          {kw_visibleCount} source{kw_visibleCount !== 1 ? "s" : ""} · {kw_selectedLangs.size} language{kw_selectedLangs.size !== 1 ? "s" : ""}
+          {t("browse.keyword.sourcesAndLanguages", { sources: t("browse.keyword.sourceCount", { count: kw_visibleCount }), languages: t("browse.keyword.languageCount", { count: kw_selectedLangs.size }) })}
         {:else}
-          {kw_visibleCount} source{kw_visibleCount !== 1 ? "s" : ""}
+          {t("browse.keyword.sourceCount", { count: kw_visibleCount })}
         {/if}
       </p>
     </div>
@@ -371,7 +373,7 @@
 {:else}
   {#if kw_flatResults.length > 0}
     <div class="searchHeader">
-      <span class="searchLabel">{kw_flatResults.length} result{kw_flatResults.length !== 1 ? "s" : ""} for "{kw_localQuery.trim()}"</span>
+      <span class="searchLabel">{t("browse.keyword.resultsFor", { count: kw_flatResults.length, query: kw_localQuery.trim() })}</span>
     </div>
     <div class="searchGrid">
       {#each kw_renderedResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
@@ -379,7 +381,7 @@
           <div class="srchCoverWrap">
             <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={m._priority} id={m.id} contentType={m.contentType} />
             <div class="srchGradient"></div>
-            {#if m.inLibrary}<span class="inLibBadge">Saved</span>{/if}
+            {#if m.inLibrary}<span class="inLibBadge">{t("browse.common.saved")}</span>{/if}
             <div class="srchFooter">
               <p class="srchTitle">{m.title}</p>
               {#if (m as any)._sourceName}<p class="srchSource">{(m as any)._sourceName}</p>{/if}
@@ -404,8 +406,8 @@
       <svg width="36" height="36" viewBox="0 0 256 256" fill="currentColor" class="emptyIcon" aria-hidden="true">
         <path d="M229.66,218.34l-50.07-50.07a88,88,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.31ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/>
       </svg>
-      <p class="emptyText">No results for "{kw_localQuery.trim()}"</p>
-      <p class="emptyHint">Try a different spelling or fewer words</p>
+      <p class="emptyText">{t("browse.keyword.noResults", { query: kw_localQuery.trim() })}</p>
+      <p class="emptyHint">{t("browse.keyword.noResultsHint")}</p>
     </div>
   {/if}
 {/if}

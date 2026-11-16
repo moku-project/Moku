@@ -1,12 +1,14 @@
 import { appState }      from '$lib/state/app.svelte'
 import { settingsState } from '$lib/state/settings.svelte'
 import type { Settings } from '$lib/types/settings'
+import type { MessageKey } from '$lib/i18n/index.svelte'
 
 export type ReportType = 'bug' | 'feature'
 
-export const SETTINGS_GROUPS: { label: string; keys: (keyof Settings)[] }[] = [
+export const SETTINGS_GROUPS: { label: string; name: MessageKey; keys: (keyof Settings)[] }[] = [
   {
     label: 'Library',
+    name: 'settings.bugReport.groups.library',
     keys: [
       'libraryStatsAlways', 'libraryCropCovers', 'libraryPageSize',
       'libraryBranches', 'libraryShowAllInSaved', 'libraryHideCompletedInSaved',
@@ -15,6 +17,7 @@ export const SETTINGS_GROUPS: { label: string; keys: (keyof Settings)[] }[] = [
   },
   {
     label: 'Reader',
+    name: 'settings.bugReport.groups.reader',
     keys: [
       'pageStyle', 'fitMode', 'readingDirection', 'readerZoom',
       'pageGap', 'optimizeContrast', 'offsetDoubleSpreads',
@@ -25,30 +28,37 @@ export const SETTINGS_GROUPS: { label: string; keys: (keyof Settings)[] }[] = [
   },
   {
     label: 'Server',
+    name: 'settings.bugReport.groups.server',
     keys: ['serverUrl'],
   },
   {
     label: 'Appearance',
+    name: 'settings.bugReport.groups.appearance',
     keys: ['theme', 'uiZoom', 'compactSidebar', 'gpuAcceleration', 'qolAnimations', 'systemThemeSync'],
   },
   {
     label: 'Downloads',
+    name: 'settings.bugReport.groups.downloads',
     keys: ['downloadToastsEnabled', 'downloadAutoRetry', 'storageLimitGb', 'serverDownloadsPath'],
   },
   {
     label: 'Content & Extensions',
+    name: 'settings.bugReport.groups.contentExtensions',
     keys: ['contentLevel', 'sourceOverridesEnabled', 'preferredExtensionLang'],
   },
   {
     label: 'Automation',
+    name: 'settings.bugReport.groups.automation',
     keys: ['automationEnabled', 'automationEnforceGlobal'],
   },
   {
     label: 'Tracking',
+    name: 'settings.bugReport.groups.tracking',
     keys: ['trackerSyncBack', 'trackerSyncBackThreshold', 'trackerRespectScanlatorFilter'],
   },
   {
     label: 'Performance',
+    name: 'settings.bugReport.groups.performance',
     keys: ['renderLimit', 'pinchZoom'],
   },
 ]

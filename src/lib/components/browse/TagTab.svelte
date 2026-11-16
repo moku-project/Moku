@@ -8,6 +8,7 @@
   import Thumbnail               from "$lib/components/shared/manga/Thumbnail.svelte";
   import type { Manga, Source }  from "$lib/types";
   import type { FilterNode }     from "$lib/server-adapters/types";
+  import { t }                   from "$lib/i18n/index.svelte";
 
   interface Props {
     allSources:           Source[];
@@ -161,7 +162,7 @@
 
   function tagToggleTag(tag: string) {
     tag_activeTags = tag_activeTags.includes(tag)
-      ? tag_activeTags.filter((t) => t !== tag)
+      ? tag_activeTags.filter((x) => x !== tag)
       : [...tag_activeTags, tag];
   }
 
@@ -169,6 +170,15 @@
     tag_activeStatuses = tag_activeStatuses.includes(status)
       ? tag_activeStatuses.filter((s) => s !== status)
       : [...tag_activeStatuses, status];
+  }
+
+  function statusLabel(status: string): string {
+    const key = MANGA_STATUSES.find((s) => s.value === status)?.label;
+    return key ? t(key) : status;
+  }
+
+  function modeLabel(mode: TagMode): string {
+    return mode === "AND" ? t("browse.tag.modeAnd") : t("browse.tag.modeOr");
   }
 
   onDestroy(() => {
@@ -183,20 +193,20 @@
       <svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor" class="splitSearchIcon" aria-hidden="true">
         <path d="M229.66,218.34l-50.07-50.07a88,88,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.31ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/>
       </svg>
-      <input bind:value={tag_tagFilter} class="splitSearchInput" placeholder="Filter genres…" />
+      <input bind:value={tag_tagFilter} class="splitSearchInput" placeholder={t("browse.tag.filterPlaceholder")} />
       {#if tag_tagFilter}
-        <button class="splitSearchClear" title="Clear" onclick={() => (tag_tagFilter = "")}>×</button>
+        <button class="splitSearchClear" title={t("common.clear")} onclick={() => (tag_tagFilter = "")}>×</button>
       {/if}
     </div>
     <div class="splitList">
-      <div class="splitSectionLabel">Status</div>
+      <div class="splitSectionLabel">{t("browse.tag.status")}</div>
       {#each MANGA_STATUSES as { value, label } (value)}
         <button class="splitItem" class:splitItemActive={tag_activeStatuses.includes(value)} onclick={() => tagToggleStatus(value)}>
-          <span class="splitItemLabel">{label}</span>
+          <span class="splitItemLabel">{t(label)}</span>
           {#if tag_activeStatuses.includes(value)}<span class="tagCheckMark">✓</span>{/if}
         </button>
       {/each}
-      <div class="splitSectionLabel splitSectionLabelSpaced">Genre</div>
+      <div class="splitSectionLabel splitSectionLabelSpaced">{t("browse.tag.genre")}</div>
       {#each tag_filteredGenres as tag (tag)}
         <button class="splitItem" class:splitItemActive={tag_activeTags.includes(tag)} onclick={() => tagToggleTag(tag)}>
           <span class="splitItemLabel">{tag}</span>
@@ -204,7 +214,7 @@
         </button>
       {/each}
       {#if tag_filteredGenres.length === 0}
-        <p class="splitEmpty">No matching genres</p>
+        <p class="splitEmpty">{t("browse.tag.noMatchingGenres")}</p>
       {/if}
     </div>
   </div>
@@ -215,8 +225,8 @@
         <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor" class="emptyIcon" aria-hidden="true">
           <path d="M224,104H200l8-48a8,8,0,0,0-15.79-2.67L183.79,104H136l8-48a8,8,0,0,0-15.79-2.67L119.79,104H72a8,8,0,0,0,0,16h45.33L105.6,200H56a8,8,0,0,0,0,16H103l-8,48a8,8,0,0,0,15.79,2.67L119.21,216H168l-8,48a8,8,0,0,0,15.79,2.67L184.21,216H232a8,8,0,0,0,0-16H186.67l11.73-80H224a8,8,0,0,0,0-16Zm-69.33,96H101.6L113.33,120h53.07Z"/>
         </svg>
-        <p class="emptyText">Browse by tag</p>
-        <p class="emptyHint">Select a status or genre to find matching manga.</p>
+        <p class="emptyText">{t("browse.tag.emptyTitle")}</p>
+        <p class="emptyHint">{t("browse.tag.emptyHint")}</p>
       </div>
     {:else}
 
@@ -224,36 +234,36 @@
         <div class="tagPillRow">
           {#each tag_activeStatuses as status (status)}
             <span class="tagPill tagPillStatus">
-              {MANGA_STATUSES.find((s) => s.value === status)?.label ?? status}
-              <button class="tagPillRemove" title="Remove {status}" onclick={() => tagToggleStatus(status)}>×</button>
+              {statusLabel(status)}
+              <button class="tagPillRemove" title={t("browse.tag.removeFilter", { name: status })} onclick={() => tagToggleStatus(status)}>×</button>
             </span>
           {/each}
           {#each tag_activeTags as tag (tag)}
             <span class="tagPill">
               {tag}
-              <button class="tagPillRemove" title="Remove {tag}" onclick={() => tagToggleTag(tag)}>×</button>
+              <button class="tagPillRemove" title={t("browse.tag.removeFilter", { name: tag })} onclick={() => tagToggleTag(tag)}>×</button>
             </span>
           {/each}
         </div>
         <div class="tagBarRight">
           {#if tag_activeTags.length > 1}
             <div class="tagModeToggle">
-              <button class="tagModeBtn" class:tagModeBtnActive={tag_tagMode === "AND"} title="Match ALL tags" onclick={() => (tag_tagMode = "AND")}>AND</button>
-              <button class="tagModeBtn" class:tagModeBtnActive={tag_tagMode === "OR"}  title="Match ANY tag"  onclick={() => (tag_tagMode = "OR")}>OR</button>
+              <button class="tagModeBtn" class:tagModeBtnActive={tag_tagMode === "AND"} title={t("browse.tag.matchAll")} onclick={() => (tag_tagMode = "AND")}>{t("browse.tag.modeAnd")}</button>
+              <button class="tagModeBtn" class:tagModeBtnActive={tag_tagMode === "OR"}  title={t("browse.tag.matchAny")}  onclick={() => (tag_tagMode = "OR")}>{t("browse.tag.modeOr")}</button>
             </div>
           {/if}
-          <button class="tagClearAll" onclick={() => { tag_activeTags = []; tag_activeStatuses = []; }}>Clear all</button>
+          <button class="tagClearAll" onclick={() => { tag_activeTags = []; tag_activeStatuses = []; }}>{t("browse.tag.clearAll")}</button>
         </div>
       </div>
 
       <div class="splitContentHeader">
         <span class="splitContentTitle">
           {#if tag_activeStatuses.length > 0 && tag_activeTags.length === 0}
-            {tag_activeStatuses.map((s) => MANGA_STATUSES.find((x) => x.value === s)?.label ?? s).join(" · ")}
+            {tag_activeStatuses.map(statusLabel).join(" · ")}
           {:else if tag_activeTags.length === 1 && tag_activeStatuses.length === 0}
             {tag_activeTags[0]}
           {:else}
-            {[...tag_activeStatuses.map((s) => MANGA_STATUSES.find((x) => x.value === s)?.label ?? s), ...tag_activeTags].join(` ${tag_tagMode} `)}
+            {[...tag_activeStatuses.map(statusLabel), ...tag_activeTags].join(` ${modeLabel(tag_tagMode)} `)}
           {/if}
         </span>
         {#if tag_loading}
@@ -262,9 +272,9 @@
           </svg>
         {:else}
           <span class="splitResultCount">
-            {tag_totalVisible}{tag_hasMore ? "+" : ""} results
+            {t("browse.tag.resultCount", { shown: `${tag_totalVisible}${tag_hasMore ? "+" : ""}` })}
             {#if sourceCacheLoading || sourceCacheEnriching}
-              · caching…
+              {t("browse.tag.caching")}
             {/if}
           </span>
         {/if}
@@ -282,7 +292,7 @@
             <button class="card" onclick={() => onPreview(m)}>
               <div class="coverWrap">
                 <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={i < 12 ? 12 - i : 0} id={m.id} contentType={m.contentType} />
-                {#if m.inLibrary}<span class="inLibBadge">Saved</span>{/if}
+                {#if m.inLibrary}<span class="inLibBadge">{t("browse.common.saved")}</span>{/if}
               </div>
               <p class="cardTitle">{m.title}</p>
             </button>
@@ -293,16 +303,16 @@
             {/each}
           {:else if tag_hasMore}
             <div class="loadMoreRow">
-              <button class="loadMoreBtn" onclick={tagLoadMore}>Load more</button>
+              <button class="loadMoreBtn" onclick={tagLoadMore}>{t("browse.common.loadMore")}</button>
             </div>
           {/if}
         </div>
       {:else}
         <div class="empty">
-          <p class="emptyText">No results</p>
+          <p class="emptyText">{t("browse.common.noResults")}</p>
           <p class="emptyHint">
-            {#if tag_activeTags.length > 1 && tag_tagMode === "AND"}Try OR mode or fewer tags.
-            {:else}Try a different genre or status.
+            {#if tag_activeTags.length > 1 && tag_tagMode === "AND"}{t("browse.tag.noResultsHintAnd")}
+            {:else}{t("browse.tag.noResultsHint")}
             {/if}
           </p>
         </div>

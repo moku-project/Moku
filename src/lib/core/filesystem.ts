@@ -1,6 +1,7 @@
 import { platformService } from '$lib/platform-service'
 import { settingsState }   from '$lib/state/settings.svelte'
 import { addToast }        from '$lib/state/notifications.svelte'
+import { t }               from '$lib/i18n/index.svelte'
 import type { Manga }      from '$lib/types'
 
 export function isLocalServer(): boolean {
@@ -23,13 +24,13 @@ export function canOpenFolder(): boolean {
 // the user can find it themselves.
 async function tryOpenPath(path: string): Promise<void> {
   if (!platformService.isSupported('filesystem')) {
-    addToast({ kind: 'info', title: 'Desktop only', body: 'Opening folders requires the desktop app.' })
+    addToast({ kind: 'info', title: t('notices.files.desktopOnlyTitle'), body: t('notices.files.desktopOnlyBody') })
     return
   }
   try {
     await platformService.openPath(path)
   } catch {
-    addToast({ kind: 'error', title: 'Could not open path', body: path })
+    addToast({ kind: 'error', title: t('notices.files.openFailed'), body: path })
   }
 }
 
@@ -37,8 +38,8 @@ export async function openMangaFolder(manga: Manga): Promise<void> {
   if (!manga.downloadFolderPath) {
     const hasDownloads = (manga.downloadCount ?? 0) > 0
     addToast(hasDownloads
-      ? { kind: 'error', title: 'Could not locate downloads', body: 'The server could not find a folder for this series. Try refreshing the page.' }
-      : { kind: 'info', title: 'Nothing downloaded', body: 'No chapters have been downloaded for this series yet.' })
+      ? { kind: 'error', title: t('notices.files.locateFailedTitle'), body: t('notices.files.locateFailedBody') }
+      : { kind: 'info', title: t('notices.files.nothingDownloadedTitle'), body: t('notices.files.nothingDownloadedBody') })
     return
   }
   await tryOpenPath(manga.downloadFolderPath)

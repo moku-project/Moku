@@ -20,6 +20,7 @@
     PencilSimple, Star, Eye, EyeSlash,
   } from 'phosphor-svelte'
   import { openMangaFolder } from '$lib/core/filesystem'
+  import { t } from '$lib/i18n/index.svelte'
 
   const SIDEBAR_W      = 52
   const TITLEBAR_H     = 36
@@ -68,15 +69,16 @@
       .filter(f => (libraryState.folderMangaMap.get(f.id) ?? []).some(x => x.id === m.id))
       .map(f => f.name)
     if (inFolders.length && !confirm(
-      `"${m.title}" is in ${inFolders.length === 1 ? `the "${inFolders[0]}" folder` : `${inFolders.length} folders`}. `
-      + `Removing it from the library also removes it from ${inFolders.length === 1 ? 'that folder' : 'those folders'}. Continue?`
+      inFolders.length === 1
+        ? t('library.confirm.removeInFolder', { title: m.title, folder: inFolders[0] })
+        : t('library.confirm.removeInFolders', { title: m.title, count: inFolders.length })
     )) return
     try {
       await tsunagu.removeFromLibrary(m.id)
       await loadLibrary(true)
-      addToast({ kind: 'success', title: 'Removed from library', body: m.title })
+      addToast({ kind: 'success', title: t('library.toast.removedFromLibrary'), body: m.title })
     } catch (e) {
-      addToast({ kind: 'error', title: 'Remove failed', body: String(e) })
+      addToast({ kind: 'error', title: t('library.toast.removeFailed'), body: String(e) })
     }
   }
 
@@ -100,9 +102,9 @@
       await tsunagu.refreshMetadata(m.id)
       await tsunagu.syncChapters(m.id)
       await loadLibrary(true)
-      addToast({ kind: 'success', title: 'Refreshed', body: m.title })
+      addToast({ kind: 'success', title: t('library.toast.refreshed'), body: m.title })
     } catch (e) {
-      addToast({ kind: 'error', title: 'Refresh failed', body: String(e) })
+      addToast({ kind: 'error', title: t('library.toast.refreshFailed'), body: String(e) })
     } finally {
       libraryState.refreshingMangaId = null
     }
@@ -121,7 +123,7 @@
   }
 
   async function createAndAssign(manga: Manga) {
-    const name = prompt('Folder name:')
+    const name = prompt(t('library.prompt.folderName'))
     if (!name?.trim()) return
     try {
       const folder = await tsunagu.createFolder(name.trim())
@@ -158,8 +160,7 @@
       libraryState.folders.some(f => (libraryState.folderMangaMap.get(f.id) ?? []).some(x => x.id === id))
     ).length
     if (foldered && !confirm(
-      `${foldered} of ${ids.length} selected ${foldered === 1 ? 'series is' : 'series are'} in folders. `
-      + `Removing from the library also removes them from those folders. Continue?`
+      t('library.confirm.bulkRemoveInFolders', { count: foldered, total: ids.length })
     )) return
     bulkWorking = true
     try {
@@ -178,7 +179,7 @@
       const started = await tsunagu.startLibraryUpdate()
       let status = await tsunagu.libraryUpdateStatus()
       if (!started && !status.running) {
-        addToast({ kind: 'info', title: 'Nothing to update', body: 'Every series is paused or excluded from updates.' })
+        addToast({ kind: 'info', title: t('library.toast.nothingToUpdate'), body: t('library.toast.nothingToUpdateBody') })
         return
       }
       while (status.running) {
@@ -189,14 +190,14 @@
       const n = status.newChapterCount
       addToast({
         kind:  n > 0 ? 'success' : 'info',
-        title: 'Library update complete',
-        body:  n > 0 ? `${n} new chapter${n === 1 ? '' : 's'}` : 'No new chapters',
+        title: t('library.toast.updateComplete'),
+        body:  n > 0 ? t('library.toast.newChapters', { count: n }) : t('library.toast.noNewChapters'),
       })
       if (status.failedTitles.length) {
-        addToast({ kind: 'error', title: `${status.failedTitles.length} series failed to update`, body: status.failedTitles.slice(0, 3).join(', ') })
+        addToast({ kind: 'error', title: t('library.toast.seriesFailedToUpdate', { count: status.failedTitles.length }), body: status.failedTitles.slice(0, 3).join(', ') })
       }
     } catch (e: any) {
-      addToast({ kind: 'error', title: 'Update failed', body: e?.message ?? String(e) })
+      addToast({ kind: 'error', title: t('library.toast.updateFailed'), body: e?.message ?? String(e) })
     } finally {
       libraryState.refreshing = false
     }
@@ -209,9 +210,9 @@
     try {
       const refreshed = await tsunagu.refreshFolder(folderId)
       await loadFolders()
-      addToast({ kind: 'success', title: 'Folder refreshed', body: `${folder?.name ?? ''} (${refreshed.length} updated)` })
+      addToast({ kind: 'success', title: t('library.toast.folderRefreshed'), body: t('library.toast.folderRefreshedBody', { name: folder?.name ?? '', count: refreshed.length }) })
     } catch (e) {
-      addToast({ kind: 'error', title: 'Refresh failed', body: String(e) })
+      addToast({ kind: 'error', title: t('library.toast.refreshFailed'), body: String(e) })
     } finally { libraryState.refreshingFolderId = null }
   }
 
@@ -224,36 +225,36 @@
 
     const makeFolderEntry = (folder: Folder): MenuEntry => {
       const inFolder = (libraryState.folderMangaMap.get(folder.id) ?? []).some(x => x.id === m.id)
-      return { label: inFolder ? `Remove from ${folder.name}` : folder.name, icon: FolderIcon, onClick: () => toggleMangaFolder(m, folder) }
+      return { label: inFolder ? t('library.menu.removeFromFolder', { folder: folder.name }) : folder.name, icon: FolderIcon, onClick: () => toggleMangaFolder(m, folder) }
     }
 
     return [
-      { label: m.inLibrary ? 'Remove from library' : 'Add to library', icon: Books,
+      { label: m.inLibrary ? t('library.menu.removeFromLibrary') : t('library.menu.addToLibrary'), icon: Books,
         onClick: () => m.inLibrary
           ? doRemove(m)
           : (() => {
               console.warn('Add to library: extensionId/sourceEntryId not yet threaded onto Manga')
             })() },
-      { label: libraryState.refreshingMangaId === m.id ? 'Refreshing…' : 'Refresh manga', icon: ArrowsClockwise,
+      { label: libraryState.refreshingMangaId === m.id ? t('library.menu.refreshing') : t('library.menu.refreshManga'), icon: ArrowsClockwise,
         disabled: libraryState.refreshingMangaId !== null, onClick: () => refreshSingleManga(m) },
-      { label: 'Open in file manager', icon: ArrowSquareOut,
+      { label: t('library.menu.openInFileManager'), icon: ArrowSquareOut,
         disabled: !(m.downloadCount && m.downloadCount > 0), onClick: () => openMangaFolder(m) },
-      { label: 'Delete all downloads', icon: Trash, danger: true,
+      { label: t('library.menu.deleteAllDownloads'), icon: Trash, danger: true,
         disabled: !(m.downloadCount && m.downloadCount > 0), onClick: () => doDeleteDownloads(m) },
       { separator: true },
-      { label: 'Select', icon: CheckSquare, onClick: () => libraryState.enterSelect(m.id) },
+      { label: t('library.menu.select'), icon: CheckSquare, onClick: () => libraryState.enterSelect(m.id) },
       ...(pinned.length ? [{ separator: true } as MenuEntry, ...pinned.map(makeFolderEntry)] : []),
-      ...(overflow.length ? [{ label: `More folders (${overflow.length})`, icon: FolderSimple, onClick: () => {}, children: overflow.map(makeFolderEntry) } as MenuEntry] : []),
+      ...(overflow.length ? [{ label: t('library.menu.moreFolders', { count: overflow.length }), icon: FolderSimple, onClick: () => {}, children: overflow.map(makeFolderEntry) } as MenuEntry] : []),
       { separator: true },
-      { label: 'New folder', icon: FolderSimplePlus, onClick: () => createAndAssign(m) },
+      { label: t('library.menu.newFolder'), icon: FolderSimplePlus, onClick: () => createAndAssign(m) },
     ]
   }
 
   function buildEmptyCtx(): MenuEntry[] {
     return [{
-      label: 'New folder', icon: FolderSimplePlus,
+      label: t('library.menu.newFolder'), icon: FolderSimplePlus,
       onClick: async () => {
-        const name = prompt('Folder name:')
+        const name = prompt(t('library.prompt.folderName'))
         if (!name?.trim()) return
         try {
           const folder = await tsunagu.createFolder(name.trim())
@@ -288,7 +289,7 @@
   }
 
   async function renameFolderTab(folder: Folder) {
-    const name = prompt('Rename folder:', folder.name)
+    const name = prompt(t('library.prompt.renameFolder'), folder.name)
     if (!name?.trim() || name.trim() === folder.name) return
     try {
       await tsunagu.renameFolder(folder.id, name.trim())
@@ -297,7 +298,7 @@
   }
 
   async function deleteFolderTab(folder: Folder) {
-    if (!confirm(`Delete folder "${folder.name}"? This cannot be undone.`)) return
+    if (!confirm(t('library.confirm.deleteFolder', { name: folder.name }))) return
     try {
       await tsunagu.deleteFolder(folder.id)
       if (libraryState.tab === folder.id) libraryState.tab = 'library'
@@ -312,7 +313,7 @@
     const hidden      = (settingsState.settings.hiddenLibraryTabs ?? []).includes(id)
 
     const hideItem: MenuEntry = {
-      label:   hidden ? 'Show tab in library' : 'Hide tab from library',
+      label:   hidden ? t('library.menu.showTab') : t('library.menu.hideTab'),
       icon:    hidden ? Eye : EyeSlash,
       onClick: () => toggleTabHidden(id),
     }
@@ -322,18 +323,18 @@
     const isDefault = (settingsState.settings.defaultLibraryCategoryId ?? null) === folder.id
 
     return [
-      { label: 'Rename folder', icon: PencilSimple, onClick: () => renameFolderTab(folder) },
+      { label: t('library.menu.renameFolder'), icon: PencilSimple, onClick: () => renameFolderTab(folder) },
       { separator: true },
-      { label: isDefault ? 'Remove as default folder' : 'Set as default folder', icon: Star,
+      { label: isDefault ? t('library.menu.removeDefaultFolder') : t('library.menu.setDefaultFolder'), icon: Star,
         onClick: () => toggleDefaultFolder(folder) },
       hideItem,
       { separator: true },
-      { label: folder.includeInUpdate ? 'Exclude from update checks' : 'Include in update checks', icon: ArrowsClockwise,
+      { label: folder.includeInUpdate ? t('library.menu.excludeFromUpdates') : t('library.menu.includeInUpdates'), icon: ArrowsClockwise,
         onClick: () => toggleFolderFlag(folder, 'includeInUpdate') },
-      { label: folder.includeInDownload ? 'Exclude from auto-download' : 'Include in auto-download', icon: ArrowsClockwise,
+      { label: folder.includeInDownload ? t('library.menu.excludeFromAutoDownload') : t('library.menu.includeInAutoDownload'), icon: ArrowsClockwise,
         onClick: () => toggleFolderFlag(folder, 'includeInDownload') },
       { separator: true },
-      { label: 'Delete folder', icon: Trash, danger: true, onClick: () => deleteFolderTab(folder) },
+      { label: t('library.menu.deleteFolder'), icon: Trash, danger: true, onClick: () => deleteFolderTab(folder) },
     ]
   }
 
@@ -408,9 +409,9 @@
 >
   {#if libraryState.error}
     <div class="center">
-      <p class="error-msg">Could not load library</p>
+      <p class="error-msg">{t('library.loadError')}</p>
       <p class="error-detail">{libraryState.error}</p>
-      <button class="retry-btn" onclick={() => loadLibrary(true)}>Retry</button>
+      <button class="retry-btn" onclick={() => loadLibrary(true)}>{t('common.retry')}</button>
     </div>
   {:else}
     <LibraryToolbar
@@ -433,7 +434,7 @@
       {sortPanelOpen}
       {filterPanelOpen}
       bind:tabsEl
-      onTabChange={(t) => libraryState.tab = t}
+      onTabChange={(id) => libraryState.tab = id}
       onSearchChange={(q) => libraryState.filter.query = q}
       onSortChange={(mode) => libraryState.setTabSort(libraryState.tab, mode)}
       onSortDirToggle={() => libraryState.toggleTabSortDir(libraryState.tab)}

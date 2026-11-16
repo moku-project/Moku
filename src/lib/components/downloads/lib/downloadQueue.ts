@@ -1,4 +1,5 @@
 import type { Download, DownloaderStatus } from "$lib/server-adapters/types";
+import { t } from "$lib/i18n/index.svelte";
 
 export function isRunning(status: DownloaderStatus | null): boolean {
   return status?.isRunning ?? false;
@@ -57,7 +58,7 @@ export function formatBytes(n: number | null | undefined): string {
 }
 
 export function formatEta(seconds: number): string {
-  if (seconds < 60)   return `~${Math.ceil(seconds)}s`;
-  if (seconds < 3600) return `~${Math.ceil(seconds / 60)}m`;
-  return `~${(seconds / 3600).toFixed(1)}h`;
+  if (seconds < 60)   return t("downloads.etaSeconds", { value: Math.ceil(seconds) });
+  if (seconds < 3600) return t("downloads.etaMinutes", { value: Math.ceil(seconds / 60) });
+  return t("downloads.etaHours", { value: (seconds / 3600).toFixed(1) });
 }

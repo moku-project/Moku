@@ -4,6 +4,7 @@
   import { historyState } from '$lib/state/history.svelte'
   import { tsunagu } from '$lib/server-adapters/tsunagu'
   import type { ReleaseInfo } from '$lib/platform-adapters/types'
+  import { t } from '$lib/i18n/index.svelte'
 
   type UpdatePhase = 'idle' | 'downloading' | 'launching' | 'ready' | 'error'
 
@@ -52,7 +53,7 @@
     if (!supportsUpdates) return
     releasesLoading = true; releasesError = null
     try {
-      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Request timed out after 10s')), 10_000))
+      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error(t('settings.about.requestTimedOut'))), 10_000))
       releases = await Promise.race([platformService.listReleases(), timeout])
     } catch (e: any) {
       releasesError = e instanceof Error ? e.message : String(e)
@@ -82,16 +83,16 @@
 
   function fmtDate(iso: string) {
     if (!iso) return ''
-    const t = Date.parse(iso)
-    if (Number.isNaN(t)) return iso
-    return new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    const ts = Date.parse(iso)
+    if (Number.isNaN(ts)) return iso
+    return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
   }
 
   function fmtBuildTime(iso: string) {
     if (!iso || iso.toLowerCase() === 'unknown') return ''
-    const t = Date.parse(iso)
-    if (Number.isNaN(t)) return iso
-    return new Date(t).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const ts = Date.parse(iso)
+    if (Number.isNaN(ts)) return iso
+    return new Date(ts).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
   function fmtBytes(bytes: number) {
@@ -138,29 +139,29 @@
     <p class="s-section-title">Moku</p>
     <div class="s-section-body">
       <div class="s-row" style="flex-direction:column;align-items:flex-start;gap:var(--sp-1)">
-        <span class="s-label">A manga reader frontend for Tsunagu.</span>
-        <span class="s-desc">Built with Tauri + Svelte.</span>
+        <span class="s-label">{t('settings.about.tagline')}</span>
+        <span class="s-desc">{t('settings.about.builtWith')}</span>
       </div>
     </div>
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Version</p>
+    <p class="s-section-title">{t('settings.about.versionTitle')}</p>
     <div class="s-section-body">
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Installed</span><span class="s-desc">v{appVersion}</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.about.installed')}</span><span class="s-desc">v{appVersion}</span></div>
         {#if supportsUpdates}
           <button class="s-btn" onclick={() => { releasesError = null; loadReleases() }} disabled={releasesLoading}>
-            {releasesLoading ? 'Loading…' : 'Refresh'}
+            {releasesLoading ? t('common.loading') : t('common.refresh')}
           </button>
         {/if}
       </div>
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Platform</span><span class="s-desc">{platformService.platform}</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.about.platform')}</span><span class="s-desc">{platformService.platform}</span></div>
       </div>
       {#if onLatestVersion}
         <div class="s-row">
-          <span class="s-desc" style="color:var(--accent-fg)">✓ You're on the latest version.</span>
+          <span class="s-desc" style="color:var(--accent-fg)">✓ {t('settings.about.onLatest')}</span>
         </div>
       {/if}
       {#if updatePhase === 'downloading' && IS_WINDOWS}
@@ -169,27 +170,27 @@
             <div class="s-update-fill" style="width:{dlTotal ? Math.round((dlBytes / dlTotal) * 100) : 0}%"></div>
           </div>
           <div class="s-update-labels">
-            <span>Downloading {targetTag ?? 'update'}…</span>
+            <span>{targetTag ? t('settings.about.downloadingTag', { tag: targetTag }) : t('settings.about.downloadingUpdate')}</span>
             <span>{fmtProgress()}</span>
           </div>
         </div>
       {/if}
       {#if updatePhase === 'launching'}
         <div class="s-update-ready">
-          <span class="s-update-ready-label">Launching installer for {targetTag}…</span>
+          <span class="s-update-ready-label">{t('settings.about.launchingInstaller', { tag: targetTag ?? '' })}</span>
         </div>
       {/if}
       {#if updatePhase === 'ready'}
         <div class="s-update-ready">
-          <span class="s-update-ready-label">{targetTag} downloaded. Restart to install.</span>
-          <button class="s-btn s-btn-accent" onclick={restartNow}>Restart now</button>
-          <button class="s-btn-icon" onclick={cancelUpdate} title="Dismiss">✕</button>
+          <span class="s-update-ready-label">{t('settings.about.downloadedRestart', { tag: targetTag ?? '' })}</span>
+          <button class="s-btn s-btn-accent" onclick={restartNow}>{t('settings.about.restartNow')}</button>
+          <button class="s-btn-icon" onclick={cancelUpdate} title={t('settings.about.dismiss')}>✕</button>
         </div>
       {/if}
       {#if updatePhase === 'error'}
         <div class="s-row">
           <span class="s-desc" style="color:var(--color-error)">{updateError}</span>
-          <button class="s-btn" onclick={cancelUpdate}>Dismiss</button>
+          <button class="s-btn" onclick={cancelUpdate}>{t('settings.about.dismiss')}</button>
         </div>
       {/if}
     </div>
@@ -197,18 +198,18 @@
 
   {#if serverInfo}
     <div class="s-section">
-      <p class="s-section-title">Server</p>
+      <p class="s-section-title">{t('settings.about.serverTitle')}</p>
       <div class="s-section-body">
         <div class="s-row">
           <div class="s-row-info">
-            <span class="s-label">Version</span>
+            <span class="s-label">{t('settings.about.version')}</span>
             <span class="s-desc">{serverInfo.version}</span>
           </div>
         </div>
         {#if fmtBuildTime(serverInfo.buildTime)}
           <div class="s-row">
             <div class="s-row-info">
-              <span class="s-label">Built</span>
+              <span class="s-label">{t('settings.about.built')}</span>
               <span class="s-desc">{fmtBuildTime(serverInfo.buildTime)}</span>
             </div>
           </div>
@@ -219,14 +220,14 @@
 
   {#if supportsUpdates}
     <div class="s-section">
-      <p class="s-section-title">Releases</p>
+      <p class="s-section-title">{t('settings.about.releasesTitle')}</p>
       <div class="s-section-body">
         {#if releasesError}
           <p class="s-empty" style="color:var(--color-error)">{releasesError}</p>
         {:else if releasesLoading}
-          <p class="s-empty">Fetching releases…</p>
+          <p class="s-empty">{t('settings.about.fetchingReleases')}</p>
         {:else if releases.length === 0}
-          <p class="s-empty">No releases found.</p>
+          <p class="s-empty">{t('settings.about.noReleases')}</p>
         {:else}
           <div class="s-release-scroll">
             {#each releases as release}
@@ -238,23 +239,23 @@
                 <div class="s-release-header">
                   <div class="s-release-meta">
                     <span class="s-release-tag">{release.tag_name}</span>
-                    {#if isCurrent}<span class="s-release-badge">installed</span>{/if}
+                    {#if isCurrent}<span class="s-release-badge">{t('settings.about.installedBadge')}</span>{/if}
                     {#if release.published_at}<span class="s-release-date">{fmtDate(release.published_at)}</span>{/if}
                   </div>
                   <div class="s-btn-row">
                     {#if release.body.trim()}
                       <button class="s-btn" onclick={() => expandedTag = isExpanded ? null : release.tag_name}>
-                        {isExpanded ? 'Hide' : 'Changelog'}
+                        {isExpanded ? t('settings.about.hideChangelog') : t('settings.about.changelog')}
                       </button>
                     {/if}
                     {#if !isCurrent}
                       {#if IS_WINDOWS}
                         <button class="s-btn" class:s-btn-accent={!isInstalling}
                           disabled={updatePhase === 'downloading'} onclick={() => installUpdate(release)}>
-                          {isInstalling ? 'Downloading…' : 'Install'}
+                          {isInstalling ? t('settings.about.downloading') : t('common.install')}
                         </button>
                       {:else}
-                        <button class="s-btn" onclick={() => installUpdate(release)}>Open on GitHub</button>
+                        <button class="s-btn" onclick={() => installUpdate(release)}>{t('settings.about.openOnGitHub')}</button>
                       {/if}
                     {/if}
                   </div>
@@ -273,7 +274,7 @@
   {/if}
 
   <div class="s-section">
-    <p class="s-section-title">Links</p>
+    <p class="s-section-title">{t('settings.about.linksTitle')}</p>
     <div class="s-section-body">
       <div class="s-row" style="flex-direction:column;align-items:flex-start;gap:var(--sp-2)">
         <a href="https://github.com/moku-project/Moku" target="_blank" class="s-label" style="color:var(--accent-fg);text-decoration:none">GitHub →</a>

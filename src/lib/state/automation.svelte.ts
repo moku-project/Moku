@@ -2,6 +2,7 @@ import { tsunagu } from "$lib/server-adapters/tsunagu";
 import { settingsState } from "$lib/state/settings.svelte";
 import { libraryState, loadLibrary } from "$lib/state/library.svelte";
 import { addToast } from "$lib/state/notifications.svelte";
+import { t } from "$lib/i18n/index.svelte";
 import type {
   AutomationSettings, AutomationSettingsInput, MediaAutomation, MediaAutomationInput, RefreshInterval,
 } from "$lib/server-adapters/types";
@@ -42,7 +43,7 @@ export async function saveAutomation(patch: AutomationSettingsInput): Promise<vo
     automationState.overrides = Object.fromEntries(overrides.map(o => [o.mediaId, o]));
   } catch (e) {
     automationState.settings = prev;
-    addToast({ kind: "error", title: "Couldn't save automation settings", body: e instanceof Error ? e.message : String(e) });
+    addToast({ kind: "error", title: t("notices.automation.saveSettingsFailed"), body: e instanceof Error ? e.message : String(e) });
   }
 }
 
@@ -82,7 +83,7 @@ export async function setMediaOverride<K extends keyof MediaAutomationInput>(
     const m = await tsunagu.setMediaAutomation(mediaId, input);
     automationState.overrides = { ...automationState.overrides, [mediaId]: m };
   } catch (e) {
-    addToast({ kind: "error", title: "Couldn't save series rule", body: e instanceof Error ? e.message : String(e) });
+    addToast({ kind: "error", title: t("notices.automation.saveRuleFailed"), body: e instanceof Error ? e.message : String(e) });
   }
 }
 
@@ -92,7 +93,7 @@ export async function resetMediaAutomation(mediaId?: string): Promise<void> {
     if (mediaId) await loadMediaAutomation(mediaId);
     else await loadAutomation();
   } catch (e) {
-    addToast({ kind: "error", title: "Couldn't reset rules", body: e instanceof Error ? e.message : String(e) });
+    addToast({ kind: "error", title: t("notices.automation.resetRulesFailed"), body: e instanceof Error ? e.message : String(e) });
   }
 }
 
@@ -152,7 +153,7 @@ async function runAppOpenUpdate(): Promise<void> {
     }
     await loadLibrary(true);
     const n = status.newChapterCount;
-    if (n > 0) addToast({ kind: "success", title: "Library updated", body: `${n} new chapter${n === 1 ? "" : "s"}` });
+    if (n > 0) addToast({ kind: "success", title: t("notices.automation.libraryUpdated"), body: t("notices.automation.newChapters", { count: n }) });
   } finally {
     libraryState.refreshing = false;
   }

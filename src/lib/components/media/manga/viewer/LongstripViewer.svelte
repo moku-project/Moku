@@ -4,6 +4,7 @@
   import { settingsState }     from "$lib/state/settings.svelte";
   import { getCachedAspect, clearResolvedUrl } from "$lib/components/media/manga/lib/pageLoader";
   import { revokeBlobUrl }     from "$lib/core/cache/imageCache";
+  import { t }                 from "$lib/i18n/index.svelte";
 
   export interface StripPage {
     chapterId:   string;
@@ -318,7 +319,7 @@
         <div class="midscroll-seg" class:midscroll-seg-lit={midScrollDisplayLevel > 0 && midScrollDisplayLevel >= n}></div>
       {/each}
     </div>
-    <button class="midscroll-stop" onclick={stopMidScroll} title="Stop (middle click)">
+    <button class="midscroll-stop" onclick={stopMidScroll} title={t("reader.midScrollStop")}>
       <svg width="8" height="8" viewBox="0 0 8 8"><rect x="0" y="0" width="8" height="8" rx="1" fill="currentColor"/></svg>
     </button>
   </div>
@@ -331,7 +332,7 @@
     {#if isLoaded && src}
       <img
         {src}
-        alt="{page.chapterName} – Page {page.localIndex + 1}"
+        alt={t("reader.stripPageAlt", { chapter: page.chapterName, page: page.localIndex + 1 })}
         data-local-page={page.localIndex + 1}
         data-chapter={page.chapterId}
         data-total={page.total}

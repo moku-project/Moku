@@ -31,3 +31,20 @@ Keys ending in `_one`, `_other` (and `_zero`, `_two`, `_few`, `_many` where your
 ```
 
 Keys are type-checked against `en.json`, so add a key there before using it.
+
+## Markup inside a sentence
+
+Keep the whole sentence in one key and put the marked-up value in a placeholder. `tSplit` returns the text before and after it, so the template can wrap the value:
+
+```svelte
+<script lang="ts">
+  import { tSplit } from '$lib/i18n/index.svelte'
+  const parts = $derived(tSplit('downloads.removeSeriesConfirmBody', 'title'))
+</script>
+
+<p>{parts[0]}<strong>{series.title}</strong>{parts[1]}</p>
+```
+
+## Checking for untranslated text
+
+`pnpm check:i18n` lists text written straight into components instead of going through `t()`, and `t()` keys missing from `en.json`. Add `i18n-ignore` to a line, or wrap a block in `i18n-ignore-start` / `i18n-ignore-end`, for text that should stay as it is, such as developer-only panels.

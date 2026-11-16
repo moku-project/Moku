@@ -5,6 +5,7 @@ import { appState } from '$lib/state/app.svelte'
 import { settingsState, updateSettings } from '$lib/state/settings.svelte'
 import { AuthRequiredError } from '$lib/graphql/client'
 import { loadPersistedToken, setAuthToken } from '$lib/state/auth.svelte'
+import { t } from '$lib/i18n/index.svelte'
 
 
 const MAX_ATTEMPTS = 40
@@ -66,7 +67,7 @@ export async function subscribeBackend(): Promise<void> {
 					startProbe(0)
 				} else if (payload.kind === 'failed' || payload.kind === 'crashed') {
 					boot.failed = true
-					boot.errorMessage = payload.message ?? (payload.kind === 'crashed' ? 'the server stopped' : 'the server failed to start')
+					boot.errorMessage = payload.message ?? (payload.kind === 'crashed' ? t('notices.boot.serverStopped') : t('notices.boot.serverFailedToStart'))
 					boot.errorLog = payload.log ?? ''
 					appState.status = 'error'
 				}

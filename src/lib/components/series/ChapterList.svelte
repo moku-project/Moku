@@ -4,6 +4,7 @@
   import type { MenuEntry } from '$lib/components/shared/ui/ContextMenu.svelte'
   import { longPress } from '$lib/core/ui/touchscreen'
   import type { Chapter } from '$lib/types'
+  import { t, currentLocale } from '$lib/i18n/index.svelte'
 
   interface Props {
     sortedChapters:  Chapter[]
@@ -107,7 +108,7 @@
     if (!ts) return ''
     const d = new Date(ts)
     if (isNaN(d.getTime())) return ''
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    return d.toLocaleDateString(currentLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
   }
 </script>
 
@@ -147,7 +148,7 @@
             {#if isGridSelected}<span class="grid-cell-check">✓</span>{/if}
             <span class="grid-cell-num">{ch.chapterNumber < 0 ? '–' : ch.chapterNumber % 1 === 0 ? ch.chapterNumber.toFixed(0) : ch.chapterNumber.toFixed(1)}</span>
             {#if ch.scanlator}<span class="grid-cell-scan" title={ch.scanlator}>{ch.scanlator}</span>{/if}
-            {#if ch.downloaded}<span class="grid-cell-dl" title="Downloaded"></span>{/if}
+            {#if ch.downloaded}<span class="grid-cell-dl" title={t('series.chapterList.downloaded')}></span>{/if}
             {#if ch.read}<span class="grid-cell-dot"></span>{/if}
             {#if enqueueing.has(ch.id)}<span class="grid-cell-spinner"><CircleNotch size={10} weight="light" class="anim-spin" /></span>{/if}
           </button>
@@ -171,7 +172,7 @@
           onkeydown={(e) => e.key === 'Enter' && (hasSelection ? onToggleSelect(ch.id, e) : onOpen(ch, chInProgress))}
           oncontextmenu={(e) => { e.preventDefault(); ctx = { x: e.clientX, y: e.clientY, chapter: ch, idx: idxInSorted } }}
         >
-          <button class="ch-check" class:ch-check-visible={hasSelection} onclick={(e) => onToggleSelect(ch.id, e)} title="Select">
+          <button class="ch-check" class:ch-check-visible={hasSelection} onclick={(e) => onToggleSelect(ch.id, e)} title={t('series.menu.select')}>
             {#if isSelected}<CheckSquare size={15} weight="fill" />{:else}<Square size={15} weight="light" />{/if}
           </button>
           <div class="ch-left">
@@ -180,7 +181,7 @@
             </span>
             <div class="ch-meta">
               {#if ch.uploadDate}<span class="ch-meta-item">{formatDate(ch.uploadDate)}</span>{/if}
-              {#if ch.lastPageRead && ch.lastPageRead > 0 && !ch.read}<span class="ch-meta-item">p.{ch.lastPageRead}</span>{/if}
+              {#if ch.lastPageRead && ch.lastPageRead > 0 && !ch.read}<span class="ch-meta-item">{t('series.chapterList.pageShort', { page: ch.lastPageRead })}</span>{/if}
             </div>
           </div>
           <div class="ch-right">
@@ -190,14 +191,14 @@
             {:else if ch.downloaded}
               <div class="ch-dl-wrap">
                 <Download size={13} weight="fill" class="ch-dl-icon" />
-                <button class="dl-btn dl-btn-delete" onclick={(e) => { e.stopPropagation(); onDeleteDownload(ch.id) }} title="Delete download">
+                <button class="dl-btn dl-btn-delete" onclick={(e) => { e.stopPropagation(); onDeleteDownload(ch.id) }} title={t('series.menu.deleteDownload')}>
                   <Trash size={13} weight="light" />
                 </button>
               </div>
             {:else if enqueueing.has(ch.id)}
               <CircleNotch size={14} weight="light" class="anim-spin enqueue-icon" />
             {:else}
-              <button class="dl-btn" onclick={(e) => { e.stopPropagation(); onEnqueue(ch, e) }} title="Download">
+              <button class="dl-btn" onclick={(e) => { e.stopPropagation(); onEnqueue(ch, e) }} title={t('series.menu.download')}>
                 <Download size={13} weight="light" />
               </button>
             {/if}

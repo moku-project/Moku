@@ -19,6 +19,7 @@
   import MediaSlider from "$lib/components/media/shared/MediaSlider.svelte";
   import NovelSettingsPanel from "$lib/components/media/novel/NovelSettingsPanel.svelte";
   import { setReading, clearReading } from "$lib/core/discord";
+  import { t } from "$lib/i18n/index.svelte";
 
   const nav        = chapterNav();
   const manga      = $derived(seriesState.activeManga);
@@ -38,7 +39,7 @@
 
   const activeSeg = $derived(st.segments.find(s => s.chapterId === chapter?.id) ?? st.segments[0]);
   const chapterLabel = $derived(
-    activeSeg ? `Ch. ${activeSeg.chapterNumber}${activeSeg.name ? ` — ${activeSeg.name}` : ""}` : "",
+    activeSeg ? (activeSeg.name ? t("novel.chapterLabelNamed", { number: activeSeg.chapterNumber, name: activeSeg.name }) : t("novel.chapterLabel", { number: activeSeg.chapterNumber })) : "",
   );
   const pctExact = $derived(st.scrollPct * 100);
   // One line's box height (in rem) is fontScale * lineHeight; add a small buffer so
@@ -434,8 +435,8 @@
   });
 
   function onReaderKey(e: KeyboardEvent) {
-    const t = e.target as HTMLElement;
-    const typing = t?.tagName === "INPUT" || t?.tagName === "TEXTAREA";
+    const target = e.target as HTMLElement;
+    const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
     if (st.paged && !typing && ["ArrowLeft", "ArrowRight", "PageUp", "PageDown"].includes(e.key)) {
       e.preventDefault();
       turnPage(e.key === "ArrowRight" || e.key === "PageDown" ? 1 : -1);
@@ -482,21 +483,19 @@
       style="font-family: {resolvedNovelFont(st)}; font-size: {st.fontScale}rem; line-height: {st.lineHeight}; max-width: {st.pageWidth}rem; text-align: {st.textAlign}; --para-gap: {st.paraSpacing}em;{st.paged ? ` width: ${geo.textW}px; column-width: ${geo.textW}px; column-gap: ${2 * PAGE_SIDE}px;` : ''}"
     >
       {#if st.loading}
-        <p class="notice">Loading…</p>
+        <p class="notice">{t("common.loading")}</p>
       {:else if st.unsupported}
         <div class="notice">
-          <p class="notice-title">Nothing to read here yet</p>
-          <p>The server didn't return any text for this chapter. It may not be
-             downloaded, or this source doesn't provide chapter text. Try
-             downloading the chapter, or pick another source for this series.</p>
+          <p class="notice-title">{t("novel.emptyTitle")}</p>
+          <p>{t("novel.emptyBody")}</p>
         </div>
       {:else if st.error}
         <p class="notice">{st.error}</p>
       {:else}
-        {#if prepending}<p class="notice appending">Loading previous chapter…</p>{/if}
+        {#if prepending}<p class="notice appending">{t("novel.loadingPrevious")}</p>{/if}
         {#each st.segments as seg (seg.chapterId)}
           <section data-cid={seg.chapterId} class="seg">
-            <p class="seg-head">Ch. {seg.chapterNumber}{seg.name ? ` — ${seg.name}` : ""}</p>
+            <p class="seg-head">{seg.name ? t("novel.chapterLabelNamed", { number: seg.chapterNumber, name: seg.name }) : t("novel.chapterLabel", { number: seg.chapterNumber })}</p>
             {#if seg.format === "html"}
               {@html seg.body}
             {:else}
@@ -504,7 +503,7 @@
             {/if}
           </section>
         {/each}
-        {#if st.appending}<p class="notice appending">Loading next chapter…</p>{/if}
+        {#if st.appending}<p class="notice appending">{t("novel.loadingNext")}</p>{/if}
       {/if}
     </article>
 
@@ -529,11 +528,11 @@
   >
     {#snippet endControls()}
       <button class="icon-btn" class:active={isBookmarked}
-        data-tip={isBookmarked ? "Remove bookmark" : "Bookmark"} aria-label="Bookmark" onclick={toggleBookmark}>
+        data-tip={isBookmarked ? t("novel.removeBookmark") : t("novel.bookmark")} aria-label={t("novel.bookmark")} onclick={toggleBookmark}>
         <BookmarkSimple size={14} weight={isBookmarked ? "fill" : "regular"} />
       </button>
 
-      <button class="icon-btn" class:active={cfgOpen} data-tip="Text options" aria-label="Text options"
+      <button class="icon-btn" class:active={cfgOpen} data-tip={t("novel.textOptions")} aria-label={t("novel.textOptions")}
         onclick={() => (cfgOpen = !cfgOpen)}>
         <TextT size={14} weight="regular" />
       </button>

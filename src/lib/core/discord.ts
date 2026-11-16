@@ -1,6 +1,7 @@
 import { platformService }  from '$lib/platform-service'
 import { settingsState }    from '$lib/state/settings.svelte'
 import type { Manga }       from '$lib/types/manga'
+import { t }              from '$lib/i18n/index.svelte'
 import type { Chapter }     from '$lib/types/chapter'
 import type { DiscordPresence } from '$lib/platform-adapters/types'
 
@@ -38,7 +39,7 @@ function trunc(s: string, max = 128): string {
 function formatChapter(manga: Manga, chapter: Chapter): string {
   const n = chapter.chapterNumber
   const num = Number.isInteger(n) ? n : n.toFixed(1)
-  return manga.contentType === 'ANIME' ? `Episode ${num}` : `Chapter ${num}`
+  return manga.contentType === 'ANIME' ? t('notices.discord.episode', { num }) : t('notices.discord.chapter', { num })
 }
 
 async function resolveCover(manga: Manga): Promise<string> {
@@ -48,7 +49,7 @@ async function resolveCover(manga: Manga): Promise<string> {
 function buildReadingPresence(manga: Manga, chapter: Chapter, cover: string) {
   return {
     details:    trunc(manga.title),
-    state:      `${formatChapter(manga, chapter)}  ·  ${manga.contentType === 'ANIME' ? 'Watching' : 'Reading'}`,
+    state:      manga.contentType === 'ANIME' ? t('notices.discord.stateWatching', { chapter: formatChapter(manga, chapter) }) : t('notices.discord.stateReading', { chapter: formatChapter(manga, chapter) }),
     timestamps: { start: sessionStart ?? Date.now() },
     assets: {
       largeImage: cover,
@@ -93,7 +94,7 @@ export async function setIdle(): Promise<void> {
   if (!settingsState.settings.discordRpc) return
   supersede()
   await applyAmbient({
-    details:    'Browsing',
+    details:    t('notices.discord.browsing'),
     timestamps: { start: sessionStart ?? Date.now() },
     assets: { largeImage: FALLBACK_IMAGE, largeText: 'Moku' },
     buttons: APP_BUTTONS,
@@ -107,7 +108,7 @@ export async function setAway(): Promise<void> {
   supersede()
   away = true
   await platformService.setDiscordPresence({
-    details: 'Away',
+    details: t('notices.discord.away'),
     assets: { largeImage: FALLBACK_IMAGE, largeText: 'Moku' },
     buttons: APP_BUTTONS,
     activityType: ACTIVITY_TYPE,

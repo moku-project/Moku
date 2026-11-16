@@ -38,6 +38,7 @@
   import { onMount } from 'svelte'
   import logoUrl     from '$lib/assets/moku-icon-splash.svg'
   import { platformService } from '$lib/platform-service'
+  import { t } from '$lib/i18n/index.svelte'
 
   const isTauri = platformService.platform === 'tauri'
   const isDev   = import.meta.env.DEV
@@ -144,12 +145,12 @@
     if (animStart === null) animStart = ts
     const elapsed = ts - animStart
     if (animPhase === 1) {
-      const t = Math.min(elapsed / PHASE1_MS, 1)
-      ringProg = 0.025 + (1 - Math.pow(1 - t, 3)) * (PHASE1_TARGET - 0.025)
-      if (t >= 1) { animPhase = 2; animStart = ts }
+      const frac = Math.min(elapsed / PHASE1_MS, 1)
+      ringProg = 0.025 + (1 - Math.pow(1 - frac, 3)) * (PHASE1_TARGET - 0.025)
+      if (frac >= 1) { animPhase = 2; animStart = ts }
     } else {
-      const t = Math.min(elapsed / PHASE2_MS, 1)
-      ringProg = PHASE1_TARGET + (1 - Math.pow(1 - t, 4)) * (PHASE2_TARGET - PHASE1_TARGET)
+      const frac = Math.min(elapsed / PHASE2_MS, 1)
+      ringProg = PHASE1_TARGET + (1 - Math.pow(1 - frac, 4)) * (PHASE2_TARGET - PHASE1_TARGET)
     }
     animFrame = requestAnimationFrame(animateRing)
   }
@@ -168,8 +169,8 @@
     animFrame = 0
     ringProg  = 1
     if (authRequired) return
-    const t = setTimeout(() => triggerExit(onReady), 650)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => triggerExit(onReady), 650)
+    return () => clearTimeout(timer)
   })
 
   function submitPin() {
@@ -230,7 +231,7 @@
     helloError = false
     try {
       const { invoke } = await import('@tauri-apps/api/core')
-      await invoke('windows_hello_authenticate', { reason: 'Unlock Moku' })
+      await invoke('windows_hello_authenticate', { reason: t('chrome.splash.helloReason') })
       triggerExit(onUnlock)
     } catch {
       helloError = true
@@ -245,13 +246,13 @@
 
     if (mode === 'idle' && onDismiss) {
       const handler = () => triggerExit(onDismiss)
-      const t = setTimeout(() => {
+      const timer = setTimeout(() => {
         window.addEventListener('keydown',    handler, { once: true })
         window.addEventListener('mousedown',  handler, { once: true })
         window.addEventListener('touchstart', handler, { once: true })
       }, 200)
       return () => {
-        clearTimeout(t)
+        clearTimeout(timer)
         clearInterval(iv)
         window.removeEventListener('keydown',    handler)
         window.removeEventListener('mousedown',  handler)
@@ -363,13 +364,13 @@
   }
 
   function drawFrame(
-    ctx: CanvasRenderingContext2D, t: number, cw: number, ch: number, dpr: number,
+    ctx: CanvasRenderingContext2D, elapsed: number, cw: number, ch: number, dpr: number,
     cards: CardDef[], trigs: CardTrig[], stamps: HTMLCanvasElement[], vignette: HTMLCanvasElement,
   ) {
     ctx.clearRect(0, 0, cw, ch)
     for (let i = 0; i < cards.length; i++) {
       const c     = cards[i]
-      const p     = ((t / c.cycleSec) + c.phase) % 1
+      const p     = ((elapsed / c.cycleSec) + c.phase) % 1
       const alpha = p < 0.07 ? (p / 0.07) * c.alpha : p > 0.86 ? ((1 - p) / 0.14) * c.alpha : c.alpha
       if (alpha < 0.005) continue
       const cy    = c.yStart - p * c.travel
@@ -550,6 +551,7 @@
   {/if}
 
   {#if isDev && mode === 'idle' && devMetrics && showDevOverlay}
+    <!-- i18n-ignore-start: developer-only metrics -->
     <div class="dev-overlay">
       <span class="dev-title">canvas · idle splash</span>
       <div class="dev-grid">
@@ -561,6 +563,7 @@
         <span class="dev-k">last resize</span>   <span class="dev-v">{fmtAgo(devMetrics.lastResizeAt)}</span>
       </div>
     </div>
+    <!-- i18n-ignore-end -->
   {/if}
 
   {#if mode === 'idle'}
@@ -569,7 +572,7 @@
         <div class="logo-glow"></div>
         <img src={logoUrl} alt="Moku" class="logo-breathe" style="width:{logoIdleSize}px;height:{logoIdleSize}px;border-radius:28px;display:block;position:relative" />
       </div>
-      <p class="hint">press any key to continue</p>
+      <p class="hint">{t('chrome.splash.pressAnyKey')}</p>
     </div>
 
   {:else if mode === 'locked'}
@@ -578,7 +581,7 @@
         <div class="logo-glow"></div>
         <img src={logoUrl} alt="Moku" class="logo-breathe" style="width:56px;height:56px;border-radius:14px;display:block;position:relative" />
       </div>
-      <p class="pin-label">Enter PIN</p>
+      <p class="pin-label">{t('chrome.splash.enterPin')}</p>
       <div class="pin-dots" class:pin-shake={pinShake}>
         {#each Array(pinLen) as _, i}
           <div class="pin-dot" class:filled={i < pinEntry.length}></div>
@@ -586,7 +589,7 @@
       </div>
       {#if windowsHelloEnabled && helloAvailable}
         <button class="hello-btn" class:hello-btn--error={helloError} disabled={helloBusy} onclick={tryWindowsHello}>
-          {helloBusy ? 'Waiting…' : helloError ? 'Try again' : 'Use Windows Hello'}
+          {helloBusy ? t('chrome.splash.helloWaiting') : helloError ? t('chrome.splash.helloTryAgain') : t('chrome.splash.useWindowsHello')}
         </button>
       {/if}
     </div>
@@ -597,11 +600,11 @@
         <div class="logo-glow"></div>
         <img src={logoUrl} alt="Moku" class="logo-breathe" style="width:56px;height:56px;border-radius:14px;display:block;position:relative" />
       </div>
-      <p class="pin-label">Server login required</p>
+      <p class="pin-label">{t('chrome.splash.loginRequired')}</p>
       <input
         class="auth-input"
         type="password"
-        placeholder="Password"
+        placeholder={t('chrome.splash.password')}
         autocomplete="current-password"
         disabled={authBusy}
         bind:value={authPassword}
@@ -609,7 +612,7 @@
       />
       {#if authError}<p class="auth-error">{authError}</p>{/if}
       <button class="hello-btn" disabled={authBusy || !authPassword} onclick={submitAuth}>
-        {authBusy ? 'Signing in…' : 'Sign in'}
+        {authBusy ? t('chrome.splash.signingIn') : t('chrome.splash.signIn')}
       </button>
     </div>
 
@@ -630,30 +633,30 @@
     <div class="bottom-area" style="z-index:1">
       {#if failed || notConfigured}
         <div class="error-box anim-fade-up">
-          <p class="error-label">{failed ? (errorMessage || 'Could not reach server') : 'Server not configured'}</p>
+          <p class="error-label">{failed ? (errorMessage || t('chrome.splash.unreachable')) : t('chrome.splash.notConfigured')}</p>
           {#if errorLog}
             <pre class="error-log">{errorLog.split('\n').slice(-12).join('\n')}</pre>
           {/if}
           <div class="error-actions">
-            <button class="err-btn" onclick={() => onRetry?.()}>Retry</button>
+            <button class="err-btn" onclick={() => onRetry?.()}>{t('common.retry')}</button>
             {#if errorLog && onCopyLog}
-              <button class="err-btn" onclick={() => { onCopyLog?.(); logCopied = true; setTimeout(() => (logCopied = false), 1500) }}>{logCopied ? 'Copied' : 'Copy log'}</button>
+              <button class="err-btn" onclick={() => { onCopyLog?.(); logCopied = true; setTimeout(() => (logCopied = false), 1500) }}>{logCopied ? t('common.copied') : t('chrome.splash.copyLog')}</button>
             {/if}
             {#if onOpenDataDir}
-              <button class="err-btn" onclick={() => onOpenDataDir?.()}>Data folder</button>
+              <button class="err-btn" onclick={() => onOpenDataDir?.()}>{t('chrome.splash.dataFolder')}</button>
             {/if}
-            <button class="err-btn err-btn--primary" onclick={() => onBypass?.()}>Enter app</button>
+            <button class="err-btn err-btn--primary" onclick={() => onBypass?.()}>{t('chrome.splash.enterApp')}</button>
           </div>
         </div>
       {:else if authRequired && ringFull}
         <div class="error-box anim-fade-up">
-          <p class="error-label">Waiting for login</p>
+          <p class="error-label">{t('chrome.splash.waitingForLogin')}</p>
           <div class="error-actions">
-            <button class="err-btn" onclick={() => { onSkip?.() }}>Skip</button>
+            <button class="err-btn" onclick={() => { onSkip?.() }}>{t('chrome.splash.skip')}</button>
           </div>
         </div>
       {:else}
-        <p class="status-text">{ringFull ? '' : `Initializing server${dots}`}</p>
+        <p class="status-text">{ringFull ? '' : t('chrome.splash.initializing', { dots })}</p>
       {/if}
     </div>
   {/if}
@@ -664,10 +667,10 @@
         <input class="server-switch-input" bind:value={urlDraft} spellcheck="false"
           placeholder="http://localhost:6007"
           onkeydown={(e) => { if (e.key === 'Enter') saveUrl(); if (e.key === 'Escape') urlEditing = false }} />
-        <button class="server-switch-btn" onclick={saveUrl}>Save</button>
+        <button class="server-switch-btn" onclick={saveUrl}>{t('common.save')}</button>
       {:else}
-        <span class="server-switch-url">{serverUrl || 'no server url'}</span>
-        <button class="server-switch-btn" onclick={openUrlEditor}>Change</button>
+        <span class="server-switch-url">{serverUrl || t('chrome.splash.noServerUrl')}</span>
+        <button class="server-switch-btn" onclick={openUrlEditor}>{t('chrome.splash.change')}</button>
       {/if}
     </div>
   {/if}

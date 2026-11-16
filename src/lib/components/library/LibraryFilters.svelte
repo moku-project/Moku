@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Check, Funnel } from 'phosphor-svelte'
   import type { LibraryContentFilter, LibraryStatusFilter } from '$lib/state/library.svelte'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
   interface Props {
     status:        LibraryStatusFilter
@@ -18,19 +19,19 @@
     onToggle, onStatusChange, onFilterToggle, onClear,
   }: Props = $props()
 
-  const CONTENT_FILTERS: [LibraryContentFilter, string][] = [
-    ['unread',     'Unread'],
-    ['started',    'Started'],
-    ['downloaded', 'Downloaded'],
-    ['bookmarked', 'Bookmarked'],
+  const CONTENT_FILTERS: [LibraryContentFilter, MessageKey][] = [
+    ['unread',     'library.filters.unread'],
+    ['started',    'library.filters.started'],
+    ['downloaded', 'library.filters.downloaded'],
+    ['bookmarked', 'library.filters.bookmarked'],
   ]
 
-  const STATUSES: [LibraryStatusFilter, string][] = [
-    ['ONGOING',             'Ongoing'],
-    ['COMPLETED',           'Completed'],
-    ['ON_HIATUS',           'Hiatus'],
-    ['CANCELLED',           'Cancelled'],
-    ['PUBLISHING_FINISHED', 'Publishing finished'],
+  const STATUSES: [LibraryStatusFilter, MessageKey][] = [
+    ['ONGOING',             'library.filters.statusOngoing'],
+    ['COMPLETED',           'library.filters.statusCompleted'],
+    ['ON_HIATUS',           'library.filters.statusHiatus'],
+    ['CANCELLED',           'library.filters.statusCancelled'],
+    ['PUBLISHING_FINISHED', 'library.filters.statusPublishingFinished'],
   ]
 </script>
 
@@ -38,7 +39,7 @@
   <button
     class="icon-btn"
     class:active={hasActive}
-    title="Filter"
+    title={t('library.filters.filter')}
     onclick={onToggle}
   >
     <Funnel size={15} weight={hasActive ? 'fill' : 'bold'} />
@@ -47,14 +48,14 @@
   {#if open}
     <div class="panel" role="menu">
       <div class="panel-head">
-        <span class="panel-title">Filter</span>
+        <span class="panel-title">{t('library.filters.filter')}</span>
         {#if hasActive}
-          <button class="clear-btn" onclick={onClear}>Clear all</button>
+          <button class="clear-btn" onclick={onClear}>{t('library.filters.clearAll')}</button>
         {/if}
       </div>
 
       <div class="divider"></div>
-      <p class="section-label">Content</p>
+      <p class="section-label">{t('library.filters.content')}</p>
 
       {#each CONTENT_FILTERS as [key, label]}
         <button
@@ -66,12 +67,12 @@
           <span class="check" class:check-on={!!filters[key]}>
             {#if filters[key]}<Check size={9} weight="bold" />{/if}
           </span>
-          {label}
+          {t(label)}
         </button>
       {/each}
 
       <div class="divider"></div>
-      <p class="section-label">Status</p>
+      <p class="section-label">{t('library.filters.status')}</p>
 
       {#each STATUSES as [s, label]}
         <button
@@ -83,7 +84,7 @@
           <span class="check" class:check-on={status === s}>
             {#if status === s}<Check size={9} weight="bold" />{/if}
           </span>
-          {label}
+          {t(label)}
         </button>
       {/each}
     </div>

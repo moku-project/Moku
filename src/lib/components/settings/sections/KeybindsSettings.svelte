@@ -3,6 +3,7 @@
   import { eventToKeybind } from '$lib/core/keybinds/keybindEngine'
   import { DEFAULT_KEYBINDS, KEYBIND_LABELS } from '$lib/core/keybinds/defaultBinds'
   import type { Keybinds } from '$lib/core/keybinds/defaultBinds'
+  import { t } from '$lib/i18n/index.svelte'
 
   function resetKeybinds() {
     updateSettings({ keybinds: { ...DEFAULT_KEYBINDS } })
@@ -34,24 +35,24 @@
 <div class="s-panel">
   <div class="s-section">
     <p class="s-section-title">
-      Keyboard Shortcuts
-      <button class="s-btn" onclick={resetKeybinds}>Reset all</button>
+      {t('settings.keybinds.title')}
+      <button class="s-btn" onclick={resetKeybinds}>{t('settings.keybinds.resetAll')}</button>
     </p>
-    <p class="s-kb-hint">Click a binding to rebind, then press the new key combination.</p>
+    <p class="s-kb-hint">{t('settings.keybinds.hint')}</p>
     <div class="s-section-body">
       {#each Object.keys(KEYBIND_LABELS) as key}
         {@const k           = key as keyof Keybinds}
         {@const isListening = listeningKey === k}
         {@const isDefault   = settingsState.settings.keybinds[k] === DEFAULT_KEYBINDS[k]}
         <div class="s-kb-row">
-          <span class="s-kb-label">{KEYBIND_LABELS[k]}</span>
+          <span class="s-kb-label">{t(KEYBIND_LABELS[k])}</span>
           <div class="s-kb-right">
             <button class="s-kb-bind" class:listening={isListening} onclick={() => startListen(k)}>
-              {isListening ? 'Press key…' : settingsState.settings.keybinds[k]}
+              {isListening ? t('settings.keybinds.listening') : settingsState.settings.keybinds[k]}
             </button>
             <button class="s-btn-icon"
               onclick={() => updateSettings({ keybinds: { ...settingsState.settings.keybinds, [k]: DEFAULT_KEYBINDS[k] } })}
-              disabled={isDefault} title="Reset">↺</button>
+              disabled={isDefault} title={t('common.reset')}>↺</button>
           </div>
         </div>
       {/each}

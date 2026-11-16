@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MagnifyingGlass, X as XIcon } from 'phosphor-svelte'
   import Thumbnail from '$lib/components/shared/manga/Thumbnail.svelte'
+  import { t } from '$lib/i18n/index.svelte'
   import type { Manga } from '$lib/types'
 
   let {
@@ -36,18 +37,18 @@
 >
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Pin manga — slot {slotIndex + 1}</span>
+      <span class="modal-title">{t('home.picker.title', { slot: slotIndex + 1 })}</span>
       <button class="modal-close" onclick={onclose}><XIcon size={13} weight="light" /></button>
     </div>
     <div class="search-wrap">
       <MagnifyingGlass size={12} weight="light" style="color:var(--text-faint);flex-shrink:0" />
-      <input class="search-input" placeholder="Search library…" bind:value={search} use:focusEl />
+      <input class="search-input" placeholder={t('home.picker.searchPlaceholder')} bind:value={search} use:focusEl />
     </div>
     <div class="list">
       {#if loading}
-        <p class="empty-msg">Loading…</p>
+        <p class="empty-msg">{t('common.loading')}</p>
       {:else if results.length === 0}
-        <p class="empty-msg">No results</p>
+        <p class="empty-msg">{t('home.picker.noResults')}</p>
       {:else}
         {#each results as m (`${m.extensionId}-${m.sourceEntryId}`)}
           <button class="list-row" onclick={() => onpin(m)}>

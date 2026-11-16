@@ -7,6 +7,7 @@
   import Thumbnail            from "$lib/components/shared/manga/Thumbnail.svelte";
   import type { AutomationRules, MediaAutomationInput, RefreshInterval } from "$lib/server-adapters/types";
   import type { Manga }       from "$lib/types";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
   let { mangaId, mediaId, manga: mangaProp = null, onClose }: {
     mangaId:  string;
@@ -16,31 +17,31 @@
     onClose:  () => void;
   } = $props();
 
-  const DOWNLOAD_AHEAD_OPTIONS = [
-    { value: 0,  label: "Off" },
-    { value: 2,  label: "2"   },
-    { value: 5,  label: "5"   },
-    { value: 10, label: "10"  },
+  const DOWNLOAD_AHEAD_OPTIONS: { value: number; label?: MessageKey }[] = [
+    { value: 0,  label: "common.off" },
+    { value: 2  },
+    { value: 5  },
+    { value: 10 },
   ];
 
-  const MAX_KEEP_OPTIONS = [
-    { value: 0,  label: "Off" },
-    { value: 5,  label: "5"   },
-    { value: 10, label: "10"  },
-    { value: 25, label: "25"  },
+  const MAX_KEEP_OPTIONS: { value: number; label?: MessageKey }[] = [
+    { value: 0,  label: "common.off" },
+    { value: 5  },
+    { value: 10 },
+    { value: 25 },
   ];
 
-  const DELETE_DELAY_OPTIONS = [
-    { value: 0,   label: "Now"    },
-    { value: 24,  label: "1 day"  },
-    { value: 168, label: "1 week" },
+  const DELETE_DELAY_OPTIONS: { value: number; label: MessageKey }[] = [
+    { value: 0,   label: "series.automation.delayNow"  },
+    { value: 24,  label: "series.automation.delayDay"  },
+    { value: 168, label: "series.automation.delayWeek" },
   ];
 
-  const REFRESH_INTERVAL_OPTIONS: { value: RefreshInterval | null; label: string }[] = [
-    { value: null,     label: "Default" },
-    { value: "DAILY",  label: "Daily"   },
-    { value: "WEEKLY", label: "Weekly"  },
-    { value: "MANUAL", label: "Manual"  },
+  const REFRESH_INTERVAL_OPTIONS: { value: RefreshInterval | null; label: MessageKey }[] = [
+    { value: null,     label: "common.default"                },
+    { value: "DAILY",  label: "series.automation.intervalDaily"  },
+    { value: "WEEKLY", label: "series.automation.intervalWeekly" },
+    { value: "MANUAL", label: "series.automation.intervalManual" },
   ];
 
   // Values shown are the effective rules (override or inherited global); picking
@@ -66,7 +67,7 @@
 </script>
 
 <div class="backdrop" role="presentation" tabindex="-1" onmousedown={onBackdrop}>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Automation">
+  <div class="modal" role="dialog" aria-modal="true" aria-label={t("series.header.automation")}>
 
     <div class="cover-col">
       {#if coverSrc}
@@ -81,39 +82,39 @@
     <div class="content">
       <div class="content-header">
         <div class="title-block">
-          <span class="title">{manga?.title ?? "Automation"}</span>
-          <span class="subtitle">{custom ? "Custom rules for this series" : "Using the global defaults"}</span>
+          <span class="title">{manga?.title ?? t("series.header.automation")}</span>
+          <span class="subtitle">{custom ? t("series.automation.customRules") : t("series.automation.usingGlobal")}</span>
         </div>
         {#if custom}
-          <button class="reset-btn" onclick={() => resetMediaAutomation(mediaId)} title="Use the global defaults for this series">
-            <ArrowCounterClockwise size={12} /> Reset
+          <button class="reset-btn" onclick={() => resetMediaAutomation(mediaId)} title={t("series.automation.resetHint")}>
+            <ArrowCounterClockwise size={12} /> {t("common.reset")}
           </button>
         {/if}
-        <button class="close-btn" onclick={onClose} aria-label="Close">
+        <button class="close-btn" onclick={onClose} aria-label={t("common.close")}>
           <X size={16} weight="light" />
         </button>
       </div>
 
       <div class="content-body">
         {#if !mediaId}
-          <p class="notice">Add this series to your library to set automation rules.</p>
+          <p class="notice">{t("series.automation.needsLibrary")}</p>
         {:else if disabled}
-          <p class="notice">Automation is turned off in Settings → Automation, so these rules won't run.</p>
+          <p class="notice">{t("series.automation.disabledNotice")}</p>
         {:else if enforced}
-          <p class="notice">Global defaults are enforced in Settings → Automation; per-series rules are ignored.</p>
+          <p class="notice">{t("series.automation.enforcedNotice")}</p>
         {/if}
 
-        <p class="section-label">Downloads</p>
+        <p class="section-label">{t("series.automation.sectionDownloads")}</p>
 
         <div class="auto-row">
           <div class="auto-info">
-            <span class="auto-label">Auto-download new chapters</span>
-            <span class="auto-desc">Queue new chapters when this series refreshes</span>
+            <span class="auto-label">{t("series.automation.autoDownload")}</span>
+            <span class="auto-desc">{t("series.automation.autoDownloadDesc")}</span>
           </div>
           <button
             role="switch"
             aria-checked={get("autoDownload")}
-            aria-label="Auto-download new chapters"
+            aria-label={t("series.automation.autoDownload")}
             class="auto-toggle"
             class:auto-toggle-on={get("autoDownload")}
             onclick={() => set("autoDownload", !get("autoDownload"))}
@@ -122,8 +123,8 @@
 
         <div class="auto-row auto-row-col">
           <div class="auto-info">
-            <span class="auto-label">Download ahead</span>
-            <span class="auto-desc">Pre-fetch chapters while reading</span>
+            <span class="auto-label">{t("series.automation.downloadAhead")}</span>
+            <span class="auto-desc">{t("series.automation.downloadAheadDesc")}</span>
           </div>
           <div class="auto-chip-group">
             {#each DOWNLOAD_AHEAD_OPTIONS as opt}
@@ -131,15 +132,15 @@
                 class="auto-chip"
                 class:auto-chip-on={get("downloadAhead") === opt.value}
                 onclick={() => set("downloadAhead", opt.value)}
-              >{opt.label}</button>
+              >{opt.label ? t(opt.label) : opt.value}</button>
             {/each}
           </div>
         </div>
 
         <div class="auto-row auto-row-col">
           <div class="auto-info">
-            <span class="auto-label">Max chapters to keep</span>
-            <span class="auto-desc">Delete oldest downloads when limit is exceeded</span>
+            <span class="auto-label">{t("series.automation.maxKeep")}</span>
+            <span class="auto-desc">{t("series.automation.maxKeepDesc")}</span>
           </div>
           <div class="auto-chip-group">
             {#each MAX_KEEP_OPTIONS as opt}
@@ -147,24 +148,24 @@
                 class="auto-chip"
                 class:auto-chip-on={get("maxKeepChapters") === opt.value}
                 onclick={() => set("maxKeepChapters", opt.value)}
-              >{opt.label}</button>
+              >{opt.label ? t(opt.label) : opt.value}</button>
             {/each}
           </div>
         </div>
 
         <div class="divider"></div>
 
-        <p class="section-label">On Read</p>
+        <p class="section-label">{t("series.automation.sectionOnRead")}</p>
 
         <div class="auto-row">
           <div class="auto-info">
-            <span class="auto-label">Delete after reading</span>
-            <span class="auto-desc">Remove download when chapter is marked read</span>
+            <span class="auto-label">{t("series.automation.deleteOnRead")}</span>
+            <span class="auto-desc">{t("series.automation.deleteOnReadDesc")}</span>
           </div>
           <button
             role="switch"
             aria-checked={get("deleteOnRead")}
-            aria-label="Delete after reading"
+            aria-label={t("series.automation.deleteOnRead")}
             class="auto-toggle"
             class:auto-toggle-on={get("deleteOnRead")}
             onclick={() => set("deleteOnRead", !get("deleteOnRead"))}
@@ -173,14 +174,14 @@
 
         {#if get("deleteOnRead")}
           <div class="auto-row auto-row-sub">
-            <span class="auto-label">Delete delay</span>
+            <span class="auto-label">{t("series.automation.deleteDelay")}</span>
             <div class="auto-chip-group">
               {#each DELETE_DELAY_OPTIONS as opt}
                 <button
                   class="auto-chip"
                   class:auto-chip-on={get("deleteDelayHours") === opt.value}
                   onclick={() => set("deleteDelayHours", opt.value)}
-                >{opt.label}</button>
+                >{t(opt.label)}</button>
               {/each}
             </div>
           </div>
@@ -188,17 +189,17 @@
 
         <div class="divider"></div>
 
-        <p class="section-label">Updates</p>
+        <p class="section-label">{t("series.automation.sectionUpdates")}</p>
 
         <div class="auto-row">
           <div class="auto-info">
-            <span class="auto-label">Pause updates</span>
-            <span class="auto-desc">Skip this series during global refresh</span>
+            <span class="auto-label">{t("series.automation.pauseUpdates")}</span>
+            <span class="auto-desc">{t("series.automation.pauseUpdatesDesc")}</span>
           </div>
           <button
             role="switch"
             aria-checked={get("pauseUpdates")}
-            aria-label="Pause updates"
+            aria-label={t("series.automation.pauseUpdates")}
             class="auto-toggle"
             class:auto-toggle-on={get("pauseUpdates")}
             onclick={() => set("pauseUpdates", !get("pauseUpdates"))}
@@ -207,8 +208,8 @@
 
         <div class="auto-row auto-row-col">
           <div class="auto-info">
-            <span class="auto-label">Refresh interval</span>
-            <span class="auto-desc">How often to check for new chapters</span>
+            <span class="auto-label">{t("series.automation.refreshInterval")}</span>
+            <span class="auto-desc">{t("series.automation.refreshIntervalDesc")}</span>
           </div>
           <div class="auto-chip-group">
             {#each REFRESH_INTERVAL_OPTIONS as opt}
@@ -216,7 +217,7 @@
                 class="auto-chip"
                 class:auto-chip-on={(ma?.refreshInterval ?? null) === opt.value}
                 onclick={() => set("refreshInterval", opt.value)}
-              >{opt.label}</button>
+              >{t(opt.label)}</button>
             {/each}
           </div>
         </div>

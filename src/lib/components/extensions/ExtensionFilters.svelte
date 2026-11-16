@@ -2,6 +2,7 @@
   import { MagnifyingGlass, ArrowsClockwise, Plus, GitBranch, ArrowCircleUp, CheckCircle, Rows, Globe } from "phosphor-svelte";
   import { FILTERS, type Filter, type Panel } from "$lib/components/extensions/lib/extensionHelpers";
   import { langBadge, LANG_ALL } from "$lib/core/lang";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     filter:         Filter;
@@ -33,7 +34,7 @@
 </script>
 
 <div class="header">
-  <h1 class="heading">Extensions</h1>
+  <h1 class="heading">{t("nav.extensions")}</h1>
 
   <div class="tabs" class:tabs-anims={anims} bind:this={tabsEl}>
     {#if anims && tabIndicator.width > 0}
@@ -50,7 +51,7 @@
         {:else if f.id === "all"}
           <Rows size={11} weight="bold" />
         {/if}
-        {f.id === "updates" && updateCount > 0 ? `Updates (${updateCount})` : f.label}
+        {f.id === "updates" && updateCount > 0 ? t("extensions.filters.updatesCount", { count: updateCount }) : t(f.label)}
       </button>
     {/each}
   </div>
@@ -58,19 +59,19 @@
   <div class="header-right">
     <div class="search-wrap">
       <MagnifyingGlass size={12} class="search-icon" weight="light" />
-      <input class="search" placeholder="Search" value={search} oninput={(e) => onSearch((e.target as HTMLInputElement).value)} />
+      <input class="search" placeholder={t("common.search")} value={search} oninput={(e) => onSearch((e.target as HTMLInputElement).value)} />
     </div>
-    <button class="icon-btn" class:active={panel === "repos"} data-tour="add-source" onclick={() => onPanel("repos")} title="Manage repos">
+    <button class="icon-btn" class:active={panel === "repos"} data-tour="add-source" onclick={() => onPanel("repos")} title={t("extensions.filters.manageRepos")}>
       <Plus size={14} weight="light" />
     </button>
-    <button class="icon-btn" class:active={panel === "apk"} onclick={() => onPanel("apk")} title="Install extension">
+    <button class="icon-btn" class:active={panel === "apk"} onclick={() => onPanel("apk")} title={t("extensions.filters.installExtension")}>
       <GitBranch size={14} weight="light" />
     </button>
-    <button class="icon-btn" onclick={onRefresh} disabled={refreshing} title="Refresh repo">
+    <button class="icon-btn" onclick={onRefresh} disabled={refreshing} title={t("extensions.filters.refreshRepo")}>
       <ArrowsClockwise size={14} weight="light" class={refreshing ? "anim-spin" : ""} />
     </button>
     {#if updateCount > 0}
-      <button class="icon-btn update-badge" onclick={onUpdateAll} disabled={updatingAll} title="Update all ({updateCount})">
+      <button class="icon-btn update-badge" onclick={onUpdateAll} disabled={updatingAll} title={t("extensions.filters.updateAll", { count: updateCount })}>
         <ArrowCircleUp size={14} weight="fill" class={updatingAll ? "anim-spin" : ""} />
       </button>
     {/if}
@@ -79,7 +80,7 @@
 
 {#if availableLangs.length > 1}
   <div class="lang-bar">
-    <button class="lang-pill" class:active={langFilter === null} onclick={() => onLang(null)}>All</button>
+    <button class="lang-pill" class:active={langFilter === null} onclick={() => onLang(null)}>{t("common.all")}</button>
     {#each availableLangs.filter((l) => l !== LANG_ALL) as lang}
       <button class="lang-pill" class:active={langFilter === lang} onclick={() => onLang(langFilter === lang ? null : lang)}>
         {langBadge(lang)}

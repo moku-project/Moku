@@ -1,6 +1,7 @@
 import type { Extension } from "$lib/server-adapters/types";
 import type { ContentTypeFilter } from "$lib/types/settings";
 import { canonicalLang, sameLang, LANG_ALL } from "$lib/core/lang";
+import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
 export type Filter = "installed" | "available" | "updates" | "all";
 export type Panel  = null | "apk" | "repos";
@@ -46,22 +47,22 @@ export function groupExtensions(
 
 export function validateUrl(url: string, ext?: string): string | null {
   if (!url.startsWith("http://") && !url.startsWith("https://"))
-    return "URL must start with http:// or https://";
+    return t("extensions.validation.urlScheme");
   if (ext && !url.endsWith(ext))
-    return `URL must point to a ${ext} file`;
+    return t("extensions.validation.urlFileType", { ext });
   return null;
 }
 
-export const FILTERS: { id: Filter; label: string }[] = [
-  { id: "installed", label: "Installed" },
-  { id: "available", label: "Available" },
-  { id: "updates",   label: "Updates"   },
-  { id: "all",       label: "All"       },
+export const FILTERS: { id: Filter; label: MessageKey }[] = [
+  { id: "installed", label: "extensions.filters.installed" },
+  { id: "available", label: "extensions.filters.available" },
+  { id: "updates",   label: "extensions.filters.updates"   },
+  { id: "all",       label: "common.all"                 },
 ];
 
-export const CONTENT_TYPES: { id: ContentTypeFilter; label: string }[] = [
-  { id: "all",    label: "All"    },
-  { id: "MANGA",  label: "Manga"  },
-  { id: "NOVEL",  label: "Novels" },
-  { id: "ANIME",  label: "Anime"  },
+export const CONTENT_TYPES: { id: ContentTypeFilter; label: MessageKey }[] = [
+  { id: "all",    label: "nav.contentAll"    },
+  { id: "MANGA",  label: "nav.contentManga"  },
+  { id: "NOVEL",  label: "nav.contentNovels" },
+  { id: "ANIME",  label: "nav.contentAnime"  },
 ];

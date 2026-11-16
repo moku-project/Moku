@@ -1,6 +1,7 @@
 import { settingsState } from '$lib/state/settings.svelte'
 import { seriesState }   from '$lib/state/series.svelte'
 import { searchWithScore } from '$lib/core/algorithms/search'
+import { t } from '$lib/i18n/index.svelte'
 import { getHash, areDuplicates } from '$lib/core/cover/coverHash'
 
 type CoverManga = { id: string; thumbnailUrl: string; source?: { displayName: string } | null }
@@ -69,10 +70,10 @@ export function coverCandidatesSync(
   // override is set.
   const sourceUrl = hasCoverOverride ? sourceCoverUrl(ownUrl) : ownUrl
   const raw: { mangaId: string; url: string; label: string; isActive?: boolean }[] = [
-    { mangaId, url: sourceUrl, label: 'This source', isActive: !hasCoverOverride && normalizeUrl(ownUrl) === normalizeUrl(current) },
+    { mangaId, url: sourceUrl, label: t('notices.cover.thisSource'), isActive: !hasCoverOverride && normalizeUrl(ownUrl) === normalizeUrl(current) },
     ...allIds.flatMap(id => {
       const m = mangaById.get(id)
-      return m ? [{ mangaId: m.id, url: m.thumbnailUrl, label: m.source?.displayName ?? `ID ${m.id}` }] : []
+      return m ? [{ mangaId: m.id, url: m.thumbnailUrl, label: m.source?.displayName ?? t('notices.cover.idFallback', { id: m.id }) }] : []
     }),
   ]
 

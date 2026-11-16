@@ -9,6 +9,7 @@
   import { libraryState }   from "$lib/state/library.svelte";
   import type { Manga, Chapter } from "$lib/types";
   import type { Extension, PreviewChapter } from "$lib/server-adapters/types";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     manga:           Manga;
@@ -217,7 +218,7 @@
           <Thumbnail src={resolvedCover(manga.id, manga.thumbnailUrl)} alt={manga.title} class="ctx-cover" />
         </div>
         <div class="manga-context-info">
-          <span class="modal-eyebrow">Migrate source</span>
+          <span class="modal-eyebrow">{t("shared.migrate.eyebrow")}</span>
           <span class="modal-title">{manga.title}</span>
           {#if manga.sourceName || manga.source?.displayName}
             <span class="modal-source">{manga.sourceName ?? manga.source?.displayName}</span>
@@ -234,7 +235,7 @@
             {#if i < stepIdx}<Check size={9} weight="bold" />{:else}{i + 1}{/if}
           </span>
           <span class="step-label">
-            {st === "source" ? "Pick source" : st === "search" ? (selectedExtension?.name ?? "Search") : "Confirm"}
+            {st === "source" ? t("shared.migrate.stepSource") : st === "search" ? (selectedExtension?.name ?? t("common.search")) : t("common.confirm")}
           </span>
         </div>
       {/each}
@@ -248,7 +249,7 @@
             <CircleNotch size={16} weight="light" class="anim-spin" style="color:var(--text-faint)" />
           </div>
         {:else if extensions.length === 0}
-          <div class="centered"><span class="hint">No other sources installed.</span></div>
+          <div class="centered"><span class="hint">{t("shared.migrate.noSources")}</span></div>
         {:else}
           {#if hasMultipleLangs}
             <div class="src-lang-bar">
@@ -256,7 +257,7 @@
                 <button class="src-lang-nav" onclick={() => scrollLangStrip(-1)}>‹</button>
               {/if}
               <div class="src-lang-chips" bind:this={langStripEl}>
-                <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === "all"} onclick={() => selectedLang = "all"}>All</button>
+                <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === "all"} onclick={() => selectedLang = "all"}>{t("common.all")}</button>
                 {#each availableLangs as lang}
                   <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === lang} onclick={() => selectedLang = lang}>
                     {lang.toUpperCase()}
@@ -292,7 +293,7 @@
                 <ExtensionIcon src={selectedExtension.iconUrl} alt={selectedExtension.name} class="search-context-icon" size={20} />
               </div>
               <span class="search-context-name">{selectedExtension.name}</span>
-              <button class="search-context-change" onclick={() => { step = "source"; results = []; }}>Change</button>
+              <button class="search-context-change" onclick={() => { step = "source"; results = []; }}>{t("shared.migrate.change")}</button>
             </div>
           {/if}
 
@@ -303,7 +304,7 @@
                 class="search-input"
                 bind:value={query}
                 onkeydown={(e) => e.key === "Enter" && selectedExtension && searchSource(selectedExtension, query)}
-                placeholder="Search title…"
+                placeholder={t("shared.migrate.searchPlaceholder")}
                 autofocus />
             </div>
             <button class="search-btn"
@@ -312,7 +313,7 @@
               {#if searching}
                 <CircleNotch size={13} weight="light" class="anim-spin" />
               {:else}
-                <MagnifyingGlass size={12} weight="bold" /> Search
+                <MagnifyingGlass size={12} weight="bold" /> {t("common.search")}
               {/if}
             </button>
           </div>
@@ -340,7 +341,7 @@
                     <span class="result-title">{hit.title}</span>
                     <div class="result-meta">
                       {#if idx === 0 && hit.similarity > 0.5}
-                        <span class="best-match-badge"><Sparkle size={9} weight="fill" /> Best match</span>
+                        <span class="best-match-badge"><Sparkle size={9} weight="fill" /> {t("shared.migrate.bestMatch")}</span>
                       {/if}
                       <span class="sim-bar"><span class="sim-fill" style="width:{Math.round(hit.similarity * 100)}%"></span></span>
                       <span class="sim-label">{Math.round(hit.similarity * 100)}%</span>
@@ -355,7 +356,7 @@
               {/each}
               {#if results.length === 0 && !error && !searching}
                 <div class="centered">
-                  <span class="hint">{query ? "No results — try a different title." : "Enter a title to search."}</span>
+                  <span class="hint">{query ? t("shared.migrate.noResults") : t("shared.migrate.enterTitle")}</span>
                 </div>
               {/if}
             {/if}
@@ -370,8 +371,8 @@
                 <Thumbnail src={resolvedCover(manga.id, manga.thumbnailUrl)} alt={manga.title} class="confirm-cover" />
               </div>
               <p class="confirm-title">{manga.title}</p>
-              <p class="confirm-source">{manga.sourceName ?? manga.source?.displayName ?? "Unknown"}</p>
-              <span class="confirm-tag">Current</span>
+              <p class="confirm-source">{manga.sourceName ?? manga.source?.displayName ?? t("common.unknown")}</p>
+              <span class="confirm-tag">{t("shared.migrate.current")}</span>
             </div>
             <div class="confirm-arrow-wrap">
               <ArrowRight size={18} weight="light" style="color:var(--text-faint)" />
@@ -381,14 +382,14 @@
                 <Thumbnail src={selectedMatch.hit.coverUrl ?? ""} alt={selectedMatch.hit.title} class="confirm-cover" />
               </div>
               <p class="confirm-title">{selectedMatch.hit.title}</p>
-              <p class="confirm-source">{selectedExtension?.name ?? "Unknown"}</p>
-              <span class="confirm-tag confirm-tag-new">New</span>
+              <p class="confirm-source">{selectedExtension?.name ?? t("common.unknown")}</p>
+              <span class="confirm-tag confirm-tag-new">{t("shared.migrate.new")}</span>
             </div>
           </div>
 
           <div class="confirm-stats">
             <div class="stat-row">
-              <span class="stat-label">Title match</span>
+              <span class="stat-label">{t("shared.migrate.titleMatch")}</span>
               <span class="stat-val"
                 class:stat-good={selectedMatch.similarity > 0.7}
                 class:stat-warn={selectedMatch.similarity > 0.4 && selectedMatch.similarity <= 0.7}
@@ -397,16 +398,16 @@
               </span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Chapters on new source</span>
+              <span class="stat-label">{t("shared.migrate.chaptersOnNew")}</span>
               <span class="stat-val" class:stat-warn={chapterDiff < -5}>
                 {selectedMatch.chapters.length}
                 {#if chapterDiff !== 0}
-                  <span class="chapter-diff">{chapterDiff > 0 ? `+${chapterDiff}` : chapterDiff} vs current</span>
+                  <span class="chapter-diff">{t("shared.migrate.diffVsCurrent", { diff: chapterDiff > 0 ? `+${chapterDiff}` : chapterDiff })}</span>
                 {/if}
               </span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">Read progress to carry</span>
+              <span class="stat-label">{t("shared.migrate.progressToCarry")}</span>
               <span class="stat-val">{selectedMatch.readCount} / {readCount}</span>
             </div>
           </div>
@@ -414,21 +415,21 @@
           {#if chapterDiff < -5}
             <div class="warn-box">
               <Warning size={13} weight="light" />
-              New source has {Math.abs(chapterDiff)} fewer chapters — some content may be missing.
+              {t("shared.migrate.fewerChapters", { count: Math.abs(chapterDiff) })}
             </div>
           {/if}
 
-          <p class="confirm-note">The current entry will be removed from your library. Downloads are not transferred.</p>
+          <p class="confirm-note">{t("shared.migrate.note")}</p>
 
           {#if error}<p class="error"><Warning size={13} weight="light" /> {error}</p>{/if}
 
           <div class="confirm-actions">
-            <button class="back-btn" onclick={() => step = "search"} disabled={migrating}>Back</button>
+            <button class="back-btn" onclick={() => step = "search"} disabled={migrating}>{t("common.back")}</button>
             <button class="migrate-btn" onclick={migrate} disabled={migrating}>
               {#if migrating}
-                <CircleNotch size={13} weight="light" class="anim-spin" /> Migrating…
+                <CircleNotch size={13} weight="light" class="anim-spin" /> {t("shared.migrate.migrating")}
               {:else}
-                <Check size={13} weight="bold" /> Migrate
+                <Check size={13} weight="bold" /> {t("shared.migrate.migrate")}
               {/if}
             </button>
           </div>

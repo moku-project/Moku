@@ -7,6 +7,7 @@
   import { resolvedCover } from "$lib/core/cover/coverResolver";
 
   import { addToast }        from "$lib/state/notifications.svelte";
+  import { t }               from "$lib/i18n/index.svelte";
   import { settingsState }  from "$lib/state/settings.svelte";
   import type { Manga, Source } from "$lib/types";
   import type { PreviewChapter } from "$lib/server-adapters/types";
@@ -182,8 +183,8 @@
     phase = "done";
     addToast({
       kind: "success",
-      title: "Migration complete",
-      body: `${migrateProgress.done - migrateProgress.failed} migrated, ${migrateProgress.failed} failed`,
+      title: t("extensions.migrate.toastComplete"),
+      body: t("extensions.migrate.toastBody", { migrated: migrateProgress.done - migrateProgress.failed, failed: migrateProgress.failed }),
     });
   }
 </script>
@@ -197,9 +198,9 @@
           <ExtensionIcon src={sourceIconUrl} alt={sourceName} class="src-icon" size={36} />
         </div>
         <div class="source-context-info">
-          <span class="modal-eyebrow">Source migration</span>
+          <span class="modal-eyebrow">{t("extensions.migrate.eyebrow")}</span>
           <span class="modal-title">{sourceName}</span>
-          <span class="modal-sub">{manga.length} {manga.length === 1 ? "title" : "titles"} in library</span>
+          <span class="modal-sub">{t("extensions.migrate.titlesInLibrary", { count: manga.length })}</span>
         </div>
       </div>
       {#if phase !== "migrating"}
@@ -211,12 +212,12 @@
 
       {#if phase === "pick-target"}
         <div class="phase-label-row">
-          <span class="phase-label">Select destination source</span>
+          <span class="phase-label">{t("extensions.migrate.selectDestination")}</span>
         </div>
         {#if loadingSources}
           <div class="centered"><CircleNotch size={16} weight="light" class="anim-spin" style="color:var(--text-faint)" /></div>
         {:else if allSources.length === 0}
-          <div class="centered"><span class="hint">No other sources installed.</span></div>
+          <div class="centered"><span class="hint">{t("extensions.migrate.noOtherSources")}</span></div>
         {:else}
           {#if hasMultipleLangs}
             <div class="src-lang-bar">
@@ -224,7 +225,7 @@
                 <button class="src-lang-nav" onclick={() => scrollLangStrip(-1)}>‹</button>
               {/if}
               <div class="src-lang-chips" bind:this={langStripEl}>
-                <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === LANG_ALL} onclick={() => selectedLang = LANG_ALL}>All</button>
+                <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === LANG_ALL} onclick={() => selectedLang = LANG_ALL}>{t("common.all")}</button>
                 {#each availableLangs as lang}
                   <button class="src-lang-chip" class:src-lang-chip-active={selectedLang === lang} onclick={() => selectedLang = lang}>
                     {langBadge(lang)}
@@ -244,7 +245,7 @@
                 </div>
                 <div class="source-info">
                   <span class="source-name">{src.displayName}</span>
-                  <span class="source-meta">{langBadge(src.lang)}{src.isNsfw ? " · NSFW" : ""}</span>
+                  <span class="source-meta">{src.isNsfw ? t("extensions.migrate.sourceMetaNsfw", { lang: langBadge(src.lang) }) : langBadge(src.lang)}</span>
                 </div>
                 <ArrowRight size={13} weight="light" class="source-arrow" />
               </button>
@@ -279,9 +280,9 @@
               </div>
               <span class="review-progress-label">
                 {#if searchProgress.done < searchProgress.total}
-                  Searching {searchProgress.done + 1} / {searchProgress.total}…
+                  {t("extensions.migrate.searchingProgress", { current: searchProgress.done + 1, total: searchProgress.total })}
                 {:else}
-                  {foundCount} found · {noMatchCount} no match
+                  {t("extensions.migrate.reviewSummary", { found: foundCount, noMatch: noMatchCount })}
                 {/if}
               </span>
             </div>
@@ -290,12 +291,12 @@
               <div class="review-progress-bar">
                 <div class="review-progress-fill" style="width:{migrateProgress.total ? (migrateProgress.done / migrateProgress.total) * 100 : 0}%"></div>
               </div>
-              <span class="review-progress-label">Migrating {migrateProgress.done} / {migrateProgress.total}…</span>
+              <span class="review-progress-label">{t("extensions.migrate.migratingProgress", { done: migrateProgress.done, total: migrateProgress.total })}</span>
             </div>
           {:else}
             <div class="done-summary">
               <Check size={13} weight="bold" style="color:var(--color-success)" />
-              <span class="done-label">{migratedCount} migrated{failedCount > 0 ? ` · ${failedCount} failed` : ""}</span>
+              <span class="done-label">{failedCount > 0 ? t("extensions.migrate.doneSummaryFailed", { migrated: migratedCount, failed: failedCount }) : t("extensions.migrate.doneSummary", { migrated: migratedCount })}</span>
             </div>
           {/if}
         </div>
@@ -316,13 +317,13 @@
                     <span class="entry-sim">{Math.round(entry.similarity * 100)}%</span>
                   </span>
                 {:else if entry.status === "no-match"}
-                  <span class="entry-no-match">No match found</span>
+                  <span class="entry-no-match">{t("extensions.migrate.noMatch")}</span>
                 {:else if entry.status === "searching"}
-                  <span class="entry-searching">Searching…</span>
+                  <span class="entry-searching">{t("extensions.migrate.searching")}</span>
                 {:else if entry.status === "migrated"}
-                  <span class="entry-done">Migrated</span>
+                  <span class="entry-done">{t("extensions.migrate.migrated")}</span>
                 {:else if entry.status === "failed"}
-                  <span class="entry-fail">{entry.error ?? "Failed"}</span>
+                  <span class="entry-fail">{entry.error ?? t("extensions.migrate.failed")}</span>
                 {/if}
               </div>
 
@@ -334,7 +335,7 @@
                     <Thumbnail src={resolvedCover(entry.match!.id, entry.match!.thumbnailUrl)} alt={entry.match!.title} class="entry-match-cover" />
                   </div>
                   {#if phase === "review"}
-                    <button class="entry-exclude-btn" onclick={() => excludeEntry(idx)} title="Exclude from migration">
+                    <button class="entry-exclude-btn" onclick={() => excludeEntry(idx)} title={t("extensions.migrate.exclude")}>
                       <X size={10} weight="bold" />
                     </button>
                   {/if}
@@ -350,17 +351,17 @@
 
         {#if phase === "review" && searchProgress.done === searchProgress.total}
           <div class="review-actions">
-            <button class="back-btn" onclick={() => { phase = "pick-target"; entries = []; }}>Change source</button>
+            <button class="back-btn" onclick={() => { phase = "pick-target"; entries = []; }}>{t("extensions.migrate.changeSource")}</button>
             <button class="migrate-btn" onclick={startMigration} disabled={foundCount === 0}>
               <Swap size={13} weight="bold" />
-              Migrate {foundCount} {foundCount === 1 ? "title" : "titles"}
+              {t("extensions.migrate.migrateTitles", { count: foundCount })}
             </button>
           </div>
         {/if}
 
         {#if phase === "done"}
           <div class="review-actions">
-            <button class="migrate-btn" onclick={onDone}><Check size={13} weight="bold" /> Done</button>
+            <button class="migrate-btn" onclick={onDone}><Check size={13} weight="bold" /> {t("common.done")}</button>
           </div>
         {/if}
       {/if}

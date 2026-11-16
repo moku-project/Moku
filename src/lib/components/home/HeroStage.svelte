@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Play, ArrowRight, ArrowLeft, BookOpen, Clock, ListBullets, PushPin, X as XIcon } from 'phosphor-svelte'
   import { goto } from '$app/navigation'
+  import { t, currentLocale } from '$lib/i18n/index.svelte'
   import { timeAgo } from '$lib/core/util'
   import Thumbnail from '$lib/components/shared/manga/Thumbnail.svelte'
   import type { Manga } from '$lib/types'
@@ -67,7 +68,7 @@
     const d = isEpoch
       ? new Date(Number(v) > 1e10 ? Number(v) : Number(v) * 1000)
       : new Date(v as string)
-    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric' })
   }
 </script>
 
@@ -85,7 +86,7 @@
     class="hero-cover-col"
     onclick={onviewseries}
     disabled={activeSlot?.kind === 'empty'}
-    aria-label={heroTitle ? `View ${heroTitle}` : 'No manga selected'}
+    aria-label={heroTitle ? t('home.hero.viewTitle', { title: heroTitle }) : t('home.hero.noneSelected')}
   >
     {#if heroThumb}
       <Thumbnail src={heroThumb} alt={heroTitle} class="hero-cover" contentType={heroManga?.contentType} />
@@ -99,26 +100,26 @@
 
   <div class="hero-details">
     {#if activeSlot?.kind === 'empty'}
-      <p class="hero-empty-title">Nothing here yet</p>
+      <p class="hero-empty-title">{t('home.hero.emptyTitle')}</p>
       <p class="hero-empty-sub">
         {activeSlot.slotIndex === 0
-          ? 'Read a manga to see it here'
-          : 'Pin a manga or keep reading to fill this slot'}
+          ? t('home.hero.emptyFirstSlot')
+          : t('home.hero.emptyOtherSlot')}
       </p>
       {#if activeSlot.slotIndex !== 0}
         <button class="hero-cta" onclick={() => onopenpicker(activeSlot.slotIndex as 1 | 2 | 3)}>
-          <PushPin size={11} weight="fill" /> Pin manga
+          <PushPin size={11} weight="fill" /> {t('home.hero.pinManga')}
         </button>
       {/if}
     {:else}
       <div class="hero-tags">
         {#if activeSlot?.kind === 'continue'}
-          <span class="hero-tag hero-tag-reading"><Play size={8} weight="fill" /> {heroManga?.contentType === 'ANIME' ? 'Watching' : 'Reading'}</span>
+          <span class="hero-tag hero-tag-reading"><Play size={8} weight="fill" /> {heroManga?.contentType === 'ANIME' ? t('home.hero.watching') : t('home.hero.reading')}</span>
         {:else}
-          <span class="hero-tag hero-tag-pinned"><PushPin size={8} weight="fill" /> Pinned</span>
+          <span class="hero-tag hero-tag-pinned"><PushPin size={8} weight="fill" /> {t('home.hero.pinned')}</span>
         {/if}
         {#if heroUnread > 0}
-          <span class="hero-tag hero-tag-new">{heroUnread} unread</span>
+          <span class="hero-tag hero-tag-new">{t('home.hero.unread', { count: heroUnread })}</span>
         {/if}
         {#each (heroManga?.genre ?? []).slice(0, 3) as g}
           <button
@@ -135,7 +136,7 @@
         <p class="hero-progress">
           <Clock size={10} weight="light" />
           {heroEntry.endChapterName}
-          {#if heroEntry.endPage > 1}<span class="hero-prog-page"> · p.{heroEntry.endPage}</span>{/if}
+          {#if heroEntry.endPage > 1}<span class="hero-prog-page">{t('home.hero.pageSuffix', { page: heroEntry.endPage })}</span>{/if}
           <span class="hero-prog-time">{timeAgo(heroEntry.endedAt)}</span>
         </p>
       {/if}
@@ -147,21 +148,21 @@
       <div class="hero-actions">
         {#if activeSlot?.kind === 'continue'}
           <button class="hero-cta" onclick={onresume} disabled={resuming}>
-            <Play size={11} weight="fill" />{resuming ? 'Loading…' : 'Resume'}
+            <Play size={11} weight="fill" />{resuming ? t('common.loading') : t('home.hero.resume')}
           </button>
         {:else if heroManga}
           <button class="hero-cta" onclick={onviewseries}>
-            <BookOpen size={11} weight="light" /> View manga
+            <BookOpen size={11} weight="light" /> {t('home.hero.viewManga')}
           </button>
         {/if}
         {#if activeSlot?.slotIndex !== 0}
           {#if activeSlot?.kind === 'pinned'}
             <button class="hero-cta-ghost" onclick={() => onunpin(activeSlot.slotIndex as 1 | 2 | 3)}>
-              <XIcon size={10} weight="bold" /> Unpin
+              <XIcon size={10} weight="bold" /> {t('home.hero.unpin')}
             </button>
           {:else}
             <button class="hero-cta-ghost" onclick={() => onopenpicker(activeSlot!.slotIndex as 1 | 2 | 3)}>
-              <PushPin size={10} weight="light" /> Pin
+              <PushPin size={10} weight="light" /> {t('home.hero.pin')}
             </button>
           {/if}
         {/if}
@@ -169,7 +170,7 @@
     {/if}
 
     <div class="hero-nav-row">
-      <button class="hero-nav-btn" onclick={oncycleprev} aria-label="Previous">
+      <button class="hero-nav-btn" onclick={oncycleprev} aria-label={t('home.hero.previous')}>
         <ArrowLeft size={12} weight="bold" />
       </button>
       <div class="hero-dots">
@@ -179,11 +180,11 @@
             class:active={activeIdx === i}
             class:pinned={slot.kind === 'pinned'}
             onclick={() => ongotoslot(i)}
-            aria-label="Slot {i + 1}"
+            aria-label={t('home.hero.slot', { slot: i + 1 })}
           ></button>
         {/each}
       </div>
-      <button class="hero-nav-btn" onclick={oncyclenext} aria-label="Next">
+      <button class="hero-nav-btn" onclick={oncyclenext} aria-label={t('common.next')}>
         <ArrowRight size={12} weight="bold" />
       </button>
       <span class="hero-counter">{activeIdx + 1}/{TOTAL_SLOTS}</span>
@@ -192,11 +193,11 @@
 
   <div class="hero-chapters">
     <div class="hero-chapters-header">
-      <ListBullets size={11} weight="bold" /><span>Up Next</span>
+      <ListBullets size={11} weight="bold" /><span>{t('home.hero.upNext')}</span>
     </div>
 
     {#if activeSlot?.kind === 'empty'}
-      <p class="hero-chapters-empty">No chapters to show</p>
+      <p class="hero-chapters-empty">{t('home.hero.noChaptersToShow')}</p>
     {:else if loadingHeroChapters}
       {#each Array(4) as _}
         <div class="chapter-row-sk">
@@ -208,7 +209,7 @@
         </div>
       {/each}
     {:else if heroChapters.length === 0}
-      <p class="hero-chapters-empty">No chapters available</p>
+      <p class="hero-chapters-empty">{t('home.hero.noChaptersAvailable')}</p>
     {:else}
       {#each heroChapters as ch (ch.id)}
         {@const isCurrent = heroEntry?.endChapterId === ch.id}
@@ -218,13 +219,13 @@
           class:chapter-row-read={ch.read && !isCurrent}
           onclick={() => onopenchapter(ch)}
         >
-          <span class="ch-num">{ch.chapterNumber < 0 ? '–' : `Ch.${ch.chapterNumber % 1 === 0 ? Math.floor(ch.chapterNumber) : ch.chapterNumber}`}</span>
+          <span class="ch-num">{ch.chapterNumber < 0 ? '–' : t('home.hero.chapterNumber', { number: ch.chapterNumber % 1 === 0 ? Math.floor(ch.chapterNumber) : ch.chapterNumber })}</span>
           <div class="ch-info">
             <span class="ch-name">{ch.name}</span>
             {#if isCurrent && heroEntry && heroEntry.endPage > 1}
-              <span class="ch-meta">p.{heroEntry.endPage} · in progress</span>
+              <span class="ch-meta">{t('home.hero.pageInProgress', { page: heroEntry.endPage })}</span>
             {:else if ch.read}
-              <span class="ch-meta ch-read">Read</span>
+              <span class="ch-meta ch-read">{t('home.hero.read')}</span>
             {:else if fmtChapterDate(ch.uploadDate)}
               <span class="ch-meta">{fmtChapterDate(ch.uploadDate)}</span>
             {/if}
@@ -234,7 +235,7 @@
       {/each}
       {#if heroManga}
         <button class="ch-view-all" onclick={onviewall}>
-          All chapters <ArrowRight size={9} weight="bold" />
+          {t('home.hero.allChapters')} <ArrowRight size={9} weight="bold" />
         </button>
       {/if}
     {/if}

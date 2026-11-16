@@ -4,11 +4,12 @@
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import { libraryState } from '$lib/state/library.svelte'
   import type { ContentType, Folder } from '$lib/server-adapters/types'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
-  const FOLDER_TYPES: { id: ContentType; label: string; icon: any }[] = [
-    { id: 'MANGA', label: 'Manga',  icon: ImageSquare  },
-    { id: 'NOVEL', label: 'Novels', icon: BookOpenText },
-    { id: 'ANIME', label: 'Anime',  icon: FilmSlate    },
+  const FOLDER_TYPES: { id: ContentType; label: MessageKey; icon: any }[] = [
+    { id: 'MANGA', label: 'nav.contentManga',  icon: ImageSquare  },
+    { id: 'NOVEL', label: 'nav.contentNovels', icon: BookOpenText },
+    { id: 'ANIME', label: 'nav.contentAnime',  icon: FilmSlate    },
   ]
 
   let folders       = $state<Folder[]>([])
@@ -47,7 +48,7 @@
     try {
       folders = await tsunagu.folders()
     } catch (e: any) {
-      foldersError = e?.message ?? 'Failed to load folders'
+      foldersError = e?.message ?? t('settings.folders.loadFailed')
     } finally { foldersLoading = false }
   }
 
@@ -58,7 +59,7 @@
       const f = await tsunagu.createFolder(name)
       folders = [...folders, f]
       newFolderName = ''
-    } catch (e: any) { foldersError = e?.message ?? 'Failed to create folder' }
+    } catch (e: any) { foldersError = e?.message ?? t('settings.folders.createFailed') }
   }
 
   function startEdit(f: Folder) {
@@ -71,7 +72,7 @@
       try {
         const updated = await tsunagu.renameFolder(editingId, editingName.trim())
         folders = folders.map(f => f.id === editingId ? updated : f)
-      } catch (e: any) { foldersError = e?.message ?? 'Failed to rename' }
+      } catch (e: any) { foldersError = e?.message ?? t('settings.folders.renameFailed') }
     }
     editingId = null; editingName = ''
   }
@@ -81,7 +82,7 @@
     try {
       await tsunagu.deleteFolder(f.id)
       folders = folders.filter(x => x.id !== f.id)
-    } catch (e: any) { foldersError = e?.message ?? 'Failed to delete folder' }
+    } catch (e: any) { foldersError = e?.message ?? t('settings.folders.deleteFailed') }
   }
 
   async function toggleFolderFlag(f: Folder, flag: 'includeInUpdate' | 'includeInDownload') {
@@ -91,13 +92,13 @@
       await tsunagu.updateFolderFlags(f.id, { [flag]: next })
     } catch (e: any) {
       folders = folders.map(x => x.id === f.id ? { ...x, [flag]: !next } : x)
-      foldersError = e?.message ?? 'Failed to update folder'
+      foldersError = e?.message ?? t('settings.folders.updateFailed')
     }
   }
 
   async function toggleFolderType(f: Folder, type: ContentType) {
     const prev = f.contentTypes ?? []
-    const next = prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    const next = prev.includes(type) ? prev.filter(ct => ct !== type) : [...prev, type]
     const patch = (types: ContentType[]) => (x: Folder) => x.id === f.id ? { ...x, contentTypes: types } : x
     folders = folders.map(patch(next))
     libraryState.setFolders(libraryState.folders.map(patch(next)))
@@ -106,13 +107,13 @@
     } catch (e: any) {
       folders = folders.map(patch(prev))
       libraryState.setFolders(libraryState.folders.map(patch(prev)))
-      foldersError = e?.message ?? 'Failed to update folder'
+      foldersError = e?.message ?? t('settings.folders.updateFailed')
     }
   }
 
   function folderTitleCount(f: Folder) {
     const n = libraryState.folderMembership[f.id]?.length ?? 0
-    return `${n} ${n === 1 ? 'title' : 'titles'}`
+    return t('settings.folders.titleCount', { count: n })
   }
 
   function applyReorder(fromId: string, toId: string) {
@@ -139,7 +140,7 @@
         const serverPosition = sToIdx + 1
         tsunagu.reorderFolder(fromId, serverPosition)
           .catch(async (e: any) => {
-            foldersError = e?.message ?? 'Failed to reorder'
+            foldersError = e?.message ?? t('settings.folders.reorderFailed')
             await loadFolders()
           })
       }
@@ -193,13 +194,13 @@
 
 {#snippet typeChips(f: Folder)}
   {@const types = f.contentTypes ?? []}
-  <div class="s-folder-types" title={types.length ? `Shown for ${FOLDER_TYPES.filter(t => types.includes(t.id)).map(t => t.label).join(', ')}` : 'Shown for every content type'}>
-    {#each FOLDER_TYPES as t}
-      {@const on = types.includes(t.id)}
+  <div class="s-folder-types" title={types.length ? t('settings.folders.shownFor', { types: FOLDER_TYPES.filter(ft => types.includes(ft.id)).map(ft => t(ft.label)).join(', ') }) : t('settings.folders.shownForAll')}>
+    {#each FOLDER_TYPES as ft}
+      {@const on = types.includes(ft.id)}
       <button class="s-btn-icon s-type-chip" class:active={on} class:all={!types.length}
-        aria-pressed={on} onclick={() => toggleFolderType(f, t.id)}
-        title={on ? `Stop showing for ${t.label}` : `Show for ${t.label}`}>
-        <t.icon size={13} weight={on ? 'fill' : 'light'} />
+        aria-pressed={on} onclick={() => toggleFolderType(f, ft.id)}
+        title={on ? t('settings.folders.stopShowingFor', { type: t(ft.label) }) : t('settings.folders.showFor', { type: t(ft.label) })}>
+        <ft.icon size={13} weight={on ? 'fill' : 'light'} />
       </button>
     {/each}
   </div>
@@ -207,10 +208,10 @@
 
 <div class="s-panel">
   <div class="s-section">
-    <p class="s-section-title">Manage Folders</p>
+    <p class="s-section-title">{t('settings.folders.title')}</p>
     <div class="s-section-body">
       <div class="s-row">
-        <span class="s-desc">Folders sync across all clients connected to this server. Pick content types on a folder to only show its tab for those types; with none picked it shows everywhere.</span>
+        <span class="s-desc">{t('settings.folders.desc')}</span>
       </div>
 
       {#if foldersError}
@@ -218,7 +219,7 @@
       {/if}
 
       {#if foldersLoading}
-        <p class="s-empty">Loading folders…</p>
+        <p class="s-empty">{t('settings.folders.loading')}</p>
       {:else}
         <div class="s-folder-list" class:is-dragging={dragId !== null}>
           {#each orderedAllIds as id}
@@ -244,13 +245,13 @@
                   </span>
                   <span class="s-folder-name">{f.name}</span>
                   <span class="s-folder-count">{folderTitleCount(f)}</span>
-                  <span class="s-folder-badge">built-in</span>
+                  <span class="s-folder-badge">{t('settings.folders.builtIn')}</span>
                   <div class="s-folder-actions">
                     {@render typeChips(f)}
-                    <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? 'Show tab in library' : 'Hide tab from library'}>
+                    <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? t('settings.folders.showTab') : t('settings.folders.hideTab')}>
                       {#if hidden}<EyeSlash size={13} weight="light" />{:else}<Eye size={13} weight="light" />{/if}
                     </button>
-                    <button class="s-btn-icon s-btn-icon-lock" disabled title="Built-in folder, cannot be deleted"><Lock size={12} weight="light" /></button>
+                    <button class="s-btn-icon s-btn-icon-lock" disabled title={t('settings.folders.builtInLocked')}><Lock size={12} weight="light" /></button>
                   </div>
 
                 {:else if isBuiltin}
@@ -258,13 +259,13 @@
                     {#if id === 'library'}<Star size={14} weight="light" />{:else}<DownloadSimple size={14} weight="light" />{/if}
                     <DotsSixVertical size={14} weight="bold" />
                   </span>
-                  <span class="s-folder-name">{id === 'library' ? 'Saved' : 'Downloaded'}</span>
-                  <span class="s-folder-badge">built-in</span>
+                  <span class="s-folder-name">{id === 'library' ? t('settings.folders.builtinSaved') : t('settings.folders.builtinDownloaded')}</span>
+                  <span class="s-folder-badge">{t('settings.folders.builtIn')}</span>
                   <div class="s-folder-actions">
-                    <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? 'Show tab in library' : 'Hide tab from library'}>
+                    <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? t('settings.folders.showTab') : t('settings.folders.hideTab')}>
                       {#if hidden}<EyeSlash size={13} weight="light" />{:else}<Eye size={13} weight="light" />{/if}
                     </button>
-                    <button class="s-btn-icon s-btn-icon-lock" disabled title="Built-in folder, cannot be deleted"><Lock size={12} weight="light" /></button>
+                    <button class="s-btn-icon s-btn-icon-lock" disabled title={t('settings.folders.builtInLocked')}><Lock size={12} weight="light" /></button>
                   </div>
 
                 {:else if f}
@@ -272,7 +273,7 @@
                     <input class="s-input full" bind:value={editingName}
                       onkeydown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') { editingId = null } }}
                       onblur={commitEdit} use:focusInput />
-                    <button class="s-btn-icon" onclick={commitEdit} title="Save">✓</button>
+                    <button class="s-btn-icon" onclick={commitEdit} title={t('common.save')}>✓</button>
                   {:else}
                     <div class="s-folder-identity" role="button" tabindex="0"
                       onkeydown={(e) => e.key === 'Enter' && startEdit(f)}>
@@ -280,29 +281,29 @@
                         <FolderSimple size={14} weight="light" />
                         <DotsSixVertical size={14} weight="bold" />
                       </span>
-                      <button class="s-folder-name" onclick={(e) => { e.stopPropagation(); startEdit(f) }} title="Click to rename">{f.name}</button>
+                      <button class="s-folder-name" onclick={(e) => { e.stopPropagation(); startEdit(f) }} title={t('settings.folders.clickToRename')}>{f.name}</button>
                     </div>
                     <span class="s-folder-count">{folderTitleCount(f)}</span>
                     <div class="s-folder-actions">
                       {@render typeChips(f)}
-                      <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? 'Show tab in library' : 'Hide tab from library'}>
+                      <button class="s-btn-icon" class:muted={hidden} onclick={() => toggleHidden(id)} title={hidden ? t('settings.folders.showTab') : t('settings.folders.hideTab')}>
                         {#if hidden}<EyeSlash size={13} weight="light" />{:else}<Eye size={13} weight="light" />{/if}
                       </button>
                       <button class="s-btn-icon"
                         class:active={f.includeInUpdate !== false}
                         class:inactive={f.includeInUpdate === false}
                         onclick={() => toggleFolderFlag(f, 'includeInUpdate')}
-                        title={f.includeInUpdate !== false ? 'Included in updates, click to exclude' : 'Excluded from updates, click to include'}>
+                        title={f.includeInUpdate !== false ? t('settings.folders.updateIncluded') : t('settings.folders.updateExcluded')}>
                         {#if f.includeInUpdate !== false}<ArrowsClockwise size={13} weight="bold" />{:else}<ArrowsCounterClockwise size={13} weight="light" />{/if}
                       </button>
                       <button class="s-btn-icon"
                         class:active={f.includeInDownload !== false}
                         class:inactive={f.includeInDownload === false}
                         onclick={() => toggleFolderFlag(f, 'includeInDownload')}
-                        title={f.includeInDownload !== false ? 'Included in auto-downloads, click to exclude' : 'Excluded from auto-downloads, click to include'}>
+                        title={f.includeInDownload !== false ? t('settings.folders.downloadIncluded') : t('settings.folders.downloadExcluded')}>
                         <DownloadSimple size={13} weight={f.includeInDownload !== false ? 'bold' : 'light'} />
                       </button>
-                      <button class="s-btn-icon danger" onclick={() => deleteFolder(f)} title="Delete folder">
+                      <button class="s-btn-icon danger" onclick={() => deleteFolder(f)} title={t('settings.folders.deleteFolder')}>
                         <Trash size={12} weight="light" />
                       </button>
                     </div>
@@ -314,15 +315,15 @@
         </div>
 
         {#if customFolders.length === 0}
-          <p class="s-empty">No custom folders yet. Create one below.</p>
+          <p class="s-empty">{t('settings.folders.empty')}</p>
         {/if}
       {/if}
 
       <div class="s-folder-create">
-        <input class="s-input full" placeholder="New folder name…" bind:value={newFolderName}
+        <input class="s-input full" placeholder={t('settings.folders.newPlaceholder')} bind:value={newFolderName}
           onkeydown={(e) => e.key === 'Enter' && createFolder()} />
         <button class="s-btn s-btn-accent" onclick={createFolder} disabled={!newFolderName.trim()}>
-          <Plus size={13} weight="bold" /> Create
+          <Plus size={13} weight="bold" /> {t('settings.folders.create')}
         </button>
       </div>
     </div>

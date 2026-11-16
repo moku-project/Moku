@@ -4,6 +4,7 @@ import type { SearchResult, Extension, FilterNode, FilterInput } from "$lib/serv
 import type { Source } from "$lib/types";
 import { shouldHideNsfw } from "$lib/core/util";
 import { canonicalLang } from "$lib/core/lang";
+import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
 export { shouldHideNsfw };
 
@@ -13,17 +14,17 @@ export const MAX_SOURCES   = 12;
 export const CONCURRENCY   = 4;
 
 export function parseTags(f: string): string[] {
-  return f.split("+").map((t) => t.trim()).filter(Boolean);
+  return f.split("+").map((x) => x.trim()).filter(Boolean);
 }
 
 export function tagsLabel(tags: string[]): string {
   if (tags.length === 1) return tags[0];
-  return tags.slice(0, -1).join(", ") + " & " + tags[tags.length - 1];
+  return t("browse.genre.tagList", { list: tags.slice(0, -1).join(", "), last: tags[tags.length - 1] });
 }
 
 export function matchesAllTags(m: { genre?: string[] }, tags: string[]): boolean {
   const g = (m.genre ?? []).map((x) => x.toLowerCase());
-  return tags.every((t) => g.includes(t.toLowerCase()));
+  return tags.every((tag) => g.includes(tag.toLowerCase()));
 }
 
 export async function runConcurrent<T>(
@@ -63,12 +64,12 @@ export const COMMON_GENRES = [
   "Magic", "Music", "Cooking", "Medical", "Military", "Harem", "Ecchi",
 ] as const;
 
-export const MANGA_STATUSES: { value: string; label: string }[] = [
-  { value: "ONGOING",   label: "Ongoing"   },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "HIATUS",    label: "Hiatus"    },
-  { value: "ABANDONED", label: "Abandoned" },
-  { value: "UNKNOWN",   label: "Unknown"   },
+export const MANGA_STATUSES: { value: string; label: MessageKey }[] = [
+  { value: "ONGOING",   label: "browse.status.ongoing"   },
+  { value: "COMPLETED", label: "browse.status.completed" },
+  { value: "HIATUS",    label: "browse.status.hiatus"    },
+  { value: "ABANDONED", label: "browse.status.abandoned" },
+  { value: "UNKNOWN",   label: "common.unknown"         },
 ];
 
 export function buildTagFilter(
@@ -79,8 +80,8 @@ export function buildTagFilter(
   const genrePart: Record<string, unknown> | null =
     tags.length === 0 ? null :
     mode === "AND"
-      ? { and: tags.map((t) => ({ genre: { includesInsensitive: t } })) }
-      : { or:  tags.map((t) => ({ genre: { includesInsensitive: t } })) };
+      ? { and: tags.map((tag) => ({ genre: { includesInsensitive: tag } })) }
+      : { or:  tags.map((tag) => ({ genre: { includesInsensitive: tag } })) };
 
   const statusPart: Record<string, unknown> | null =
     statuses.length === 0 ? null :
@@ -98,7 +99,7 @@ export function matchesTagMode(m: { genre?: string[] }, tags: string[], mode: Ta
   if (tags.length === 0) return true;
   const g = (m.genre ?? []).map((x) => x.toLowerCase());
   if (g.length === 0) return false;
-  const hit = (t: string) => g.some((x) => x.includes(t.toLowerCase()));
+  const hit = (tag: string) => g.some((x) => x.includes(tag.toLowerCase()));
   return mode === "AND" ? tags.every(hit) : tags.some(hit);
 }
 
@@ -148,8 +149,8 @@ export function filterSourceCache(
     if (tags.length > 0) {
       const lower = m.lowerGenres;
       genreMatch = mode === "AND"
-        ? tags.every((t) => lower.some((g) => g.includes(t.toLowerCase())))
-        : tags.some((t)  => lower.some((g) => g.includes(t.toLowerCase())));
+        ? tags.every((tag) => lower.some((g) => g.includes(tag.toLowerCase())))
+        : tags.some((tag)  => lower.some((g) => g.includes(tag.toLowerCase())));
     }
 
     return statusMatch && genreMatch;

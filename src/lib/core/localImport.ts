@@ -1,5 +1,6 @@
 import { join, basename, dirname } from '@tauri-apps/api/path'
 import { readDir, mkdir, copyFile, type DirEntry } from '@tauri-apps/plugin-fs'
+import { t } from '$lib/i18n/index.svelte'
 
 const imageExts   = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.bmp'])
 const archiveExts = new Set(['.cbz', '.zip', '.cbr', '.rar', '.cb7', '.7z', '.cbt', '.tar', '.pdf'])
@@ -129,7 +130,7 @@ async function importOnePath(path: string, mediaDir: string, tick: () => void): 
 
   const entries = await readDir(path).catch(() => null)
   if (!entries) {
-    throw new Error(`"${name}" isn't a supported folder or file`)
+    throw new Error(t('notices.localImport.unsupported', { name }))
   }
 
   const unitKind = detectUnitKind(entries)

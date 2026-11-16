@@ -1,3 +1,5 @@
+import { t } from "$lib/i18n/index.svelte";
+
 export type UpscaleMode = "off" | "fast" | "quality";
 
 const CAP: Record<Exclude<UpscaleMode, "off">, { w: number; h: number; strength: number; lines: number }> = {
@@ -225,11 +227,11 @@ export class VideoUpscaler {
 
   private resize() {
     if (!this.gl) return;
-    const t = this.targetSize();
-    if (!t) return;
-    if (this.canvas.width !== t.w || this.canvas.height !== t.h) {
-      this.canvas.width = t.w;
-      this.canvas.height = t.h;
+    const size = this.targetSize();
+    if (!size) return;
+    if (this.canvas.width !== size.w || this.canvas.height !== size.h) {
+      this.canvas.width = size.w;
+      this.canvas.height = size.h;
     }
   }
 
@@ -260,11 +262,11 @@ export class VideoUpscaler {
     // While seeking the frame may not be decoded yet; keep the last one on screen.
     if (!sw || !sh || this.video.readyState < 2 || this.video.seeking) return;
 
-    const t = this.targetSize();
-    if (!t) return;
-    if (this.canvas.width !== t.w || this.canvas.height !== t.h) {
-      this.canvas.width = t.w;
-      this.canvas.height = t.h;
+    const size = this.targetSize();
+    if (!size) return;
+    if (this.canvas.width !== size.w || this.canvas.height !== size.h) {
+      this.canvas.width = size.w;
+      this.canvas.height = size.h;
     }
 
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -287,8 +289,8 @@ export class VideoUpscaler {
         this.stop();
         this.onError?.(
           (err as Error)?.name === "SecurityError"
-            ? "This stream can't be read for upscaling (no CORS)."
-            : "Video upscaling failed to read frames.",
+            ? t("notices.upscaler.noCors")
+            : t("notices.upscaler.readFailed"),
         );
       }
       return;

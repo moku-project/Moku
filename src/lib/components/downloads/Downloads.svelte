@@ -6,6 +6,7 @@
   import DownloadHistory from "$lib/components/downloads/DownloadHistory.svelte";
   import { downloadStore } from "$lib/state/downloads.svelte";
   import { formatEta }  from "$lib/components/downloads/lib/downloadQueue";
+  import { t } from "$lib/i18n/index.svelte";
 
   let tab: "queue" | "history" = $state("queue");
 
@@ -55,22 +56,22 @@
 
 <div class="root">
   <div class="header">
-    <span class="heading">Downloads</span>
+    <span class="heading">{t("nav.downloads")}</span>
 
     <div class="tabs">
       <button class="tab" class:active={tab === "queue"} onclick={() => tab = "queue"}>
         <DownloadSimple size={11} weight="bold" />
-        Queue{#if downloadStore.queue.length}<span class="tab-count">{downloadStore.queue.length}</span>{/if}
+        {t("downloads.tabQueue")}{#if downloadStore.queue.length}<span class="tab-count">{downloadStore.queue.length}</span>{/if}
       </button>
       <button class="tab" class:active={tab === "history"} onclick={() => tab = "history"}>
         <ClockCounterClockwise size={11} weight="bold" />
-        History{#if downloadStore.completed.length}<span class="tab-count">{downloadStore.completed.length}</span>{/if}
+        {t("downloads.tabHistory")}{#if downloadStore.completed.length}<span class="tab-count">{downloadStore.completed.length}</span>{/if}
       </button>
     </div>
 
     <div class="header-right">
       {#if downloadStore.storageWarning}
-        <div class="storage-warning" title="Download queue may exceed available disk space">
+        <div class="storage-warning" title={t("downloads.storageWarning")}>
           <Warning size={14} weight="fill" />
         </div>
       {/if}
@@ -78,7 +79,7 @@
         class="icon-btn"
         class:active={downloadStore.autoRetryEnabled}
         onclick={() => downloadStore.toggleAutoRetry()}
-        title={downloadStore.autoRetryEnabled ? "Disable auto-retry" : "Enable auto-retry"}
+        title={downloadStore.autoRetryEnabled ? t("downloads.disableAutoRetry") : t("downloads.enableAutoRetry")}
       >
         <Repeat size={14} weight="regular" />
       </button>
@@ -87,7 +88,7 @@
           class="icon-btn"
           onclick={() => downloadStore.retryAllErrored()}
           disabled={downloadStore.batchWorking}
-          title="Retry all errored"
+          title={t("downloads.retryAllErrored")}
         >
           {#if downloadStore.batchWorking}
             <CircleNotch size={14} weight="light" class="anim-spin" />
@@ -100,7 +101,7 @@
         class="icon-btn"
         class:active={downloadStore.toastsEnabled}
         onclick={() => downloadStore.toggleToasts()}
-        title={downloadStore.toastsEnabled ? "Mute download notifications" : "Unmute download notifications"}
+        title={downloadStore.toastsEnabled ? t("downloads.muteNotifications") : t("downloads.unmuteNotifications")}
       >
         {#if downloadStore.toastsEnabled}
           <Bell size={14} weight="regular" />
@@ -113,7 +114,7 @@
         class:loading={downloadStore.togglingPlay}
         onclick={() => downloadStore.togglePlay()}
         disabled={downloadStore.togglingPlay || (downloadStore.queue.length === 0 && !downloadStore.isRunning)}
-        title={downloadStore.isRunning ? "Pause" : "Resume"}
+        title={downloadStore.isRunning ? t("downloads.pause") : t("downloads.resume")}
       >
         {#if downloadStore.togglingPlay}<CircleNotch size={14} weight="light" class="anim-spin" />
         {:else if downloadStore.isRunning}<Pause size={14} weight="fill" />
@@ -124,7 +125,7 @@
         class:loading={downloadStore.clearing}
         onclick={() => tab === "queue" ? downloadStore.clear() : downloadStore.clearCompleted()}
         disabled={downloadStore.clearing || (tab === "queue" ? downloadStore.queue.length === 0 : downloadStore.completed.length === 0)}
-        title={tab === "queue" ? "Clear queue" : "Clear history"}
+        title={tab === "queue" ? t("downloads.clearQueue") : t("downloads.clearHistory")}
       >
         {#if downloadStore.clearing}<CircleNotch size={14} weight="light" class="anim-spin" />
         {:else}<Trash size={14} weight="regular" />{/if}
@@ -138,17 +139,17 @@
       <div class="status-dot" class:active={downloadStore.isRunning}></div>
       <span class="status-text">
         {downloadStore.togglingPlay
-          ? (downloadStore.isRunning ? "Pausing…" : "Starting…")
-          : downloadStore.isRunning ? "Downloading" : "Paused"}
+          ? (downloadStore.isRunning ? t("downloads.statusPausing") : t("downloads.statusStarting"))
+          : downloadStore.isRunning ? t("downloads.statusDownloading") : t("downloads.statusPaused")}
       </span>
 
       {#if downloadStore.selected.size > 0}
         <div class="sel-controls">
-          <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelectedToEdge("top"); }} title="Move to top">
+          <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelectedToEdge("top"); }} title={t("downloads.moveToTop")}>
             <ArrowLineUp size={12} weight="bold" />
           </button>
           <div class="move-step" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="none">
-            <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelected("up", moveBy); }} title="Move up">
+            <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelected("up", moveBy); }} title={t("downloads.moveUp")}>
               <CaretUp size={12} weight="bold" />
             </button>
             <input
@@ -159,31 +160,31 @@
               onclick={(e) => e.stopPropagation()}
               onkeydown={(e) => e.stopPropagation()}
             />
-            <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelected("down", moveBy); }} title="Move down">
+            <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelected("down", moveBy); }} title={t("downloads.moveDown")}>
               <CaretDown size={12} weight="bold" />
             </button>
           </div>
-          <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelectedToEdge("bottom"); }} title="Move to bottom">
+          <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.reorderSelectedToEdge("bottom"); }} title={t("downloads.moveToBottom")}>
             <ArrowLineDown size={12} weight="bold" />
           </button>
           {#if selectedErrorCount > 0}
-            <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.retrySelected(); }} title="Retry errors">
+            <button class="sel-action-btn" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.retrySelected(); }} title={t("downloads.retryErrors")}>
               <ArrowClockwise size={12} weight="bold" />
             </button>
           {/if}
-          <button class="sel-action-btn sel-action-danger" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.dequeueSelected(); }} title="Remove selected">
+          <button class="sel-action-btn sel-action-danger" disabled={downloadStore.batchWorking} onclick={(e) => { e.stopPropagation(); downloadStore.dequeueSelected(); }} title={t("downloads.removeSelected")}>
             <X size={12} weight="bold" />
           </button>
         </div>
         <div class="bar-sep"></div>
-        <span class="status-count">{downloadStore.selected.size} selected</span>
+        <span class="status-count">{t("downloads.selectedCount", { count: downloadStore.selected.size })}</span>
       {:else}
         <div class="status-right">
           {#if downloadStore.isRunning && downloadStore.eta !== null && downloadStore.eta > 0}
             <span class="status-eta">{formatEta(downloadStore.eta)}</span>
             <span class="bar-sep"></span>
           {/if}
-          <span class="status-count">{downloadStore.queue.length} {downloadStore.queue.length === 1 ? "chapter" : "chapters"}</span>
+          <span class="status-count">{t("downloads.chapterCount", { count: downloadStore.queue.length })}</span>
         </div>
       {/if}
     </div>

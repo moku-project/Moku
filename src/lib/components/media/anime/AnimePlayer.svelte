@@ -24,6 +24,7 @@
   import { VideoUpscaler, type UpscaleMode } from "$lib/core/video/upscaler";
   import { addToast } from "$lib/state/notifications.svelte";
   import { setReading, clearReading } from "$lib/core/discord";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
   import mokuIcon from "$lib/assets/moku-icon.svg?raw";
   import MediaChrome from "$lib/components/media/shared/MediaChrome.svelte";
   import MediaSlider from "$lib/components/media/shared/MediaSlider.svelte";
@@ -100,11 +101,11 @@
     if (!tracks) { subText = ""; return; }
     let out = "";
     for (let i = 0; i < tracks.length && !out; i++) {
-      const t = tracks[i];
-      if (t.mode === "disabled" || !t.activeCues) continue;
+      const track = tracks[i];
+      if (track.mode === "disabled" || !track.activeCues) continue;
       const parts: string[] = [];
-      for (let j = 0; j < t.activeCues.length; j++) {
-        const raw = (t.activeCues[j] as VTTCue).text ?? "";
+      for (let j = 0; j < track.activeCues.length; j++) {
+        const raw = (track.activeCues[j] as VTTCue).text ?? "";
         if (raw.trim()) parts.push(raw);
       }
       out = parts.join("\n");
@@ -120,7 +121,7 @@
     const rows = [
       ...vttSubtitles.map(s => ({ key: s.lang, lang: s.lang, label: s.lang, pick: () => selectVtt(s.lang) })),
       ...assSubs.map(a => ({ key: a.lang, lang: a.lang, label: `${a.lang} · ASS`, pick: () => selectAss(a) })),
-      ...manifestTracks.map(t => ({ key: t.key, lang: t.label || t.key, label: t.label, pick: () => selectManifestTrack(t) })),
+      ...manifestTracks.map(mt => ({ key: mt.key, lang: mt.label || mt.key, label: mt.label, pick: () => selectManifestTrack(mt) })),
     ];
     const seen = new Set<string>();
     return rows.filter(r => {
@@ -151,7 +152,7 @@
   }
 
   const episodeLabel = $derived(
-    chapter ? `Ep. ${chapter.chapterNumber}${chapter.name ? ` — ${chapter.name}` : ""}` : "",
+    chapter ? (chapter.name ? t("player.episodeLabelNamed", { number: chapter.chapterNumber, name: chapter.name }) : t("player.episodeLabel", { number: chapter.chapterNumber })) : "",
   );
 
   $effect(() => {
@@ -188,10 +189,10 @@
   });
   const skipLabel = $derived(
     !activeSkip ? "" :
-    activeSkip.type === "opening" ? "Skip intro" :
-    activeSkip.type === "ending"  ? "Skip outro" :
-    activeSkip.type === "recap"   ? "Skip recap" :
-    `Skip ${activeSkip.name || "section"}`,
+    activeSkip.type === "opening" ? t("player.skip.intro") :
+    activeSkip.type === "ending"  ? t("player.skip.outro") :
+    activeSkip.type === "recap"   ? t("player.skip.recap") :
+    activeSkip.name ? t("player.skip.named", { name: activeSkip.name }) : t("player.skip.section"),
   );
 
   const skipBands = $derived.by(() => {
@@ -299,9 +300,9 @@
     try { tracks = dash.getTracksFor("text") ?? []; } catch (e) { slog("syncDashText: getTracksFor threw", e); tracks = []; }
     slog("syncDashText: dash.getTracksFor('text') =", tracks);
     dumpTextTracks("syncDashText");
-    manifestTracks = tracks.map((t, i) => ({
-      key: `dash:${t.lang || i}`,
-      label: t.lang || `Text ${i + 1}`,
+    manifestTracks = tracks.map((tr, i) => ({
+      key: `dash:${tr.lang || i}`,
+      label: tr.lang || `Text ${i + 1}`,
       dashIndex: i,
     }));
     if (aps.activeSubtitle) {
@@ -336,12 +337,12 @@
     } catch (e) { slog("applyDashText: threw", e); }
     setTimeout(() => dumpTextTracks("applyDashText+500ms"), 500);
   }
-  function selectManifestTrack(t: { key: string; label: string; dashIndex?: number }) {
-    rememberSub(t.dashIndex != null ? t.label : t.key);
+  function selectManifestTrack(track: { key: string; label: string; dashIndex?: number }) {
+    rememberSub(track.dashIndex != null ? track.label : track.key);
     disposeAss();
-    if (t.dashIndex != null) applyDashText(t.dashIndex);
-    else applyVtt(t.key);
-    aps.activeSubtitle = t.key;
+    if (track.dashIndex != null) applyDashText(track.dashIndex);
+    else applyVtt(track.key);
+    aps.activeSubtitle = track.key;
     subMenuOpen = false;
   }
   function trackFor(key: string): boolean {
@@ -357,10 +358,10 @@
     let matched = 0;
     if (tt) {
       for (let i = 0; i < tt.length; i++) {
-        const t = tt[i];
-        const on = key != null && (t.language === key || t.label === key);
-        t.mode = on ? "hidden" : "disabled";
-        if (on) { matched++; t.removeEventListener("cuechange", renderCues); t.addEventListener("cuechange", renderCues); }
+        const track = tt[i];
+        const on = key != null && (track.language === key || track.label === key);
+        track.mode = on ? "hidden" : "disabled";
+        if (on) { matched++; track.removeEventListener("cuechange", renderCues); track.addEventListener("cuechange", renderCues); }
       }
     }
     slog(`applyVtt(${JSON.stringify(key)}): matched ${matched} track(s)`);
@@ -525,8 +526,8 @@
   }
 
   function onKey(e: KeyboardEvent) {
-    const t = e.target as HTMLElement;
-    if (t?.tagName === "INPUT" || t?.tagName === "TEXTAREA" || t?.isContentEditable) return;
+    const target = e.target as HTMLElement;
+    if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
     let handled = true;
     switch (e.key) {
       case " ": case "k":       togglePlay(); break;
@@ -552,7 +553,7 @@
     watchdog = setTimeout(() => {
       if (videoEl && videoEl.readyState === 0) {
         if (tryNextSource()) return;
-        aps.error = "The video didn't start. The stream may be unavailable, or this device is missing the codecs to play it.";
+        aps.error = t("player.errors.didNotStart");
         aps.unavailable = true;
         aps.videoUrl = null;
       }
@@ -610,8 +611,8 @@
     if (probe && probe.ok === false && !canFallback) {
       aps.error = probe.error
         ?? (probe.stage === "verify"
-          ? `The stream was found but the source refused the connection (HTTP ${probe.status ?? "error"}). Trying again may work — the server drops the dead link on failure.`
-          : "The source couldn't produce a playable stream for this episode. Downloading it will always work.");
+          ? t("player.errors.connectionRefused", { status: probe.status ?? "error" })
+          : t("player.errors.noPlayableStream"));
       aps.unavailable = true;
       aps.loading = false;
       mediaViewState.loading = false;
@@ -733,7 +734,7 @@
 
   function failUnsupported(f: string) {
     clearWatchdog();
-    aps.error = `This build can't play ${f} streams. Download the episode to watch it.`;
+    aps.error = t("player.errors.unsupportedFormat", { format: f });
     aps.unavailable = true;
     aps.videoUrl = null;
   }
@@ -865,14 +866,14 @@
       upscaler = new VideoUpscaler(v, c);
       if (!upscaler.supported) {
         upscaler = null;
-        addToast({ kind: "error", title: "Upscaling unavailable", body: "WebGL2 isn't supported here." });
+        addToast({ kind: "error", title: t("player.upscale.unavailableTitle"), body: t("player.upscale.unavailableBody") });
         updateSettings({ videoUpscale: "off" });
         return;
       }
       upscaler.onFirstFrame = () => { upscaleActive = true; };
       upscaler.onError = (reason) => {
         upscaleActive = false;
-        addToast({ kind: "error", title: "Upscaling stopped", body: reason });
+        addToast({ kind: "error", title: t("player.upscale.stoppedTitle"), body: reason });
         updateSettings({ videoUpscale: "off" });
       };
     }
@@ -884,10 +885,10 @@
     };
   });
 
-  const UPSCALE_MENU: { v: UpscaleMode; label: string }[] = [
-    { v: "off",     label: "Off" },
-    { v: "fast",    label: "Fast" },
-    { v: "quality", label: "Quality" },
+  const UPSCALE_MENU: { v: UpscaleMode; label: MessageKey }[] = [
+    { v: "off",     label: "common.off" },
+    { v: "fast",    label: "player.upscale.fast" },
+    { v: "quality", label: "player.upscale.quality" },
   ];
   function pickUpscale(v: UpscaleMode) { updateSettings({ videoUpscale: v }); upscaleOpen = false; }
   let upscaleOpen = $state(false);
@@ -941,17 +942,15 @@
     {#if aps.loading}
       <div class="loader">
         <div class="loader-logo">{@html mokuIcon}</div>
-        <p class="loader-text">{aps.resolving ? "Finding stream…" : "Loading…"}</p>
+        <p class="loader-text">{aps.resolving ? t("player.findingStream") : t("common.loading")}</p>
       </div>
     {:else if aps.unavailable}
       <div class="notice">
-        <p class="notice-title">Can't play {episodeLabel}</p>
+        <p class="notice-title">{t("player.cantPlay", { episode: episodeLabel })}</p>
         {#if aps.error}
           <p>{aps.error}</p>
         {:else}
-          <p>The server had no playable video for this episode. It may not be
-             downloaded, or the source only offers a stream this player can't
-             handle. Downloading the episode will always work.</p>
+          <p>{t("player.noVideoBody")}</p>
         {/if}
       </div>
     {:else if aps.videoUrl}
@@ -973,8 +972,8 @@
         onpause={onPause}
         onvolumechange={() => { if (videoEl) { aps.volume = videoEl.volume; aps.muted = videoEl.muted; } }}
       >
-        {#each vttSubtitles as t (t.url)}
-          <track kind="subtitles" src={t.url} srclang={bcp47(t.lang)} label={t.lang} />
+        {#each vttSubtitles as sub (sub.url)}
+          <track kind="subtitles" src={sub.url} srclang={bcp47(sub.lang)} label={sub.lang} />
         {/each}
       </video>
 
@@ -1021,7 +1020,7 @@
         </div>
       {/if}
     {:else}
-      <div class="notice">{aps.error ?? "No video source."}</div>
+      <div class="notice">{aps.error ?? t("player.noVideoSource")}</div>
     {/if}
   </div>
 
@@ -1043,7 +1042,7 @@
     {#snippet endControls()}
       {#if nethermind}
         <div class="cc-wrap nm-wrap">
-          <button class="cc-btn" class:active={nmMenuOpen} data-tip="Options" aria-label="Options"
+          <button class="cc-btn" class:active={nmMenuOpen} data-tip={t("player.options")} aria-label={t("player.options")}
             onclick={() => { nmMenuOpen = !nmMenuOpen; nmView = "root"; }}>
             <CaretDown size={15} weight="bold" />
           </button>
@@ -1052,22 +1051,22 @@
               {#if nmView === "root"}
                 {#if subMenuItems.length}
                   <button class="nm-row" onclick={() => (nmView = "subs")}>
-                    <span class="nm-k">Subtitles</span>
-                    <span class="nm-v"><span class="nm-v-txt">{aps.activeSubtitle ?? "Off"}</span><CaretDown size={11} weight="bold" /></span>
+                    <span class="nm-k">{t("player.subtitles")}</span>
+                    <span class="nm-v"><span class="nm-v-txt">{aps.activeSubtitle ?? t("common.off")}</span><CaretDown size={11} weight="bold" /></span>
                   </button>
                 {/if}
                 {#if aps.sources.length > 1}
                   <button class="nm-row" onclick={() => (nmView = "source")}>
-                    <span class="nm-k">Source</span>
-                    <span class="nm-v"><span class="nm-v-txt">{aps.sources[aps.sourceIdx]?.label ?? "Auto"}</span><CaretDown size={11} weight="bold" /></span>
+                    <span class="nm-k">{t("player.source")}</span>
+                    <span class="nm-v"><span class="nm-v-txt">{aps.sources[aps.sourceIdx]?.label ?? t("player.auto")}</span><CaretDown size={11} weight="bold" /></span>
                   </button>
                 {/if}
                 <button class="nm-row" onclick={() => (nmView = "speed")}>
-                  <span class="nm-k">Playback speed</span>
+                  <span class="nm-k">{t("player.playbackSpeed")}</span>
                   <span class="nm-v"><span class="nm-v-txt">{aps.playbackRate}×</span><CaretDown size={11} weight="bold" /></span>
                 </button>
                 <div class="nm-row nm-row-static">
-                  <span class="nm-k">Volume</span>
+                  <span class="nm-k">{t("player.volume")}</span>
                   <div class="nm-volume">
                     <input class="nm-slider" type="range" min="0" max="1" step="0.02"
                       value={aps.muted ? 0 : aps.volume}
@@ -1077,15 +1076,15 @@
                 </div>
 
                 <div class="nm-divider"></div>
-                <p class="nm-head">Stream</p>
-                <div class="nm-info"><span>Resolution</span><span>{dims || "—"}</span></div>
+                <p class="nm-head">{t("player.stream")}</p>
+                <div class="nm-info"><span>{t("player.resolution")}</span><span>{dims || "—"}</span></div>
                 {#if aps.sources[aps.sourceIdx]?.label}
-                  <div class="nm-info"><span>Source</span><span>{aps.sources[aps.sourceIdx].label}</span></div>
+                  <div class="nm-info"><span>{t("player.source")}</span><span>{aps.sources[aps.sourceIdx].label}</span></div>
                 {/if}
               {:else}
-                <button class="nm-back" onclick={() => (nmView = "root")}><CaretLeft size={12} weight="bold" /> Back</button>
+                <button class="nm-back" onclick={() => (nmView = "root")}><CaretLeft size={12} weight="bold" /> {t("common.back")}</button>
                 {#if nmView === "subs"}
-                  <button class="cc-row" class:sel={aps.activeSubtitle == null} onclick={() => { selectVtt(null); nmView = "root"; }}>Off</button>
+                  <button class="cc-row" class:sel={aps.activeSubtitle == null} onclick={() => { selectVtt(null); nmView = "root"; }}>{t("common.off")}</button>
                   {#each subMenuItems as item (item.key)}
                     <button class="cc-row" class:sel={aps.activeSubtitle === item.key} onclick={() => { item.pick(); nmView = "root"; }}>{item.label}</button>
                   {/each}
@@ -1105,18 +1104,18 @@
       {:else}
       {#if aps.sources.length > 1}
         <div class="cc-wrap">
-          <button class="cc-btn" class:active={srcMenuOpen} data-tip="Quality / source" aria-label="Quality"
+          <button class="cc-btn" class:active={srcMenuOpen} data-tip={t("player.qualitySourceTip")} aria-label={t("player.quality")}
             onclick={() => { srcMenuOpen = !srcMenuOpen; subMenuOpen = false; }}>
             <Stack size={14} weight="regular" />
-            <span class="cc-label">{aps.sources[aps.sourceIdx]?.label ?? "Auto"}</span>
+            <span class="cc-label">{aps.sources[aps.sourceIdx]?.label ?? t("player.auto")}</span>
           </button>
           {#if srcMenuOpen}
             <div class="cc-menu cc-menu-wide" role="presentation" onclick={(e) => e.stopPropagation()}>
-              <p class="cc-head">Source</p>
+              <p class="cc-head">{t("player.source")}</p>
               <div class="cc-langs">
                 {#each aps.sources as s, i (i)}
                   <button class="cc-row" class:sel={i === aps.sourceIdx} onclick={() => pickSource(i)}>
-                    {s.label}{#if s.preferred} · auto{/if}
+                    {s.label}{#if s.preferred} · {t("player.preferredTag")}{/if}
                   </button>
                 {/each}
               </div>
@@ -1126,16 +1125,16 @@
       {/if}
       {#if subMenuItems.length}
         <div class="cc-wrap">
-          <button class="cc-btn" class:active={subMenuOpen} data-tip="Subtitles" aria-label="Subtitles"
+          <button class="cc-btn" class:active={subMenuOpen} data-tip={t("player.subtitles")} aria-label={t("player.subtitles")}
             onclick={() => { subMenuOpen = !subMenuOpen; srcMenuOpen = false; }}>
             <ClosedCaptioning size={14} weight={aps.activeSubtitle ? "fill" : "regular"} />
-            <span class="cc-label">{aps.activeSubtitle?.replace(/^dash:/, "") ?? "Off"}</span>
+            <span class="cc-label">{aps.activeSubtitle?.replace(/^dash:/, "") ?? t("common.off")}</span>
           </button>
           {#if subMenuOpen}
             <div class="cc-menu" role="presentation" onclick={(e) => e.stopPropagation()}>
-              <p class="cc-head">Language</p>
+              <p class="cc-head">{t("player.language")}</p>
               <div class="cc-langs">
-                <button class="cc-row" class:sel={aps.activeSubtitle == null} onclick={() => selectVtt(null)}>Off</button>
+                <button class="cc-row" class:sel={aps.activeSubtitle == null} onclick={() => selectVtt(null)}>{t("common.off")}</button>
                 {#each subMenuItems as item (item.key)}
                   <button class="cc-row" class:sel={aps.activeSubtitle === item.key} onclick={item.pick}>{item.label}</button>
                 {/each}
@@ -1144,27 +1143,27 @@
               <div class="cc-div"></div>
 
               <div class="cc-ctl">
-                <span>Text size</span>
+                <span>{t("player.subs.textSize")}</span>
                 <div class="cc-step">
-                  <button aria-label="Smaller" onclick={() => aps.subFontScale = clampNum(aps.subFontScale - 0.1, 0.5, 2.5)}>−</button>
+                  <button aria-label={t("player.subs.smaller")} onclick={() => aps.subFontScale = clampNum(aps.subFontScale - 0.1, 0.5, 2.5)}>−</button>
                   <span class="cc-val">{Math.round(aps.subFontScale * 100)}%</span>
-                  <button aria-label="Larger" onclick={() => aps.subFontScale = clampNum(aps.subFontScale + 0.1, 0.5, 2.5)}>+</button>
+                  <button aria-label={t("player.subs.larger")} onclick={() => aps.subFontScale = clampNum(aps.subFontScale + 0.1, 0.5, 2.5)}>+</button>
                 </div>
               </div>
 
               <div class="cc-ctl">
-                <span>Height</span>
+                <span>{t("player.subs.height")}</span>
                 <div class="cc-step">
-                  <button aria-label="Lower" onclick={() => aps.subBottomPct = clampNum(aps.subBottomPct - 3, 0, 45)}>−</button>
+                  <button aria-label={t("player.subs.lower")} onclick={() => aps.subBottomPct = clampNum(aps.subBottomPct - 3, 0, 45)}>−</button>
                   <span class="cc-val">{Math.round(aps.subBottomPct)}%</span>
-                  <button aria-label="Raise" onclick={() => aps.subBottomPct = clampNum(aps.subBottomPct + 3, 0, 45)}>+</button>
+                  <button aria-label={t("player.subs.raise")} onclick={() => aps.subBottomPct = clampNum(aps.subBottomPct + 3, 0, 45)}>+</button>
                 </div>
               </div>
 
               <div class="cc-ctl">
-                <span>Background</span>
+                <span>{t("player.subs.background")}</span>
                 <button class="cc-toggle" class:on={aps.subBackground} onclick={() => aps.subBackground = !aps.subBackground}>
-                  {aps.subBackground ? "Box" : "Shadow"}
+                  {aps.subBackground ? t("player.subs.box") : t("player.subs.shadow")}
                 </button>
               </div>
             </div>
@@ -1177,10 +1176,10 @@
 
   {#if aps.videoUrl && !aps.unavailable && nethermind}
     <div class="abar abar-compact" class:hidden={!mediaViewState.uiVisible}>
-      <button class="abtn" data-tip="Rewind {SKIP}s" aria-label="Rewind {SKIP} seconds" onclick={() => seekBy(-SKIP)}>
+      <button class="abtn" data-tip={t("player.rewindTip", { seconds: SKIP })} aria-label={t("player.rewindLabel", { seconds: SKIP })} onclick={() => seekBy(-SKIP)}>
         <Rewind size={17} weight="fill" />
       </button>
-      <button class="abtn" data-tip="Forward {SKIP}s" aria-label="Fast-forward {SKIP} seconds" onclick={() => seekBy(SKIP)}>
+      <button class="abtn" data-tip={t("player.forwardTip", { seconds: SKIP })} aria-label={t("player.forwardLabel", { seconds: SKIP })} onclick={() => seekBy(SKIP)}>
         <FastForward size={17} weight="fill" />
       </button>
       <div class="ascrub"><MediaSlider pct={durationPct} label={timeLabel} onSeek={seekToPct} bands={skipBands} /></div>
@@ -1189,13 +1188,13 @@
   {:else if aps.videoUrl && !aps.unavailable}
     <div class="abar" class:hidden={!mediaViewState.uiVisible}>
       <div class="aseg">
-        <button class="abtn" data-tip="Previous episode" aria-label="Previous episode" onclick={nav.goPrev} disabled={!nav.prev}>
+        <button class="abtn" data-tip={t("player.previousEpisode")} aria-label={t("player.previousEpisode")} onclick={nav.goPrev} disabled={!nav.prev}>
           <SkipBack size={16} weight="fill" />
         </button>
-        <button class="abtn abtn-play" data-tip={aps.playing ? "Pause" : "Play"} aria-label={aps.playing ? "Pause" : "Play"} onclick={togglePlay}>
+        <button class="abtn abtn-play" data-tip={aps.playing ? t("player.pause") : t("player.play")} aria-label={aps.playing ? t("player.pause") : t("player.play")} onclick={togglePlay}>
           {#if aps.playing}<Pause size={19} weight="fill" />{:else}<Play size={19} weight="fill" />{/if}
         </button>
-        <button class="abtn" data-tip="Next episode" aria-label="Next episode" onclick={nav.goNext} disabled={!nav.next}>
+        <button class="abtn" data-tip={t("player.nextEpisode")} aria-label={t("player.nextEpisode")} onclick={nav.goNext} disabled={!nav.next}>
           <SkipForward size={16} weight="fill" />
         </button>
       </div>
@@ -1215,7 +1214,7 @@
           onmouseenter={() => { if (rateHideTimer) clearTimeout(rateHideTimer); rateOpen = true; }}
           onmouseleave={() => { rateHideTimer = setTimeout(() => (rateOpen = false), 220); }}
         >
-          <button class="abtn abtn-txt" data-tip="Playback speed" aria-label="Playback speed"
+          <button class="abtn abtn-txt" data-tip={t("player.playbackSpeed")} aria-label={t("player.playbackSpeed")}
             onclick={() => (rateOpen = !rateOpen)}>
             <Speedometer size={16} weight="regular" />
             <span class="abtn-lbl">{aps.playbackRate}×</span>
@@ -1236,7 +1235,7 @@
           onmouseenter={() => { if (upscaleHideTimer) clearTimeout(upscaleHideTimer); upscaleOpen = true; }}
           onmouseleave={() => { upscaleHideTimer = setTimeout(() => (upscaleOpen = false), 220); }}
         >
-          <button class="abtn abtn-txt" data-tip="Upscale (experimental)" aria-label="Upscale"
+          <button class="abtn abtn-txt" data-tip={t("player.upscale.tip")} aria-label={t("player.upscale.label")}
             onclick={() => (upscaleOpen = !upscaleOpen)}>
             <Sparkle size={16} weight={upscaleMode === "off" ? "regular" : "fill"} />
             {#if upscaleMode !== "off"}<span class="abtn-lbl">4K</span>{/if}
@@ -1244,7 +1243,7 @@
           {#if upscaleOpen}
             <div class="stack-pop" role="presentation" onclick={(e) => e.stopPropagation()}>
               {#each UPSCALE_MENU as m (m.v)}
-                <button class="stack-opt" class:on={upscaleMode === m.v} onclick={() => pickUpscale(m.v)}>{m.label}</button>
+                <button class="stack-opt" class:on={upscaleMode === m.v} onclick={() => pickUpscale(m.v)}>{t(m.label)}</button>
               {/each}
             </div>
           {/if}
@@ -1259,8 +1258,8 @@
         >
           <button
             class="abtn"
-            data-tip={aps.muted || aps.volume === 0 ? "Unmute" : "Volume"}
-            aria-label="Volume"
+            data-tip={aps.muted || aps.volume === 0 ? t("player.unmute") : t("player.volume")}
+            aria-label={t("player.volume")}
             onclick={() => (volOpen = !volOpen)}
             ondblclick={toggleMute}
           >

@@ -8,6 +8,7 @@
   import type { Snippet } from "svelte";
   import type { Chapter } from "$lib/types";
   import ChapterPicker from "$lib/components/media/shared/ChapterPicker.svelte";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     title:         string;
@@ -68,9 +69,9 @@
   $effect(() => {
     if (!menuOpen && !pickerOpen) return;
     const off = (e: MouseEvent) => {
-      const t = e.target as HTMLElement;
-      if (menuOpen && !t.closest(".actions-wrap")) menuOpen = false;
-      if (pickerOpen && !t.closest(".ch-pick-wrap")) pickerOpen = false;
+      const target = e.target as HTMLElement;
+      if (menuOpen && !target.closest(".actions-wrap")) menuOpen = false;
+      if (pickerOpen && !target.closest(".ch-pick-wrap")) pickerOpen = false;
     };
     const esc = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -89,19 +90,19 @@
 
 <div class="bar bar-top" class:hidden>
   <div class="bar-start">
-    <button class="icon-btn close-btn" data-tip="Close" aria-label="Close reader" onclick={onClose}>
+    <button class="icon-btn close-btn" data-tip={t("common.close")} aria-label={t("media.chrome.closeReader")} onclick={onClose}>
       <X size={14} weight="regular" />
     </button>
 
     <div class="bar-divider"></div>
 
-    <button class="icon-btn" data-tip="Previous" aria-label="Previous" onclick={onPrev} disabled={!hasPrev}>
+    <button class="icon-btn" data-tip={t("media.chrome.previous")} aria-label={t("media.chrome.previous")} onclick={onPrev} disabled={!hasPrev}>
       <CaretLeft size={13} weight="regular" />
     </button>
 
     <div class="ch-hover-wrap">
       {#if onOpenPreview}
-        <button class="ch-title-btn" data-tip="Series details" onclick={onOpenPreview}>{title}</button>
+        <button class="ch-title-btn" data-tip={t("media.chrome.seriesDetails")} onclick={onOpenPreview}>{title}</button>
       {:else}
         <span class="ch-title">{title}</span>
       {/if}
@@ -111,7 +112,7 @@
           <button
             class="ch-name-btn"
             class:active={pickerOpen}
-            title="Select chapter"
+            title={t("media.chrome.selectChapter")}
             aria-expanded={pickerOpen}
             onclick={togglePicker}
           >
@@ -137,7 +138,7 @@
       {#if readout}<span class="ch-page">{readout}</span>{/if}
     </div>
 
-    <button class="icon-btn" data-tip="Next" aria-label="Next" onclick={onNext} disabled={!hasNext}>
+    <button class="icon-btn" data-tip={t("common.next")} aria-label={t("common.next")} onclick={onNext} disabled={!hasNext}>
       <CaretRight size={13} weight="regular" />
     </button>
   </div>
@@ -150,7 +151,7 @@
     <div class="bar-divider"></div>
 
     <div class="actions-wrap">
-      <button class="icon-btn" class:active={menuOpen} data-tip="More" aria-label="More actions"
+      <button class="icon-btn" class:active={menuOpen} data-tip={t("media.chrome.more")} aria-label={t("media.chrome.moreActions")}
         onclick={() => (menuOpen = !menuOpen)}>
         <DotsThree size={16} weight="bold" />
       </button>
@@ -160,13 +161,13 @@
           in:fly={{ y: -6, duration: 150, easing: cubicOut }}
           out:fly={{ y: -6, duration: 110, easing: cubicIn }}>
           <button class="action-row" onclick={() => { closeMenu(); app.setSettingsOpen(true); }}>
-            <GearSix size={13} weight="regular" /><span>Settings</span>
+            <GearSix size={13} weight="regular" /><span>{t("nav.settings")}</span>
           </button>
           <button class="action-row" onclick={() => { closeMenu(); mediaViewState.toggleFullscreen(); }}>
             {#if mediaViewState.isFullscreen}
-              <ArrowsIn size={13} weight="regular" /><span>Exit fullscreen</span>
+              <ArrowsIn size={13} weight="regular" /><span>{t("media.chrome.exitFullscreen")}</span>
             {:else}
-              <ArrowsOut size={13} weight="regular" /><span>Fullscreen</span>
+              <ArrowsOut size={13} weight="regular" /><span>{t("media.chrome.fullscreen")}</span>
             {/if}
           </button>
         </div>
@@ -180,7 +181,7 @@
   {#if bottomStart}
     {@render bottomStart()}
   {:else}
-    <button class="nav-btn" data-tip="Previous" aria-label="Previous" onclick={onPrev} disabled={!hasPrev}>
+    <button class="nav-btn" data-tip={t("media.chrome.previous")} aria-label={t("media.chrome.previous")} onclick={onPrev} disabled={!hasPrev}>
       <CaretLeft size={15} weight="regular" />
     </button>
   {/if}
@@ -190,7 +191,7 @@
   {#if bottomEnd}
     {@render bottomEnd()}
   {:else}
-    <button class="nav-btn" data-tip="Next" aria-label="Next" onclick={onNext} disabled={!hasNext}>
+    <button class="nav-btn" data-tip={t("common.next")} aria-label={t("common.next")} onclick={onNext} disabled={!hasNext}>
       <CaretRight size={15} weight="regular" />
     </button>
   {/if}

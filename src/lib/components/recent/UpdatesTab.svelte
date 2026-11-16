@@ -2,6 +2,7 @@
   import { BookOpen, CircleNotch, Download, Trash, CaretDown, CaretRight } from 'phosphor-svelte'
   import Thumbnail from '$lib/components/shared/manga/Thumbnail.svelte'
   import type { RecentUpdate, UpdateGroup } from './lib/recentUpdates'
+  import { t } from '$lib/i18n/index.svelte'
 
   const BUNDLE_THRESHOLD = 3
 
@@ -78,18 +79,18 @@
 
   function chapterLabel(item: RecentUpdate): string {
     if (item.name?.trim()) return item.name
-    if (Number.isFinite(item.chapterNumber)) return `Chapter ${item.chapterNumber}`
-    return 'Chapter'
+    if (Number.isFinite(item.chapterNumber)) return t('recent.updates.chapterNumber', { number: item.chapterNumber })
+    return t('recent.chapter')
   }
 
   function bundleChapterRange(items: RecentUpdate[]): string {
     const nums = items
       .map(i => i.chapterNumber)
       .filter(n => Number.isFinite(n)) as number[]
-    if (!nums.length) return `${items.length} chapters`
+    if (!nums.length) return t('recent.updates.chapterCount', { count: items.length })
     const min = Math.min(...nums)
     const max = Math.max(...nums)
-    return min === max ? `Ch. ${min}` : `Ch. ${min}–${max}`
+    return min === max ? t('recent.updates.chapterShort', { number: min }) : t('recent.updates.chapterRange', { min, max })
   }
 </script>
 
@@ -99,22 +100,22 @@
       <div class="status-dot" class:active={loading || updaterRunning}></div>
       <span class="status-text">
         {#if loading}
-          Checking for updates…
+          {t('recent.updates.checking')}
         {:else if error}
-          Update check failed
+          {t('recent.updates.checkFailed')}
         {:else if updaterRunning}
-          Library update in progress{#if updaterProgressLabel}&thinsp;({updaterProgressLabel}){/if}
+          {t('recent.updates.inProgress')}{#if updaterProgressLabel}&thinsp;({updaterProgressLabel}){/if}
         {:else}
-          Up to date
+          {t('recent.updates.upToDate')}
         {/if}
       </span>
       <div class="status-right">
         {#if !loading && lastUpdatedLabel}
-          <span class="status-detail">Last updated: {lastUpdatedLabel}</span>
+          <span class="status-detail">{t('recent.updates.lastUpdated', { time: lastUpdatedLabel })}</span>
           <div class="bar-sep"></div>
         {/if}
         {#if !loading && totalCount > 0}
-          <span class="status-count">{totalCount} unread</span>
+          <span class="status-count">{t('recent.updates.unreadCount', { count: totalCount })}</span>
         {/if}
       </div>
     </div>
@@ -146,21 +147,21 @@
   {:else if error}
     <div class="empty">
       <div class="empty-icon-wrap"><BookOpen size={22} weight="light" /></div>
-      <p class="empty-text">Couldn't load updates</p>
+      <p class="empty-text">{t('recent.updates.loadFailed')}</p>
       <p class="empty-hint">{error}</p>
     </div>
 
   {:else if groups.length === 0}
     <div class="empty">
       <div class="empty-icon-wrap"><BookOpen size={22} weight="light" /></div>
-      <p class="empty-text">No recent library updates</p>
-      <p class="empty-hint">Run a library update to populate this page.</p>
+      <p class="empty-text">{t('recent.updates.empty')}</p>
+      <p class="empty-hint">{t('recent.updates.emptyHint')}</p>
     </div>
 
   {:else if filteredGroups.length === 0}
     <div class="empty">
       <div class="empty-icon-wrap"><BookOpen size={22} weight="light" /></div>
-      <p class="empty-text">No results for "{updatesSearch}"</p>
+      <p class="empty-text">{t('recent.noResults', { query: updatesSearch })}</p>
     </div>
 
   {:else}
@@ -177,10 +178,10 @@
               {#if row.kind === 'single'}
                 {@const item = row.item}
                 <div class="update-row" class:read={item.isRead}>
-                  <button class="thumb-btn" onclick={() => onOpenSeries(item)} title="View series">
+                  <button class="thumb-btn" onclick={() => onOpenSeries(item)} title={t('recent.updates.viewSeries')}>
                     <Thumbnail
                       src={item.manga?.thumbnailUrl ?? ''}
-                      alt={item.manga?.title ?? 'Series cover'}
+                      alt={item.manga?.title ?? t('recent.updates.seriesCover')}
                       class="thumb"
                       contentType={item.manga?.contentType}
                     />
@@ -192,23 +193,23 @@
                   >
                     <div class="update-info">
                       <div class="title-row">
-                        <span class="series-title">{item.manga?.title ?? 'Unknown series'}</span>
-                        {#if !item.isRead}<span class="pill" title="Unread"></span>{/if}
+                        <span class="series-title">{item.manga?.title ?? t('recent.unknownSeries')}</span>
+                        {#if !item.isRead}<span class="pill" title={t('recent.updates.unread')}></span>{/if}
                       </div>
                       <span class="chapter-title">{chapterLabel(item)}</span>
                       {#if (item.lastPageRead ?? 0) > 0 && !item.isRead}
-                        <div class="meta-row"><span>Resume p.{item.lastPageRead}</span></div>
+                        <div class="meta-row"><span>{t('recent.updates.resumePage', { page: item.lastPageRead })}</span></div>
                       {/if}
                     </div>
                     <div class="row-end">
                       {#if enqueueing.has(item.id)}
                         <CircleNotch size={14} weight="light" class="anim-spin" />
                       {:else if item.downloaded}
-                        <button class="dl-btn dl-btn-delete" onclick={(e) => { e.stopPropagation(); onDeleteDownload(item) }} title="Delete download">
+                        <button class="dl-btn dl-btn-delete" onclick={(e) => { e.stopPropagation(); onDeleteDownload(item) }} title={t('recent.updates.deleteDownload')}>
                           <Trash size={13} weight="light" />
                         </button>
                       {:else}
-                        <button class="dl-btn" onclick={(e) => { e.stopPropagation(); onEnqueue(item) }} title="Download">
+                        <button class="dl-btn" onclick={(e) => { e.stopPropagation(); onEnqueue(item) }} title={t('recent.updates.download')}>
                           <Download size={13} weight="light" />
                         </button>
                       {/if}
@@ -228,10 +229,10 @@
                 {@const hasUnread = bundle.items.some(i => !i.isRead)}
                 <div class="bundle" class:expanded>
                   <div class="bundle-header" class:read={!hasUnread}>
-                    <button class="thumb-btn" onclick={() => onOpenSeries(first)} title="View series">
+                    <button class="thumb-btn" onclick={() => onOpenSeries(first)} title={t('recent.updates.viewSeries')}>
                       <Thumbnail
                         src={first.manga?.thumbnailUrl ?? ''}
-                        alt={first.manga?.title ?? 'Series cover'}
+                        alt={first.manga?.title ?? t('recent.updates.seriesCover')}
                         class="thumb"
                         contentType={first.manga?.contentType}
                       />
@@ -239,11 +240,11 @@
                     <button class="bundle-summary" onclick={() => toggleBundle(bundle.key)}>
                       <div class="update-info">
                         <div class="title-row">
-                          <span class="series-title">{first.manga?.title ?? 'Unknown series'}</span>
-                          {#if hasUnread}<span class="pill" title="Unread"></span>{/if}
+                          <span class="series-title">{first.manga?.title ?? t('recent.unknownSeries')}</span>
+                          {#if hasUnread}<span class="pill" title={t('recent.updates.unread')}></span>{/if}
                         </div>
                         <span class="chapter-title">{bundleChapterRange(bundle.items)}</span>
-                        <div class="meta-row"><span>{bundle.items.length} chapters</span></div>
+                        <div class="meta-row"><span>{t('recent.updates.chapterCount', { count: bundle.items.length })}</span></div>
                       </div>
                       <div class="row-end">
                         <span class="caret">
@@ -269,21 +270,21 @@
                             <div class="update-info">
                               <div class="title-row">
                                 <span class="chapter-title">{chapterLabel(item)}</span>
-                                {#if !item.isRead}<span class="pill" title="Unread"></span>{/if}
+                                {#if !item.isRead}<span class="pill" title={t('recent.updates.unread')}></span>{/if}
                               </div>
                               {#if (item.lastPageRead ?? 0) > 0 && !item.isRead}
-                                <div class="meta-row"><span>Resume p.{item.lastPageRead}</span></div>
+                                <div class="meta-row"><span>{t('recent.updates.resumePage', { page: item.lastPageRead })}</span></div>
                               {/if}
                             </div>
                             <div class="row-end">
                               {#if enqueueing.has(item.id)}
                                 <CircleNotch size={14} weight="light" class="anim-spin" />
                               {:else if item.downloaded}
-                                <button class="dl-btn dl-btn-delete" onclick={(e) => { e.stopPropagation(); onDeleteDownload(item) }} title="Delete download">
+                                <button class="dl-btn dl-btn-delete" onclick={(e) => { e.stopPropagation(); onDeleteDownload(item) }} title={t('recent.updates.deleteDownload')}>
                                   <Trash size={13} weight="light" />
                                 </button>
                               {:else}
-                                <button class="dl-btn" onclick={(e) => { e.stopPropagation(); onEnqueue(item) }} title="Download">
+                                <button class="dl-btn" onclick={(e) => { e.stopPropagation(); onEnqueue(item) }} title={t('recent.updates.download')}>
                                   <Download size={13} weight="light" />
                                 </button>
                               {/if}

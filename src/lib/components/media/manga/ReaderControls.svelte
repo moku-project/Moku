@@ -15,6 +15,7 @@
   import type { Snippet }      from "svelte";
   import type { ReaderSettings } from "$lib/state/mangaReader.svelte";
   import ChapterPicker         from "$lib/components/media/shared/ChapterPicker.svelte";
+  import { t }                 from "$lib/i18n/index.svelte";
 
   interface Props {
     displayChapter:       Chapter | null;
@@ -77,8 +78,8 @@
   // chapter buttons swap which chapter they jump to (vertical up/down bars are unaffected).
   const leftChapter  = $derived(rtl && !isVertical ? adjacent.next : adjacent.prev);
   const rightChapter = $derived(rtl && !isVertical ? adjacent.prev : adjacent.next);
-  const leftTitle    = $derived(rtl && !isVertical ? "Next chapter" : "Previous chapter");
-  const rightTitle   = $derived(rtl && !isVertical ? "Previous chapter" : "Next chapter");
+  const leftTitle    = $derived(rtl && !isVertical ? t("reader.controls.nextChapter") : t("reader.controls.previousChapter"));
+  const rightTitle   = $derived(rtl && !isVertical ? t("reader.controls.previousChapter") : t("reader.controls.nextChapter"));
 
   const popoverSide = $derived(
     barPosition === "left"  ? "right" :
@@ -199,7 +200,7 @@
   class:hidden={!uiVisible}
 >
   <div class="bar-start">
-    <button class="icon-btn close-btn" onclick={() => readerState.closeReader()} title="Close reader">
+    <button class="icon-btn close-btn" onclick={() => readerState.closeReader()} title={t("media.chrome.closeReader")}>
       <X size={14} weight="regular" />
     </button>
 
@@ -219,14 +220,14 @@
             class="icon-btn ch-info-btn"
             class:active={readerState.chapterPickerOpen}
             onclick={toggleChapterPicker}
-            title="Select chapter"
-            aria-label="Select chapter"
+            title={t("media.chrome.selectChapter")}
+            aria-label={t("media.chrome.selectChapter")}
             aria-expanded={readerState.chapterPickerOpen}
           >&#xE2CE;</button>
           {#if readerState.chapterPickerOpen}
             <div class="popover ch-picker-pop popover-{popoverSide}" role="presentation" onclick={(e) => e.stopPropagation()}>
               <div class="ch-picker-page">
-                <span>Page</span>
+                <span>{t("reader.controls.page")}</span>
                 <input
                   class="ch-page-input"
                   type="text"
@@ -234,7 +235,7 @@
                   pattern="[0-9]*"
                   autocomplete="off"
                   spellcheck="false"
-                  aria-label="Go to page"
+                  aria-label={t("reader.controls.goToPage")}
                   bind:this={pageInputEl}
                   value={pageDraft}
                   disabled={!visibleChunkLastPage}
@@ -257,7 +258,7 @@
           {/if}
         </div>
       {:else}
-        <button class="ch-title-btn" title="Series details" onclick={onOpenPreview}>
+        <button class="ch-title-btn" title={t("media.chrome.seriesDetails")} onclick={onOpenPreview}>
           {readerState.activeManga?.title}
         </button>
         <span class="ch-sep">/</span>
@@ -265,7 +266,7 @@
           <button
             class="ch-name-btn"
             class:active={readerState.chapterPickerOpen}
-            title="Select chapter"
+            title={t("media.chrome.selectChapter")}
             aria-expanded={readerState.chapterPickerOpen}
             onclick={toggleChapterPicker}
           >
@@ -313,13 +314,13 @@
   <div class="bar-end">
 
     <div class="zoom-cluster">
-      <button class="icon-btn zoom-step-btn" onclick={() => adjustZoom(-ZOOM_STEP)} title="Zoom out" disabled={zoom <= ZOOM_MIN}>
+      <button class="icon-btn zoom-step-btn" onclick={() => adjustZoom(-ZOOM_STEP)} title={t("reader.controls.zoomOut")} disabled={zoom <= ZOOM_MIN}>
         <MagnifyingGlassMinus size={13} weight="regular" />
       </button>
-      <button class="zoom-pct-btn" onclick={() => { readerState.zoomOpen = !readerState.zoomOpen; readerState.actionsOpen = false; readerState.chapterPickerOpen = false; }} title="Adjust zoom">
+      <button class="zoom-pct-btn" onclick={() => { readerState.zoomOpen = !readerState.zoomOpen; readerState.actionsOpen = false; readerState.chapterPickerOpen = false; }} title={t("reader.controls.adjustZoom")}>
         {zoomPct}%
       </button>
-      <button class="icon-btn zoom-step-btn" onclick={() => adjustZoom(ZOOM_STEP)} title="Zoom in" disabled={zoom >= ZOOM_MAX}>
+      <button class="icon-btn zoom-step-btn" onclick={() => adjustZoom(ZOOM_STEP)} title={t("reader.controls.zoomIn")} disabled={zoom >= ZOOM_MAX}>
         <MagnifyingGlassPlus size={13} weight="regular" />
       </button>
 
@@ -333,7 +334,7 @@
           </div>
           <div class="zoom-footer">
             <span class="zoom-readout">{zoomPct}%</span>
-            <button class="zoom-reset" onclick={resetZoom} disabled={zoom === 1.0}>Reset</button>
+            <button class="zoom-reset" onclick={resetZoom} disabled={zoom === 1.0}>{t("common.reset")}</button>
           </div>
         </div>
       {/if}
@@ -342,7 +343,7 @@
     <div class="bar-divider"></div>
 
     <button class="icon-btn" class:active={isBookmarked} onclick={onToggleBookmark}
-      title={isBookmarked ? "Remove bookmark" : "Bookmark this page"}>
+      title={isBookmarked ? t("reader.controls.removeBookmark") : t("reader.controls.bookmarkPage")}>
       <Bookmark size={14} weight={isBookmarked ? "fill" : "regular"} />
     </button>
 
@@ -350,7 +351,7 @@
 
     <button class="icon-btn" class:active={perMangaEnabled}
       onclick={() => { readerState.presetOpen = true; closeAllPopovers(); }}
-      title="Reader settings">
+      title={t("reader.controls.readerSettings")}>
       <Sliders size={13} weight="regular" />
     </button>
 
@@ -359,7 +360,7 @@
         class="icon-btn"
         class:active={readerState.actionsOpen}
         onclick={() => { readerState.actionsOpen = !readerState.actionsOpen; readerState.zoomOpen = false; readerState.chapterPickerOpen = false; }}
-        title="More actions"
+        title={t("media.chrome.moreActions")}
       >
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
           <circle cx="2"    cy="6.5" r="1.3" fill="currentColor"/>
@@ -382,20 +383,20 @@
         >
           <button class="action-row" onclick={() => { readerState.dlOpen = !readerState.dlOpen; readerState.actionsOpen = false; }}>
             <Download size={13} weight="regular" />
-            <span>Download</span>
+            <span>{t("reader.download.title")}</span>
           </button>
           <button class="action-row" onclick={() => { onSettingsOpen(); readerState.actionsOpen = false; }}>
             <GearSix size={13} weight="regular" />
-            <span>Settings</span>
+            <span>{t("nav.settings")}</span>
           </button>
           <div class="action-divider"></div>
           <button class="action-row" onclick={async () => { readerState.actionsOpen = false; await toggleFullscreen(); }}>
             {#if isFullscreen}
               <ArrowsIn size={13} weight="regular" />
-              <span>Exit fullscreen</span>
+              <span>{t("media.chrome.exitFullscreen")}</span>
             {:else}
               <ArrowsOut size={13} weight="regular" />
-              <span>Fullscreen</span>
+              <span>{t("media.chrome.fullscreen")}</span>
             {/if}
           </button>
         </div>
@@ -404,17 +405,17 @@
       {#if readerState.dlOpen && readerState.activeChapter}
         {@const chapter = readerState.activeChapter}
         <div class="popover dl-popover popover-{popoverSide}" role="presentation" onclick={(e) => e.stopPropagation()}>
-          <p class="dl-title">Download</p>
+          <p class="dl-title">{t("reader.download.title")}</p>
           <button class="dl-option" disabled={readerState.dlBusy || !!chapter.downloaded}
             onclick={() => runDl(() => enqueueOne(chapter.id))}>
-            This chapter
-            <span class="dl-sub">{chapter.downloaded ? "Already downloaded" : chapter.name}</span>
+            {t("reader.download.thisChapter")}
+            <span class="dl-sub">{chapter.downloaded ? t("reader.download.alreadyDownloaded") : chapter.name}</span>
           </button>
           <div class="dl-row">
             <button class="dl-option" disabled={readerState.dlBusy || queueable.length === 0}
               onclick={() => runDl(() => enqueueMany(queueable.slice(0, readerState.nextN).map(c => c.id)))}>
-              Next chapters
-              <span class="dl-sub">{Math.min(readerState.nextN, queueable.length)} not yet downloaded</span>
+              {t("reader.download.nextChapters")}
+              <span class="dl-sub">{t("reader.download.notDownloaded", { count: Math.min(readerState.nextN, queueable.length) })}</span>
             </button>
             <div class="dl-stepper" role="presentation" onclick={(e) => e.stopPropagation()}>
               <button class="dl-step-btn" onclick={() => readerState.nextN = Math.max(1, readerState.nextN - 1)} disabled={readerState.nextN <= 1}>−</button>
@@ -424,8 +425,8 @@
           </div>
           <button class="dl-option" disabled={readerState.dlBusy || queueable.length === 0}
             onclick={() => runDl(() => enqueueMany(queueable.map(c => c.id)))}>
-            All remaining
-            <span class="dl-sub">{queueable.length} not yet downloaded</span>
+            {t("reader.download.allRemaining")}
+            <span class="dl-sub">{t("reader.download.notDownloaded", { count: queueable.length })}</span>
           </button>
         </div>
       {/if}

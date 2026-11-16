@@ -16,6 +16,7 @@
   import StatsGrid       from '$lib/components/home/StatsGrid.svelte'
   import { Clock } from 'phosphor-svelte'
   import type { Manga, Chapter } from '$lib/types'
+  import { t } from '$lib/i18n/index.svelte'
 
   const TOTAL_SLOTS = 4
 
@@ -202,7 +203,7 @@
         />
         <div class="col-divider"></div>
         <div class="activity-panel">
-          <span class="panel-label"><Clock size={10} weight="bold" /> Activity</span>
+          <span class="panel-label"><Clock size={10} weight="bold" /> {t('home.activity')}</span>
           <ActivityHeatmap dailyReadCounts={historyState.dailyReadCounts} />
         </div>
       </div>

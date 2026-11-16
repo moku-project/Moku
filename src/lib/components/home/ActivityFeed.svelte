@@ -4,6 +4,7 @@
   import Thumbnail from '$lib/components/shared/manga/Thumbnail.svelte'
   import { historyState } from '$lib/state/history.svelte'
   import type { ReadSession } from '$lib/types/history'
+  import { t } from '$lib/i18n/index.svelte'
 
   let {
     onresume,
@@ -24,10 +25,10 @@
 
 <div class="section">
   <div class="section-header">
-    <span class="section-title"><Clock size={10} weight="bold" /> Recent Activity</span>
+    <span class="section-title"><Clock size={10} weight="bold" /> {t('home.feed.title')}</span>
     {#if entries.length > 0}
       <button class="see-all" onclick={onviewhistory}>
-        Full History <ArrowRight size={9} weight="bold" />
+        {t('home.feed.fullHistory')} <ArrowRight size={9} weight="bold" />
       </button>
     {/if}
   </div>
@@ -40,7 +41,7 @@
           <div class="row-info">
             <span class="row-title">{entry.mangaTitle}</span>
             <span class="row-sub">
-              {entry.endChapterName}{entry.endPage > 1 ? ` · p.${entry.endPage}` : ''}
+              {entry.endChapterName}{entry.endPage > 1 ? t('home.feed.pageSuffix', { page: entry.endPage }) : ''}
             </span>
           </div>
           <span class="row-time" title={new Date(entry.endedAt).toLocaleString()}>{timeAgo(entry.endedAt)}</span>
@@ -50,9 +51,9 @@
     {:else}
       <div class="empty">
         <BookOpen size={18} weight="light" />
-        <span class="empty-text">No recent activity yet</span>
+        <span class="empty-text">{t('home.feed.empty')}</span>
         <button class="empty-cta" onclick={onopenlibrary}>
-          <BookOpen size={12} weight="light" /> Start reading
+          <BookOpen size={12} weight="light" /> {t('home.feed.startReading')}
         </button>
       </div>
     {/if}

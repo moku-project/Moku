@@ -13,6 +13,7 @@
   import TrackerLogo from "$lib/components/tracking/TrackerLogo.svelte";
   import type { Manga } from "$lib/types";
   import type { TrackLink, TrackSearchResult } from "$lib/server-adapters/types";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     mediaId:   string;
@@ -43,7 +44,7 @@
 
   let confirmUnlinkId = $state<string | null>(null);
 
-  const connected = $derived(trackerState.list.filter((t) => t.isLoggedIn));
+  const connected = $derived(trackerState.list.filter((tr) => tr.isLoggedIn));
   const linkFor   = (key: string) => local.find((l) => l.trackerKey === key);
 
   onMount(() => {
@@ -65,14 +66,14 @@
   function autoFocus(node: HTMLElement) { setTimeout(() => node.focus(), 50); }
 
   function relTime(iso: string | null): string {
-    if (!iso) return "never";
+    if (!iso) return t("series.tracker.never");
     const d = Date.now() - new Date(iso).getTime();
-    if (d < 60_000) return "just now";
+    if (d < 60_000) return t("series.tracker.justNow");
     const m = Math.floor(d / 60_000);
-    if (m < 60) return `${m}m ago`;
+    if (m < 60) return t("series.tracker.minutesAgo", { count: m });
     const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
+    if (h < 24) return t("series.tracker.hoursAgo", { count: h });
+    return t("series.tracker.daysAgo", { count: Math.floor(h / 24) });
   }
 
   let searchTimer: ReturnType<typeof setTimeout>;
@@ -91,7 +92,7 @@
     try {
       searchResults = await tsunagu.trackSearch(key, query.trim(), manga?.contentType);
     } catch (e: any) {
-      addToast({ kind: "error", title: "Search failed", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("series.tracker.searchFailed"), body: e?.message ?? String(e) });
     } finally {
       searching = false;
     }
@@ -107,9 +108,9 @@
       activeTab = "records";
       onChanged();
       trackingState.loadAll(true).catch(() => {});
-      addToast({ kind: "success", title: "Now tracking", body: link.title });
+      addToast({ kind: "success", title: t("series.tracker.nowTracking"), body: link.title });
     } catch (e: any) {
-      addToast({ kind: "error", title: "Couldn't link", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("series.tracker.linkFailed"), body: e?.message ?? String(e) });
     } finally {
       binding = false;
     }
@@ -124,9 +125,9 @@
       local = local.filter((l) => l.id !== link.id);
       onChanged();
       trackingState.loadAll(true).catch(() => {});
-      addToast({ kind: "info", title: "Unlinked" });
+      addToast({ kind: "info", title: t("series.tracker.unlinked") });
     } catch (e: any) {
-      addToast({ kind: "error", title: "Couldn't unlink", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("series.tracker.unlinkFailed"), body: e?.message ?? String(e) });
     } finally {
       busyLink = null;
     }
@@ -141,7 +142,7 @@
       onChanged();
       trackingState.loadAll(true).catch(() => {});
     } catch (e: any) {
-      addToast({ kind: "error", title: "Update failed", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("series.tracker.updateFailed"), body: e?.message ?? String(e) });
     } finally {
       busyLink = null;
     }
@@ -155,9 +156,9 @@
       local = local.map((l) => (l.id === updated.id ? updated : l));
       onChanged();
       trackingState.loadAll(true).catch(() => {});
-      addToast({ kind: "success", title: "Synced", body: `${updated.lastChapterRead}/${updated.totalChapters || "?"}` });
+      addToast({ kind: "success", title: t("series.tracker.synced"), body: `${updated.lastChapterRead}/${updated.totalChapters || "?"}` });
     } catch (e: any) {
-      addToast({ kind: "error", title: "Sync failed", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("series.tracker.syncFailed"), body: e?.message ?? String(e) });
     } finally {
       syncing = null;
     }
@@ -191,14 +192,14 @@
 
 <ModalBlur blur={4} dim={0.68} />
 <div class="backdrop" role="presentation" onmousedown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Tracking">
+  <div class="modal" role="dialog" aria-modal="true" aria-label={t("series.header.tracking")}>
 
     <div class="modal-header">
       <div class="header-left">
-        <span class="modal-title">Tracking</span>
+        <span class="modal-title">{t("series.header.tracking")}</span>
         {#if manga?.title}<span class="modal-subtitle">{manga.title}</span>{/if}
       </div>
-      <button class="close-btn" onclick={onClose} aria-label="Close"><X size={14} weight="light" /></button>
+      <button class="close-btn" onclick={onClose} aria-label={t("common.close")}><X size={14} weight="light" /></button>
     </div>
 
     {#if (trackerState.loading || refreshing) && trackerState.list.length === 0}
@@ -208,22 +209,22 @@
 
     {:else if connected.length === 0}
       <div class="state-body">
-        <p class="state-text">No trackers connected.</p>
-        <button class="link-btn" onclick={openSettings}><GearSix size={12} weight="regular" /> Open Tracking settings</button>
+        <p class="state-text">{t("series.tracker.noneConnected")}</p>
+        <button class="link-btn" onclick={openSettings}><GearSix size={12} weight="regular" /> {t("series.tracker.openSettings")}</button>
       </div>
 
     {:else}
       <div class="tabs">
         <button class="tab" class:tab-active={activeTab === "records"} onclick={() => (activeTab = "records")}>
-          My List
+          {t("series.tracker.myList")}
           {#if local.length > 0}<span class="tab-badge">{local.length}</span>{/if}
         </button>
-        {#each connected as t (t.key)}
-          {@const rec = linkFor(t.key)}
-          <button class="tab" class:tab-active={activeTab === t.key}
-            onclick={() => { activeTab = t.key; searchResults = []; }}>
-            <TrackerLogo trackerKey={t.key} iconUrl={t.iconUrl} size={13} />
-            {t.name}
+        {#each connected as tr (tr.key)}
+          {@const rec = linkFor(tr.key)}
+          <button class="tab" class:tab-active={activeTab === tr.key}
+            onclick={() => { activeTab = tr.key; searchResults = []; }}>
+            <TrackerLogo trackerKey={tr.key} iconUrl={tr.iconUrl} size={13} />
+            {tr.name}
             {#if rec}<span class="tab-dot"></span>{/if}
           </button>
         {/each}
@@ -233,14 +234,14 @@
         <div class="tab-body">
           {#if local.length === 0}
             <div class="state-body">
-              <p class="state-text">Not tracking yet.</p>
-              <p class="state-hint">Pick a tracker tab above to search and link it.</p>
+              <p class="state-text">{t("series.tracker.notTracking")}</p>
+              <p class="state-hint">{t("series.tracker.notTrackingHint")}</p>
             </div>
           {:else}
-            {#each connected as t (t.key)}
-              {@const link = linkFor(t.key)}
+            {#each connected as tr (tr.key)}
+              {@const link = linkFor(tr.key)}
               {#if link}
-                {@const numericScore = t.scoreOptions.length > 0 && t.scoreOptions.every((o) => /^\d+(\.\d+)?$/.test(o))}
+                {@const numericScore = tr.scoreOptions.length > 0 && tr.scoreOptions.every((o) => /^\d+(\.\d+)?$/.test(o))}
                 {@const isBusy = busyLink === link.id}
                 {@const isEdit = editingId === link.id}
                 {@const pct = link.totalChapters > 0 ? Math.min(100, (link.lastChapterRead / link.totalChapters) * 100) : null}
@@ -248,20 +249,20 @@
                 <div class="record-card" class:record-busy={isBusy}>
                   <div class="record-head">
                     <div class="record-source">
-                      <TrackerLogo trackerKey={t.key} iconUrl={t.iconUrl} size={14} />
-                      <span class="record-source-name">{t.name}</span>
+                      <TrackerLogo trackerKey={tr.key} iconUrl={tr.iconUrl} size={14} />
+                      <span class="record-source-name">{tr.name}</span>
                       {#if link.url}
-                        <a href={link.url} target="_blank" rel="noreferrer" class="record-external" title="Open on {t.name}">
+                        <a href={link.url} target="_blank" rel="noreferrer" class="record-external" title={t("series.tracker.openOn", { name: tr.name })}>
                           <ArrowSquareOut size={10} weight="light" />
                         </a>
                       {/if}
                     </div>
                     <div class="record-actions">
-                      <button class="icon-action" title="Sync from tracker" disabled={syncing === link.id}
+                      <button class="icon-action" title={t("series.tracker.syncFromTracker")} disabled={syncing === link.id}
                         onclick={() => resync(link)}>
                         <ArrowsClockwise size={12} weight="light" class={syncing === link.id ? "anim-spin" : ""} />
                       </button>
-                      <button class="icon-action icon-action-danger" title="Unlink" disabled={isBusy}
+                      <button class="icon-action icon-action-danger" title={t("series.metadataMatch.unlink")} disabled={isBusy}
                         onclick={() => (confirmUnlinkId = link.id)}>
                         <X size={11} weight="bold" />
                       </button>
@@ -273,24 +274,24 @@
                   <div class="record-body">
                     <div class="tp-fields">
                       <label class="tp-fld">
-                        <span>Status</span>
+                        <span>{t("series.tracker.status")}</span>
                         {#key link.status}
                           <select class="tp-input" value={link.status} disabled={isBusy}
                             onchange={(e) => patch(link, { status: +(e.currentTarget as HTMLSelectElement).value })}>
-                            {#each statusesFor(t, manga?.contentType) as s}<option value={s.value}>{s.label}</option>{/each}
+                            {#each statusesFor(tr, manga?.contentType) as s}<option value={s.value}>{s.label}</option>{/each}
                           </select>
                         {/key}
                       </label>
 
-                      {#if t.scoreOptions.length > 0}
+                      {#if tr.scoreOptions.length > 0}
                         <label class="tp-fld">
-                          <span>Score</span>
+                          <span>{t("series.tracker.score")}</span>
                           {#key link.score}
                             {#if numericScore}
                               <select class="tp-input" value={String(link.score)} disabled={isBusy}
                                 onchange={(e) => patch(link, { score: +(e.currentTarget as HTMLSelectElement).value })}>
                                 <option value="0">–</option>
-                                {#each t.scoreOptions as opt}<option value={opt}>{opt}</option>{/each}
+                                {#each tr.scoreOptions as opt}<option value={opt}>{opt}</option>{/each}
                               </select>
                             {:else}
                               <input class="tp-input tp-num" type="number" min="0" step="1"
@@ -305,7 +306,7 @@
                     {#if isEdit}
                       <div class="editor">
                         <div class="editor-row">
-                          <span class="editor-label">Chapter read</span>
+                          <span class="editor-label">{t("series.tracker.chapterRead")}</span>
                           <div class="editor-input-row">
                             <input type="number" class="editor-input" min="0"
                               max={link.totalChapters > 0 ? link.totalChapters : undefined}
@@ -319,25 +320,25 @@
                           <input type="range" class="chapter-slider" min="0" max={link.totalChapters} step="1" bind:value={chapterDraft} />
                         {/if}
                         <div class="editor-actions">
-                          <button class="editor-cancel" onclick={cancelEditor}>Cancel</button>
-                          <button class="editor-save" onclick={() => submitChapter(link)}>Save</button>
+                          <button class="editor-cancel" onclick={cancelEditor}>{t("common.cancel")}</button>
+                          <button class="editor-save" onclick={() => submitChapter(link)}>{t("common.save")}</button>
                         </div>
                       </div>
                     {:else}
                       <button class="progress-row" onclick={() => openEditor(link)} disabled={isBusy}>
                         <span class="progress-text">
-                          {#if link.totalChapters > 0}Ch. {link.lastChapterRead} / {link.totalChapters}
-                          {:else if link.lastChapterRead > 0}Ch. {link.lastChapterRead} read
-                          {:else}Set progress…{/if}
+                          {#if link.totalChapters > 0}{t("series.tracker.progressOfTotal", { read: link.lastChapterRead, total: link.totalChapters })}
+                          {:else if link.lastChapterRead > 0}{t("series.tracker.progressRead", { read: link.lastChapterRead })}
+                          {:else}{t("series.tracker.setProgress")}{/if}
                         </span>
-                        <span class="progress-edit-hint">Edit</span>
+                        <span class="progress-edit-hint">{t("common.edit")}</span>
                       </button>
                       {#if pct !== null}
                         <div class="progress-track"><div class="progress-fill" style="width:{pct}%"></div></div>
                       {/if}
                     {/if}
 
-                    <span class="record-synced">Synced {relTime(link.lastSyncedAt)}</span>
+                    <span class="record-synced">{t("series.tracker.syncedAt", { time: relTime(link.lastSyncedAt) })}</span>
                   </div>
                 </div>
               {/if}
@@ -346,11 +347,11 @@
         </div>
 
       {:else}
-        {@const t = connected.find((x) => x.key === activeTab)}
+        {@const tr = connected.find((x) => x.key === activeTab)}
         {@const bound = linkFor(activeTab)}
         <div class="search-bar">
           <MagnifyingGlass size={13} weight="light" class="search-icon" />
-          <input class="search-input" placeholder="Search {t?.name}…" bind:value={searchQuery}
+          <input class="search-input" placeholder={t("series.tracker.searchPlaceholder", { name: tr?.name ?? "" })} bind:value={searchQuery}
             oninput={onSearchInput}
             onkeydown={(e) => { if (e.key === "Enter") runSearch(activeTab, searchQuery); }}
             use:autoFocus />
@@ -359,11 +360,11 @@
 
         <div class="search-results">
           {#if searching && searchResults.length === 0}
-            <div class="state-body"><p class="state-hint">Searching…</p></div>
+            <div class="state-body"><p class="state-hint">{t("series.tracker.searching")}</p></div>
           {:else if !searching && searchQuery.trim() && searchResults.length === 0}
-            <div class="state-body"><p class="state-text">No results for “{searchQuery}”</p></div>
+            <div class="state-body"><p class="state-text">{t("series.tracker.noResultsFor", { query: searchQuery })}</p></div>
           {:else if !searchQuery.trim()}
-            <div class="state-body"><p class="state-hint">Type a title to search</p></div>
+            <div class="state-body"><p class="state-hint">{t("series.tracker.typeToSearch")}</p></div>
           {:else}
             {#each searchResults as r (r.remoteId)}
               {@const isBound = bound?.remoteId === r.remoteId}
@@ -383,15 +384,15 @@
                 <div class="result-info">
                   <span class="result-title">{r.title}</span>
                   <div class="result-meta">
-                    {#if r.mediaType}<span class="result-tag">{r.mediaType === "ANIME" ? "Anime" : "Manga"}</span>{/if}
+                    {#if r.mediaType}<span class="result-tag">{r.mediaType === "ANIME" ? t("nav.contentAnime") : t("nav.contentManga")}</span>{/if}
                     {#if r.publishingStatus}<span class="result-tag">{r.publishingStatus}</span>{/if}
-                    {#if r.totalChapters}<span class="result-tag">{r.totalChapters} {r.mediaType === "ANIME" ? "ep" : "ch"}</span>{/if}
+                    {#if r.totalChapters}<span class="result-tag">{t(r.mediaType === "ANIME" ? "series.tracker.episodesShort" : "series.tracker.chaptersShort", { count: r.totalChapters })}</span>{/if}
                   </div>
                   {#if r.summary}
                     <p class="result-summary">{r.summary.slice(0, 140)}{r.summary.length > 140 ? "…" : ""}</p>
                   {/if}
                 </div>
-                <span class="result-action" class:result-action-on={isBound}>{isBound ? "Linked" : "Link"}</span>
+                <span class="result-action" class:result-action-on={isBound}>{isBound ? t("series.metadataMatch.linked") : t("series.metadataMatch.link")}</span>
               </div>
             {/each}
           {/if}
@@ -404,18 +405,18 @@
 
 {#if confirmUnlinkId !== null}
   {@const rec = local.find((l) => l.id === confirmUnlinkId)}
-  {@const trk = rec ? connected.find((t) => t.key === rec.trackerKey) : null}
+  {@const trk = rec ? connected.find((tr) => tr.key === rec.trackerKey) : null}
   <ModalBlur blur={2} dim={0.45} zIndex="calc(var(--z-settings) + 1)" />
-  <div class="confirm-backdrop" role="button" tabindex="-1" aria-label="Cancel"
+  <div class="confirm-backdrop" role="button" tabindex="-1" aria-label={t("common.cancel")}
     onclick={() => (confirmUnlinkId = null)}
     onkeydown={(e) => { if (e.key === "Escape") confirmUnlinkId = null; }}>
     <div class="confirm-modal" role="dialog" tabindex="-1"
       onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-      <p class="confirm-title">Unlink from {trk?.name ?? "tracker"}?</p>
-      <p class="confirm-body">Your progress on {trk?.name ?? "the service"} is unaffected.</p>
+      <p class="confirm-title">{trk?.name ? t("series.tracker.unlinkTitle", { name: trk.name }) : t("series.tracker.unlinkTitleGeneric")}</p>
+      <p class="confirm-body">{trk?.name ? t("series.tracker.unlinkBody", { name: trk.name }) : t("series.tracker.unlinkBodyGeneric")}</p>
       <div class="confirm-row">
-        <button class="confirm-cancel" onclick={() => (confirmUnlinkId = null)}>Cancel</button>
-        <button class="confirm-ok" onclick={() => rec && unbind(rec)}>Unlink</button>
+        <button class="confirm-cancel" onclick={() => (confirmUnlinkId = null)}>{t("common.cancel")}</button>
+        <button class="confirm-ok" onclick={() => rec && unbind(rec)}>{t("series.metadataMatch.unlink")}</button>
       </div>
     </div>
   </div>

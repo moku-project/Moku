@@ -3,6 +3,7 @@
   import { settingsState, updateSettings }      from "$lib/state/settings.svelte";
   import Thumbnail                              from "$lib/components/shared/manga/Thumbnail.svelte";
   import type { Manga }                         from "$lib/types";
+  import { t }                                  from "$lib/i18n/index.svelte";
 
   interface Props {
     manga:    Manga;
@@ -77,22 +78,22 @@
   onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
   onkeydown={(e) => e.key === "Escape" && onClose()}
 >
-  <div class="modal" role="dialog" aria-label="Link as same series">
+  <div class="modal" role="dialog" aria-label={t("shared.seriesLink.title")}>
     <div class="header">
-      <span class="title">Link as same series</span>
+      <span class="title">{t("shared.seriesLink.title")}</span>
       <button class="close-btn" onclick={onClose}><X size={14} weight="light" /></button>
     </div>
 
-    <p class="hint">Linked entries share covers and are merged in search. Click a linked entry to unlink.</p>
+    <p class="hint">{t("shared.seriesLink.hint")}</p>
 
     <div class="search-wrap">
-      <input class="search" placeholder="Search your library…" bind:value={query} />
+      <input class="search" placeholder={t("shared.seriesLink.searchPlaceholder")} bind:value={query} />
     </div>
 
     <div class="list">
       {#if query.trim()}
         {#if searchResults.length === 0}
-          <p class="empty">No results</p>
+          <p class="empty">{t("shared.seriesLink.noResults")}</p>
         {:else}
           {#each searchResults as m (`${m.extensionId}-${m.sourceEntryId}`)}
             {@const isLinked = linkedIds.includes(m.id)}
@@ -109,7 +110,7 @@
 
       {:else}
         {#if linked.length > 0}
-          <p class="section-label">Linked</p>
+          <p class="section-label">{t("shared.seriesLink.linked")}</p>
           {#each linked as m (m.id)}
             <button class="row row-linked" onclick={() => toggle(m)}>
               <Thumbnail src={m.thumbnailUrl} alt={m.title} class="thumb" contentType={m.contentType} />
@@ -125,7 +126,7 @@
         {#if suggestions.length > 0}
           <p class="section-label">
             <Sparkle size={10} weight="fill" style="color:var(--accent)" />
-            Suggested
+            {t("shared.seriesLink.suggested")}
           </p>
           {#each suggestions as { manga: m, score } (m.id)}
             <button class="row" onclick={() => toggle(m)}>
@@ -143,7 +144,7 @@
         {/if}
 
         {#if linked.length === 0 && suggestions.length === 0}
-          <p class="empty">No suggestions — search your library above.</p>
+          <p class="empty">{t("shared.seriesLink.noSuggestions")}</p>
         {/if}
       {/if}
     </div>

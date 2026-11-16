@@ -7,6 +7,7 @@
   import { addToast }                              from "$lib/state/notifications.svelte";
   import Thumbnail                                 from "$lib/components/shared/manga/Thumbnail.svelte";
   import type { Manga }                            from "$lib/types";
+  import { t }                                     from "$lib/i18n/index.svelte";
 
   interface Props {
     manga:          Manga;
@@ -69,7 +70,7 @@
       try {
         await tsunagu.setMediaCover(mediaId, url);
       } catch (e: any) {
-        addToast({ kind: "error", title: "Couldn't set cover", body: e?.message ?? String(e) });
+        addToast({ kind: "error", title: t("series.coverPicker.setFailed"), body: e?.message ?? String(e) });
         saving = false;
         return;
       }
@@ -90,11 +91,11 @@
     try {
       const res = await tsunagu.refetchMediaCover(mediaId);
       bustCover(mediaId, manga.id, manga.mediaId);
-      addToast({ kind: "success", title: "Cover refetched from source" });
+      addToast({ kind: "success", title: t("series.coverPicker.refetched") });
       onApplied?.(res.thumbnailUrl ?? null);
       onClose();
     } catch (e: any) {
-      addToast({ kind: "error", title: "Couldn't refetch cover", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("series.coverPicker.refetchFailed"), body: e?.message ?? String(e) });
     } finally {
       refetching = false;
     }
@@ -112,13 +113,13 @@
   class="backdrop"
   role="button"
   tabindex="-1"
-  aria-label="Close cover picker"
+  aria-label={t("series.coverPicker.closeLabel")}
   onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
   onkeydown={(e) => e.key === "Escape" && onClose()}
 >
-  <div class="modal" role="dialog" aria-label="Choose cover image" tabindex="-1" onkeydown={onKeydown}>
+  <div class="modal" role="dialog" aria-label={t("series.coverPicker.dialogLabel")} tabindex="-1" onkeydown={onKeydown}>
     <div class="header">
-      <span class="title">Cover Image</span>
+      <span class="title">{t("series.header.coverImage")}</span>
       <button class="close-btn" onclick={onClose}><X size={14} weight="light" /></button>
     </div>
 
@@ -128,7 +129,7 @@
       </div>
     {:else}
       <div class="stage">
-        <button class="arrow" onclick={prev} disabled={candidates.length <= 1} aria-label="Previous">
+        <button class="arrow" onclick={prev} disabled={candidates.length <= 1} aria-label={t("series.coverPicker.previous")}>
           <CaretLeft size={18} weight="bold" />
         </button>
 
@@ -138,7 +139,7 @@
           {/if}
         </div>
 
-        <button class="arrow" onclick={next} disabled={candidates.length <= 1} aria-label="Next">
+        <button class="arrow" onclick={next} disabled={candidates.length <= 1} aria-label={t("common.next")}>
           <CaretRight size={18} weight="bold" />
         </button>
       </div>
@@ -150,7 +151,7 @@
               class="film-thumb"
               class:film-active={i === index}
               onclick={() => index = i}
-              aria-label="Cover {i + 1}"
+              aria-label={t("series.coverPicker.coverN", { n: i + 1 })}
             >
               <Thumbnail src={c.url} alt="" class="film-img" contentType={manga.contentType} />
             </button>
@@ -161,12 +162,12 @@
 
     <div class="footer">
       {#if mediaId}
-        <button class="refetch-btn" onclick={refetchFromSource} disabled={refetching || saving} title="Corrupted or mismatched cover? Re-download it from the source.">
-          {refetching ? "Refetching…" : "Refetch from source"}
+        <button class="refetch-btn" onclick={refetchFromSource} disabled={refetching || saving} title={t("series.coverPicker.refetchHint")}>
+          {refetching ? t("series.coverPicker.refetching") : t("series.coverPicker.refetch")}
         </button>
       {/if}
       <button class="confirm-btn" onclick={confirm} disabled={saving || !current}>
-        {saving ? "Saving…" : current && current.mangaId === manga.id ? "Reset to source cover" : "Use this cover"}
+        {saving ? t("series.coverPicker.saving") : current && current.mangaId === manga.id ? t("series.coverPicker.resetToSource") : t("series.coverPicker.useThis")}
       </button>
     </div>
   </div>

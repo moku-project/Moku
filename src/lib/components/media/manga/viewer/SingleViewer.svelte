@@ -1,6 +1,7 @@
 <script lang="ts">
   import { readerState } from "$lib/state/mangaReader.svelte";
   import type { PeelGeometry } from "$lib/components/media/manga/lib/pagePeel";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     imgCls:       string;
@@ -44,7 +45,7 @@
       {/if}
       <img
         {src}
-        alt="Page {readerState.pageNumber}"
+        alt={t("reader.pageAlt", { page: readerState.pageNumber })}
         class="peel-front {imgCls}"
         decoding="async"
         draggable="false"

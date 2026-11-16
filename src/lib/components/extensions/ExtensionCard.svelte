@@ -3,6 +3,7 @@
   import ExtensionIcon from "$lib/components/extensions/ExtensionIcon.svelte";
   import type { Extension } from "$lib/server-adapters/types";
   import { langBadge } from "$lib/core/lang";
+  import { t } from "$lib/i18n/index.svelte";
 
   function contentTypeIcon(ct: Extension["contentType"]) {
     if (ct === "NOVEL") return BookOpenText;
@@ -65,19 +66,19 @@
       <CircleNotch size={14} weight="light" class="anim-spin" style="color:var(--text-faint)" />
     {:else if primary.needsUpdate}
       <div class="row-actions">
-        <button class="action-btn"     onclick={(e) => { e.stopPropagation(); onMutate(primary.packageName, "update"); }}>Update</button>
-        <button class="action-btn-dim" onclick={(e) => { e.stopPropagation(); onMutate(primary.packageName, "uninstall"); }}>Remove</button>
+        <button class="action-btn"     onclick={(e) => { e.stopPropagation(); onMutate(primary.packageName, "update"); }}>{t("common.update")}</button>
+        <button class="action-btn-dim" onclick={(e) => { e.stopPropagation(); onMutate(primary.packageName, "uninstall"); }}>{t("common.remove")}</button>
       </div>
     {:else if primary.installed}
       <div class="row-actions">
-        <button class="action-btn-dim" onclick={(e) => { e.stopPropagation(); onMutate(primary.packageName, "uninstall"); }}>Remove</button>
+        <button class="action-btn-dim" onclick={(e) => { e.stopPropagation(); onMutate(primary.packageName, "uninstall"); }}>{t("common.remove")}</button>
       </div>
     {:else}
-      <button class="action-btn" onclick={() => onMutate(primary.packageName, "install")}>Install</button>
+      <button class="action-btn" onclick={() => onMutate(primary.packageName, "install")}>{t("common.install")}</button>
     {/if}
 
     {#if hasVariants}
-      <button class="expand-btn" onclick={(e) => { e.stopPropagation(); onToggle(base); }} title="{variants.length + 1} languages">
+      <button class="expand-btn" onclick={(e) => { e.stopPropagation(); onToggle(base); }} title={t("extensions.card.languages", { count: variants.length + 1 })}>
         {#if expanded}<CaretDown size={12} weight="light" />{:else}<CaretRight size={12} weight="light" />{/if}
         <span class="expand-count">{variants.length + 1}</span>
       </button>
@@ -96,11 +97,11 @@
             {#if working.has(v.packageName)}
               <CircleNotch size={14} weight="light" class="anim-spin" style="color:var(--text-faint)" />
             {:else if v.needsUpdate}
-              <button class="action-btn" onclick={() => onMutate(v.packageName, "update")}>Update</button>
+              <button class="action-btn" onclick={() => onMutate(v.packageName, "update")}>{t("common.update")}</button>
             {:else if v.installed}
-              <button class="action-btn-dim" onclick={() => onMutate(v.packageName, "uninstall")}>Remove</button>
+              <button class="action-btn-dim" onclick={() => onMutate(v.packageName, "uninstall")}>{t("common.remove")}</button>
             {:else}
-              <button class="action-btn" onclick={() => onMutate(v.packageName, "install")}>Install</button>
+              <button class="action-btn" onclick={() => onMutate(v.packageName, "install")}>{t("common.install")}</button>
             {/if}
           </div>
         </div>

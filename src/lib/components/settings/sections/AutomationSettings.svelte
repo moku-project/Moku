@@ -3,11 +3,12 @@
   import { ArrowCounterClockwise, LockSimple, Warning } from 'phosphor-svelte'
   import { automationState, loadAutomation, saveAutomation, resetMediaAutomation, hasOverrides } from '$lib/state/automation.svelte'
   import type { AutomationSettingsInput, RefreshInterval } from '$lib/server-adapters/types'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
-  const DOWNLOAD_AHEAD_OPTIONS = [{ value: 0, label: 'Off' },{ value: 2, label: '2' },{ value: 5, label: '5' },{ value: 10, label: '10' }]
-  const MAX_KEEP_OPTIONS       = [{ value: 0, label: 'Off' },{ value: 5, label: '5' },{ value: 10, label: '10' },{ value: 25, label: '25' }]
-  const DELETE_DELAY_OPTIONS   = [{ value: 0, label: 'Now' },{ value: 24, label: '1 day' },{ value: 168, label: '1 week' }]
-  const REFRESH_INTERVAL_OPTIONS: { value: RefreshInterval; label: string }[] = [{ value: 'DAILY', label: 'Daily' },{ value: 'WEEKLY', label: 'Weekly' },{ value: 'MANUAL', label: 'Manual' }]
+  const DOWNLOAD_AHEAD_OPTIONS: { value: number; label?: MessageKey }[] = [{ value: 0, label: 'common.off' },{ value: 2 },{ value: 5 },{ value: 10 }]
+  const MAX_KEEP_OPTIONS:       { value: number; label?: MessageKey }[] = [{ value: 0, label: 'common.off' },{ value: 5 },{ value: 10 },{ value: 25 }]
+  const DELETE_DELAY_OPTIONS:   { value: number; label: MessageKey }[] = [{ value: 0, label: 'settings.automation.delayNow' },{ value: 24, label: 'settings.automation.delayDay' },{ value: 168, label: 'settings.automation.delayWeek' }]
+  const REFRESH_INTERVAL_OPTIONS: { value: RefreshInterval; label: MessageKey }[] = [{ value: 'DAILY', label: 'settings.automation.intervalDaily' },{ value: 'WEEKLY', label: 'settings.automation.intervalWeekly' },{ value: 'MANUAL', label: 'settings.automation.intervalManual' }]
 
   const s = $derived(automationState.settings)
 
@@ -16,7 +17,7 @@
   const customCount = $derived(Object.keys(automationState.overrides).filter(hasOverrides).length)
 
   const lastUpdated = $derived(
-    s?.lastLibraryUpdateAt ? new Date(s.lastLibraryUpdateAt).toLocaleString() : 'Never',
+    s?.lastLibraryUpdateAt ? new Date(s.lastLibraryUpdateAt).toLocaleString() : t('common.never'),
   )
 
   let confirmReset = $state(false)
@@ -32,23 +33,23 @@
 
 <div class="s-panel">
   {#if automationState.error && !s}
-    <div class="s-banner s-banner-error">Couldn't load automation settings: {automationState.error}</div>
+    <div class="s-banner s-banner-error">{t('settings.automation.loadError', { error: automationState.error })}</div>
   {:else if !s}
-    <p class="s-empty">Loading…</p>
+    <p class="s-empty">{t('common.loading')}</p>
   {:else}
 
   <div class="s-section">
-    <p class="s-section-title">Library Updates</p>
+    <p class="s-section-title">{t('settings.automation.libraryUpdatesTitle')}</p>
     <div class="s-section-body">
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Update library on app open</span><span class="s-desc">Check every series for new chapters when Moku starts. Last update: {lastUpdated}</span></div>
-        <button role="switch" aria-checked={s.updateOnOpen} aria-label="Update library on app open" class="s-toggle" class:on={s.updateOnOpen} onclick={() => set({ updateOnOpen: !s.updateOnOpen })}><span class="s-toggle-thumb"></span></button>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.updateOnOpen')}</span><span class="s-desc">{t('settings.automation.updateOnOpenDesc', { date: lastUpdated })}</span></div>
+        <button role="switch" aria-checked={s.updateOnOpen} aria-label={t('settings.automation.updateOnOpen')} class="s-toggle" class:on={s.updateOnOpen} onclick={() => set({ updateOnOpen: !s.updateOnOpen })}><span class="s-toggle-thumb"></span></button>
       </div>
       <div class="s-row chip-row">
-        <div class="s-row-info"><span class="s-label">Automatic refresh interval</span><span class="s-desc">How often the server checks series for new chapters on its own, even while Moku is closed</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.refreshInterval')}</span><span class="s-desc">{t('settings.automation.refreshIntervalDesc')}</span></div>
         <div class="chip-group">
           {#each REFRESH_INTERVAL_OPTIONS as opt}
-            <button class="s-preset" class:active={s.refreshInterval === opt.value} onclick={() => set({ refreshInterval: opt.value })}>{opt.label}</button>
+            <button class="s-preset" class:active={s.refreshInterval === opt.value} onclick={() => set({ refreshInterval: opt.value })}>{t(opt.label)}</button>
           {/each}
         </div>
       </div>
@@ -56,57 +57,57 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Behaviour</p>
+    <p class="s-section-title">{t('settings.automation.behaviourTitle')}</p>
     <div class="s-section-body">
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Enable automation</span><span class="s-desc">Run the download and delete rules below, and the automatic refresh interval. Updating on app open works either way.</span></div>
-        <button role="switch" aria-checked={s.enabled} aria-label="Enable automation" class="s-toggle" class:on={s.enabled} onclick={() => set({ enabled: !s.enabled })}><span class="s-toggle-thumb"></span></button>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.enable')}</span><span class="s-desc">{t('settings.automation.enableDesc')}</span></div>
+        <button role="switch" aria-checked={s.enabled} aria-label={t('settings.automation.enable')} class="s-toggle" class:on={s.enabled} onclick={() => set({ enabled: !s.enabled })}><span class="s-toggle-thumb"></span></button>
       </div>
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Enforce global defaults</span><span class="s-desc">Ignore per-series overrides.</span></div>
-        <button role="switch" aria-checked={s.enforceGlobal} aria-label="Enforce global defaults" class="s-toggle" class:on={s.enforceGlobal} onclick={() => set({ enforceGlobal: !s.enforceGlobal })}><span class="s-toggle-thumb"></span></button>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.enforceGlobal')}</span><span class="s-desc">{t('settings.automation.enforceGlobalDesc')}</span></div>
+        <button role="switch" aria-checked={s.enforceGlobal} aria-label={t('settings.automation.enforceGlobal')} class="s-toggle" class:on={s.enforceGlobal} onclick={() => set({ enforceGlobal: !s.enforceGlobal })}><span class="s-toggle-thumb"></span></button>
       </div>
       {#if s.enforceGlobal}
-        <div class="s-banner s-banner-info enforce-banner"><LockSimple size={12} weight="fill" /><span>Per-series overrides are paused.</span></div>
+        <div class="s-banner s-banner-info enforce-banner"><LockSimple size={12} weight="fill" /><span>{t('settings.automation.overridesPaused')}</span></div>
       {/if}
     </div>
   </div>
 
   <div class="s-section" class:disabled={!s.enabled}>
-    <p class="s-section-title">Global Defaults</p>
+    <p class="s-section-title">{t('settings.automation.globalTitle')}</p>
     <div class="s-section-body">
-      <p class="sub-head">Downloads</p>
+      <p class="sub-head">{t('settings.automation.downloadsHead')}</p>
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Auto-download new chapters</span><span class="s-desc">Queue new chapters found by a library update. Folders marked for auto-download always do this.</span></div>
-        <button role="switch" aria-checked={s.autoDownload} aria-label="Auto-download new chapters" class="s-toggle" class:on={s.autoDownload} onclick={() => set({ autoDownload: !s.autoDownload })}><span class="s-toggle-thumb"></span></button>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.autoDownload')}</span><span class="s-desc">{t('settings.automation.autoDownloadDesc')}</span></div>
+        <button role="switch" aria-checked={s.autoDownload} aria-label={t('settings.automation.autoDownload')} class="s-toggle" class:on={s.autoDownload} onclick={() => set({ autoDownload: !s.autoDownload })}><span class="s-toggle-thumb"></span></button>
       </div>
       <div class="s-row chip-row">
-        <div class="s-row-info"><span class="s-label">Download ahead</span><span class="s-desc">Queue the next chapters after one is marked read</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.downloadAhead')}</span><span class="s-desc">{t('settings.automation.downloadAheadDesc')}</span></div>
         <div class="chip-group">
           {#each DOWNLOAD_AHEAD_OPTIONS as opt}
-            <button class="s-preset" class:active={s.downloadAhead === opt.value} onclick={() => set({ downloadAhead: opt.value })}>{opt.label}</button>
+            <button class="s-preset" class:active={s.downloadAhead === opt.value} onclick={() => set({ downloadAhead: opt.value })}>{opt.label ? t(opt.label) : String(opt.value)}</button>
           {/each}
         </div>
       </div>
       <div class="s-row chip-row">
-        <div class="s-row-info"><span class="s-label">Max chapters to keep</span><span class="s-desc">Delete the oldest downloads of a series past this limit</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.maxKeep')}</span><span class="s-desc">{t('settings.automation.maxKeepDesc')}</span></div>
         <div class="chip-group">
           {#each MAX_KEEP_OPTIONS as opt}
-            <button class="s-preset" class:active={s.maxKeepChapters === opt.value} onclick={() => set({ maxKeepChapters: opt.value })}>{opt.label}</button>
+            <button class="s-preset" class:active={s.maxKeepChapters === opt.value} onclick={() => set({ maxKeepChapters: opt.value })}>{opt.label ? t(opt.label) : String(opt.value)}</button>
           {/each}
         </div>
       </div>
-      <p class="sub-head sub-head-rule">On Read</p>
+      <p class="sub-head sub-head-rule">{t('settings.automation.onReadHead')}</p>
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Delete after reading</span><span class="s-desc">Remove a chapter's download once it's marked read</span></div>
-        <button role="switch" aria-checked={s.deleteOnRead} aria-label="Delete after reading" class="s-toggle" class:on={s.deleteOnRead} onclick={() => set({ deleteOnRead: !s.deleteOnRead })}><span class="s-toggle-thumb"></span></button>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.deleteOnRead')}</span><span class="s-desc">{t('settings.automation.deleteOnReadDesc')}</span></div>
+        <button role="switch" aria-checked={s.deleteOnRead} aria-label={t('settings.automation.deleteOnRead')} class="s-toggle" class:on={s.deleteOnRead} onclick={() => set({ deleteOnRead: !s.deleteOnRead })}><span class="s-toggle-thumb"></span></button>
       </div>
       {#if s.deleteOnRead}
         <div class="s-row chip-row sub-row">
-          <span class="s-label">Delete delay</span>
+          <span class="s-label">{t('settings.automation.deleteDelay')}</span>
           <div class="chip-group">
             {#each DELETE_DELAY_OPTIONS as opt}
-              <button class="s-preset" class:active={s.deleteDelayHours === opt.value} onclick={() => set({ deleteDelayHours: opt.value })}>{opt.label}</button>
+              <button class="s-preset" class:active={s.deleteDelayHours === opt.value} onclick={() => set({ deleteDelayHours: opt.value })}>{t(opt.label)}</button>
             {/each}
           </div>
         </div>
@@ -115,21 +116,21 @@
   </div>
 
   <div class="s-section">
-    <p class="s-section-title">Custom Overrides</p>
+    <p class="s-section-title">{t('settings.automation.overridesTitle')}</p>
     <div class="s-section-body">
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Series with custom rules</span><span class="s-desc">Per-series settings set via the series automation panel</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.customSeries')}</span><span class="s-desc">{t('settings.automation.customSeriesDesc')}</span></div>
         <span class="s-pill" class:on={customCount > 0}>{customCount}</span>
       </div>
       <div class="s-row">
-        <div class="s-row-info"><span class="s-label">Reset all custom rules</span><span class="s-desc">Revert every series to the global defaults above</span></div>
+        <div class="s-row-info"><span class="s-label">{t('settings.automation.resetAll')}</span><span class="s-desc">{t('settings.automation.resetAllDesc')}</span></div>
         {#if confirmReset}
           <div class="s-btn-row">
-            <button class="s-btn s-btn-danger" onclick={resetAllCustoms}><Warning size={11} weight="fill" /> Confirm reset</button>
-            <button class="s-btn" onclick={() => confirmReset = false}>Cancel</button>
+            <button class="s-btn s-btn-danger" onclick={resetAllCustoms}><Warning size={11} weight="fill" /> {t('settings.automation.confirmReset')}</button>
+            <button class="s-btn" onclick={() => confirmReset = false}>{t('common.cancel')}</button>
           </div>
         {:else}
-          <button class="s-btn" disabled={customCount === 0} onclick={resetAllCustoms}><ArrowCounterClockwise size={11} /> Reset</button>
+          <button class="s-btn" disabled={customCount === 0} onclick={resetAllCustoms}><ArrowCounterClockwise size={11} /> {t('common.reset')}</button>
         {/if}
       </div>
     </div>

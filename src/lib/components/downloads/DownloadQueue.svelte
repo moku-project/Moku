@@ -6,6 +6,7 @@
   import { downloadStore } from "$lib/state/downloads.svelte";
   import { libraryState } from "$lib/state/library.svelte";
   import type { Download } from "$lib/server-adapters/types";
+  import { t, tSplit } from "$lib/i18n/index.svelte";
 
   interface Props {
     queue:      Download[];
@@ -53,7 +54,7 @@
     const groups: SeriesDownloadGroup[] = [];
     for (const [mangaId, items] of map.entries()) {
       const manga = libraryState.items.find(m => m.id === mangaId) ?? null;
-      const title = manga?.title ?? "Unknown Series";
+      const title = manga?.title ?? t("downloads.unknownSeries");
       const thumb = manga?.thumbnailUrl ?? "";
 
       const totalProg = items.reduce((sum, i) => sum + (i.progress ?? 0), 0);
@@ -72,7 +73,7 @@
         seriesPct,
         activeChapter:     active,
         activeChapterPct:  activePct,
-        activeChapterName: active ? (active.chapter.title ?? "Chapter") : "",
+        activeChapterName: active ? (active.chapter.title ?? t("downloads.chapter")) : "",
         isDownloading:     items.some(i => i.status === "DOWNLOADING"),
         hasError:          items.some(i => i.status === "FAILED"),
       });
@@ -105,34 +106,34 @@
   function buildSeriesCtxItems(group: SeriesDownloadGroup): MenuEntry[] {
     return [
       {
-        label: "Move up",
+        label: t("downloads.moveUp"),
         icon: CaretUp,
         onClick: () => downloadStore.moveSeries(group.items, "up"),
       },
       {
-        label: "Move down",
+        label: t("downloads.moveDown"),
         icon: CaretDown,
         onClick: () => downloadStore.moveSeries(group.items, "down"),
       },
       { separator: true },
       {
-        label: "Move series to top",
+        label: t("downloads.moveSeriesToTop"),
         icon: ArrowLineUp,
         onClick: () => downloadStore.moveSeriesToTop(group.items),
       },
       {
-        label: "Move series to bottom",
+        label: t("downloads.moveSeriesToBottom"),
         icon: ArrowLineDown,
         onClick: () => downloadStore.moveSeriesToBottom(group.items),
       },
       {
-        label: "Reverse chapter order",
+        label: t("downloads.reverseChapterOrder"),
         icon: ArrowsDownUp,
         onClick: () => downloadStore.reverseSeriesOrder(group.items),
       },
       { separator: true },
       {
-        label: "Remove series downloads",
+        label: t("downloads.removeSeriesDownloads"),
         icon: Trash,
         danger: true,
         onClick: () => { confirmDeleteSeries = { title: group.mangaTitle, items: group.items }; },
@@ -158,7 +159,7 @@
     {/each}
   </div>
 {:else if queue.length === 0}
-  <div class="empty">Queue is empty.</div>
+  <div class="empty">{t("downloads.queueEmpty")}</div>
 {:else}
   <div class="list">
     {#each shownGroups as group (group.mangaId)}
@@ -173,7 +174,7 @@
             class="expand-btn"
             class:expanded={isExpanded}
             onclick={(e) => toggleExpand(group.mangaId, e)}
-            title={isExpanded ? "Collapse chapters" : "Expand chapters"}
+            title={isExpanded ? t("downloads.collapseChapters") : t("downloads.expandChapters")}
           >
             {#if isExpanded}
               <CaretDown size={12} weight="bold" />
@@ -191,14 +192,14 @@
           <div class="series-info">
             <div class="series-title-row">
               <span class="series-title">{group.mangaTitle}</span>
-              <span class="series-count-badge">{group.items.length} {group.items.length === 1 ? "chapter" : "chapters"}</span>
+              <span class="series-count-badge">{t("downloads.chapterCount", { count: group.items.length })}</span>
             </div>
 
             {#if group.activeChapter}
               <div class="series-prog-container">
                 <div class="prog-item">
-                  <span class="prog-label" title="Current chapter: {group.activeChapterName}">
-                    Current ({group.activeChapterName}):
+                  <span class="prog-label" title={t("downloads.currentChapterTitle", { name: group.activeChapterName })}>
+                    {t("downloads.currentChapter", { name: group.activeChapterName })}
                   </span>
                   <div class="prog-track">
                     <div class="prog-fill" style="width: {group.activeChapterPct}%"></div>
@@ -211,14 +212,14 @@
 
           <div class="series-actions">
             {#if group.hasError}
-              <button class="action-btn retry" onclick={(e) => retrySeries(group.items, e)} title="Retry errors">
+              <button class="action-btn retry" onclick={(e) => retrySeries(group.items, e)} title={t("downloads.retryErrors")}>
                 <ArrowClockwise size={12} weight="bold" />
               </button>
             {/if}
             <button
               class="action-btn remove"
               onclick={(e) => { e.stopPropagation(); confirmDeleteSeries = { title: group.mangaTitle, items: group.items }; }}
-              title="Remove series downloads"
+              title={t("downloads.removeSeriesDownloads")}
             >
               <Trash size={13} weight="light" />
             </button>
@@ -247,6 +248,7 @@
 {/if}
 
 {#if confirmDeleteSeries}
+  {@const confirmParts = tSplit("downloads.removeSeriesConfirmBody", "title")}
   <div
     class="modal-backdrop"
     role="presentation"
@@ -255,13 +257,13 @@
   >
     <div class="modal-card" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
-        <span class="modal-title">Remove downloads?</span>
+        <span class="modal-title">{t("downloads.removeSeriesConfirmTitle")}</span>
       </div>
       <div class="modal-body">
-        <p class="modal-msg">Remove all chapter downloads for <strong>{confirmDeleteSeries.title}</strong> from the queue?</p>
+        <p class="modal-msg">{confirmParts[0]}<strong>{confirmDeleteSeries.title}</strong>{confirmParts[1] ?? ""}</p>
       </div>
       <div class="modal-actions">
-        <button class="btn-cancel" onclick={() => confirmDeleteSeries = null}>Cancel</button>
+        <button class="btn-cancel" onclick={() => confirmDeleteSeries = null}>{t("common.cancel")}</button>
         <button
           class="btn-danger"
           onclick={() => {
@@ -271,7 +273,7 @@
             confirmDeleteSeries = null;
           }}
         >
-          Remove
+          {t("common.remove")}
         </button>
       </div>
     </div>

@@ -5,6 +5,7 @@
   import { seriesState, resolveMediaId }  from "$lib/state/series.svelte";
   import { tsunagu }      from "$lib/server-adapters/tsunagu";
   import MediaViewer     from "$lib/components/media/MediaViewer.svelte";
+  import { t }           from "$lib/i18n/index.svelte";
 
   const mediaId   = $derived($page.params.mediaId);
   const chapterId = $derived($page.params.chapterId);
@@ -79,12 +80,12 @@
 {#if error}
   <div class="error">
     <p>{error}</p>
-    <button onclick={() => goto(-1 as any)}>Go back</button>
+    <button onclick={() => goto(-1 as any)}>{t("series.route.goBack")}</button>
   </div>
 {:else if booted}
   <MediaViewer />
 {:else}
-  <div class="spinner" aria-label="Loading…"></div>
+  <div class="spinner" aria-label={t("common.loading")}></div>
 {/if}
 
 <style>

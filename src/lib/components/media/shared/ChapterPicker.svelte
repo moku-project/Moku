@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import type { Chapter } from "$lib/types";
+  import { t } from "$lib/i18n/index.svelte";
 
   interface Props {
     chapters:  Chapter[];
@@ -52,7 +53,7 @@
     <div class="filter">
       <input
         type="text"
-        placeholder="Filter chapters"
+        placeholder={t("media.chapterPicker.filter")}
         bind:value={query}
         onkeydown={onFilterKey}
         spellcheck="false"
@@ -61,7 +62,7 @@
     </div>
   {/if}
 
-  <div class="list" bind:this={listEl} role="listbox" aria-label="Chapters">
+  <div class="list" bind:this={listEl} role="listbox" aria-label={t("media.chapterPicker.label")}>
     {#each filtered as ch (ch.id)}
       <button
         type="button"
@@ -78,7 +79,7 @@
         {#if ch.scanlator}<span class="scan">{ch.scanlator}</span>{/if}
       </button>
     {:else}
-      <p class="empty">No matching chapters</p>
+      <p class="empty">{t("media.chapterPicker.empty")}</p>
     {/each}
   </div>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
   interface SkipBand { startPct: number; widthPct: number; kind: string }
   interface Props {
     pct:      number;
@@ -11,7 +12,7 @@
   let hovering = $state(false);
   let hoverPct = $state<number | null>(null);
 
-  const KIND_LABEL: Record<string, string> = { opening: "Opening", ending: "Ending", recap: "Recap" };
+  const KIND_LABEL: Record<string, MessageKey> = { opening: "media.skip.opening", ending: "media.skip.ending", recap: "media.skip.recap" };
 
   function onMove(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -75,7 +76,7 @@
   />
   {#if hovering && (hoverKind || label)}
     <div class="ms-tooltip" style="left:{Math.max(3, Math.min(97, hoverKind ? (hoverPct ?? pct) : pct))}%">
-      {hoverKind ? KIND_LABEL[hoverKind] ?? hoverKind : label}
+      {hoverKind ? (KIND_LABEL[hoverKind] ? t(KIND_LABEL[hoverKind]) : hoverKind) : label}
     </div>
   {/if}
 </div>

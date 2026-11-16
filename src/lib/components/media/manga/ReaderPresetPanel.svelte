@@ -9,6 +9,7 @@
   import { settingsState, updateSettings }     from "$lib/state/settings.svelte";
   import { readerState, PAGE_STYLES, TRANSITIONS, ZOOM_MIN, ZOOM_MAX } from "$lib/state/mangaReader.svelte";
   import MediaSettingsPanel from "$lib/components/media/shared/MediaSettingsPanel.svelte";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
   interface Props {
     fit:                  FitMode;
@@ -74,9 +75,9 @@
   }
 
   function describeSettings(s: ReaderSettings): string {
-    const parts = [s.pageStyle ?? "single", s.fitMode ?? "width", (s.readingDirection ?? "ltr") === "rtl" ? "RTL" : "LTR"];
+    const parts = [s.pageStyle ?? "single", s.fitMode ?? "width", (s.readingDirection ?? "ltr") === "rtl" ? t("reader.settings.rtlShort") : t("reader.settings.ltrShort")];
     if ((s.readerZoom ?? 1) !== 1.0) parts.push(`${Math.round((s.readerZoom ?? 1) * 100)}%`);
-    if (!s.pageGap) parts.push("no gap");
+    if (!s.pageGap) parts.push(t("reader.settings.noGap"));
     return parts.join(" · ");
   }
 
@@ -86,83 +87,83 @@
     onRestoreZoomAnchor();
   }
 
-  const fitOptions: { value: FitMode; label: string; icon: any }[] = [
-    { value: "width",    label: "Width",   icon: ArrowsLeftRight },
-    { value: "height",   label: "Height",  icon: ArrowsVertical },
-    { value: "screen",   label: "Screen",  icon: ArrowsIn },
-    { value: "original", label: "1:1",     icon: ArrowsOut },
+  const fitOptions: { value: FitMode; label: MessageKey; icon: any }[] = [
+    { value: "width",    label: "reader.settings.fitWidth",    icon: ArrowsLeftRight },
+    { value: "height",   label: "reader.settings.fitHeight",   icon: ArrowsVertical },
+    { value: "screen",   label: "reader.settings.fitScreen",   icon: ArrowsIn },
+    { value: "original", label: "reader.settings.fitOriginal", icon: ArrowsOut },
   ];
 
-  const styleOptions: { value: string; label: string; icon: any }[] = [
-    { value: "single",    label: "Single",  icon: Square },
-    { value: "double",    label: "Double",  icon: BookOpen },
-    { value: "auto",      label: "Auto",    icon: Sparkle },
-    { value: "longstrip", label: "Strip",   icon: Rows },
+  const styleOptions: { value: string; label: MessageKey; icon: any }[] = [
+    { value: "single",    label: "reader.settings.layoutSingle", icon: Square },
+    { value: "double",    label: "reader.settings.layoutDouble", icon: BookOpen },
+    { value: "auto",      label: "reader.settings.layoutAuto",   icon: Sparkle },
+    { value: "longstrip", label: "reader.settings.layoutStrip",  icon: Rows },
   ];
 
-  const transitionOptions: { value: string; label: string; icon: any }[] = [
-    { value: "none",  label: "None",  icon: Prohibit },
-    { value: "fade",  label: "Fade",  icon: MonitorPlay },
-    { value: "slide", label: "Slide", icon: ArrowsHorizontal },
-    { value: "flip",  label: "Turn",  icon: ArrowsLeftRight },
+  const transitionOptions: { value: string; label: MessageKey; icon: any }[] = [
+    { value: "none",  label: "common.none",                     icon: Prohibit },
+    { value: "fade",  label: "reader.settings.transitionFade",  icon: MonitorPlay },
+    { value: "slide", label: "reader.settings.transitionSlide", icon: ArrowsHorizontal },
+    { value: "flip",  label: "reader.settings.transitionTurn",  icon: ArrowsLeftRight },
   ];
 
   const autoScroll = $derived(settingsState.settings.autoScroll ?? false);
 </script>
 
 <MediaSettingsPanel
-  title="Manga Settings"
+  title={t("reader.settings.title")}
   subtitle={readerState.activeManga?.title}
   {barPosition}
   onClose={close}
 >
   <div class="msp-group">
-    <p class="msp-label">Layout</p>
+    <p class="msp-label">{t("reader.settings.layout")}</p>
     <div class="msp-tiles">
       {#each styleOptions as o}
         {@const Icon = o.icon}
         <button class="msp-tile" class:on={rawStyle === o.value}
           onclick={() => onApplySettings({ pageStyle: o.value as typeof PAGE_STYLES[number] })}>
           <Icon size={17} weight={rawStyle === o.value ? "fill" : "light"} />
-          <span class="msp-tile-label">{o.label}</span>
+          <span class="msp-tile-label">{t(o.label)}</span>
         </button>
       {/each}
     </div>
 
     {#if style === "double"}
       <div class="msp-row">
-        <span>Offset spreads</span>
+        <span>{t("reader.settings.offsetSpreads")}</span>
         <button class="msp-toggle" class:on={effectiveSettings.offsetDoubleSpreads}
-          role="switch" aria-checked={effectiveSettings.offsetDoubleSpreads} aria-label="Offset double spreads"
+          role="switch" aria-checked={effectiveSettings.offsetDoubleSpreads} aria-label={t("reader.settings.offsetDoubleSpreads")}
           onclick={() => onApplySettings({ offsetDoubleSpreads: !effectiveSettings.offsetDoubleSpreads })}
         ><span class="msp-toggle-knob"></span></button>
       </div>
     {/if}
     {#if style === "longstrip"}
       <div class="msp-row">
-        <span>Page gap</span>
+        <span>{t("reader.settings.pageGap")}</span>
         <button class="msp-toggle" class:on={effectiveSettings.pageGap ?? true}
-          role="switch" aria-checked={effectiveSettings.pageGap ?? true} aria-label="Gap between pages"
+          role="switch" aria-checked={effectiveSettings.pageGap ?? true} aria-label={t("reader.settings.gapBetweenPages")}
           onclick={() => onApplySettings({ pageGap: !(effectiveSettings.pageGap ?? true) })}
         ><span class="msp-toggle-knob"></span></button>
       </div>
       <div class="msp-row">
-        <span>Auto next chapter</span>
+        <span>{t("reader.settings.autoNextChapter")}</span>
         <button class="msp-toggle" class:on={settingsState.settings.autoNextChapter ?? false}
-          role="switch" aria-checked={settingsState.settings.autoNextChapter ?? false} aria-label="Auto next chapter"
+          role="switch" aria-checked={settingsState.settings.autoNextChapter ?? false} aria-label={t("reader.settings.autoNextChapter")}
           onclick={() => updateSettings({ autoNextChapter: !(settingsState.settings.autoNextChapter ?? false) })}
         ><span class="msp-toggle-knob"></span></button>
       </div>
       <div class="msp-row">
-        <span>Auto scroll</span>
+        <span>{t("reader.settings.autoScroll")}</span>
         <button class="msp-toggle" class:on={autoScroll}
-          role="switch" aria-checked={autoScroll} aria-label="Auto scroll"
+          role="switch" aria-checked={autoScroll} aria-label={t("reader.settings.autoScroll")}
           onclick={() => updateSettings({ autoScroll: !autoScroll })}
         ><span class="msp-toggle-knob"></span></button>
       </div>
       {#if autoScroll}
         <div class="msp-row">
-          <span>Scroll speed</span>
+          <span>{t("reader.settings.scrollSpeed")}</span>
           <input class="msp-slider" type="range" min={1} max={30} step={1}
             value={settingsState.settings.autoScrollSpeed ?? 5}
             oninput={(e) => updateSettings({ autoScrollSpeed: Number(e.currentTarget.value) })} />
@@ -173,83 +174,83 @@
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Transition</p>
+    <p class="msp-label">{t("reader.settings.transition")}</p>
     <div class="msp-tiles">
       {#each transitionOptions as o}
         {@const Icon = o.icon}
         <button class="msp-tile" class:on={transition === o.value}
           onclick={() => onApplySettings({ transition: o.value as typeof TRANSITIONS[number] })}>
           <Icon size={17} weight={transition === o.value ? "fill" : "light"} />
-          <span class="msp-tile-label">{o.label}</span>
+          <span class="msp-tile-label">{t(o.label)}</span>
         </button>
       {/each}
     </div>
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Fit</p>
+    <p class="msp-label">{t("reader.settings.fit")}</p>
     <div class="msp-tiles">
       {#each fitOptions as o}
         {@const Icon = o.icon}
         <button class="msp-tile" class:on={fit === o.value}
           onclick={() => onApplySettings({ fitMode: o.value })}>
           <Icon size={17} weight={fit === o.value ? "fill" : "light"} />
-          <span class="msp-tile-label">{o.label}</span>
+          <span class="msp-tile-label">{t(o.label)}</span>
         </button>
       {/each}
     </div>
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Direction</p>
+    <p class="msp-label">{t("reader.settings.direction")}</p>
     <div class="msp-seg">
       <button class="msp-seg-btn" class:on={!rtl} onclick={() => onApplySettings({ readingDirection: "ltr" })}>
-        <ArrowsHorizontal size={13} weight="light" /> Left to right
+        <ArrowsHorizontal size={13} weight="light" /> {t("reader.settings.leftToRight")}
       </button>
       <button class="msp-seg-btn" class:on={rtl} onclick={() => onApplySettings({ readingDirection: "rtl" })}>
-        <ArrowsHorizontal size={13} weight="light" style="transform:scaleX(-1)" /> Right to left
+        <ArrowsHorizontal size={13} weight="light" style="transform:scaleX(-1)" /> {t("reader.settings.rightToLeft")}
       </button>
     </div>
   </div>
 
   <div class="msp-group">
     <div class="msp-row">
-      <p class="msp-label">Zoom</p>
+      <p class="msp-label">{t("reader.settings.zoom")}</p>
       <span class="msp-readout">{zoomPct}%</span>
     </div>
     <div class="msp-row">
       <div class="msp-stepper">
-        <button aria-label="Zoom out" onclick={() => setZoom(zoom - 0.1)} disabled={zoom <= ZOOM_MIN}>−</button>
+        <button aria-label={t("reader.controls.zoomOut")} onclick={() => setZoom(zoom - 0.1)} disabled={zoom <= ZOOM_MIN}>−</button>
       </div>
       <input class="msp-slider" type="range"
         min={Math.round(ZOOM_MIN * 100)} max={Math.round(ZOOM_MAX * 100)} step={5}
         value={zoomPct} oninput={(e) => setZoom(Number(e.currentTarget.value) / 100)} />
       <div class="msp-stepper">
-        <button aria-label="Zoom in" onclick={() => setZoom(zoom + 0.1)} disabled={zoom >= ZOOM_MAX}>+</button>
+        <button aria-label={t("reader.controls.zoomIn")} onclick={() => setZoom(zoom + 0.1)} disabled={zoom >= ZOOM_MAX}>+</button>
       </div>
     </div>
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Image</p>
+    <p class="msp-label">{t("reader.settings.image")}</p>
     <div class="msp-row">
-      <span>Optimize contrast</span>
+      <span>{t("reader.settings.optimizeContrast")}</span>
       <button class="msp-toggle" class:on={effectiveSettings.optimizeContrast}
-        role="switch" aria-checked={effectiveSettings.optimizeContrast} aria-label="Optimize contrast"
+        role="switch" aria-checked={effectiveSettings.optimizeContrast} aria-label={t("reader.settings.optimizeContrast")}
         onclick={() => onApplySettings({ optimizeContrast: !effectiveSettings.optimizeContrast })}
       ><span class="msp-toggle-knob"></span></button>
     </div>
     <div class="msp-row">
-      <span>Pinch to zoom<span class="msp-badge">beta</span></span>
+      <span>{t("reader.settings.pinchZoom")}<span class="msp-badge">{t("reader.settings.beta")}</span></span>
       <button class="msp-toggle" class:on={settingsState.settings.pinchZoom ?? false}
-        role="switch" aria-checked={settingsState.settings.pinchZoom ?? false} aria-label="Pinch to zoom"
+        role="switch" aria-checked={settingsState.settings.pinchZoom ?? false} aria-label={t("reader.settings.pinchZoom")}
         onclick={() => updateSettings({ pinchZoom: !(settingsState.settings.pinchZoom ?? false) })}
       ><span class="msp-toggle-knob"></span></button>
     </div>
     <div class="msp-row">
-      <span>Mark read on advance</span>
+      <span>{t("reader.settings.markReadOnAdvance")}</span>
       <button class="msp-toggle" class:on={settingsState.settings.markReadOnNext ?? true}
-        role="switch" aria-checked={settingsState.settings.markReadOnNext ?? true} aria-label="Mark read on chapter advance"
+        role="switch" aria-checked={settingsState.settings.markReadOnNext ?? true} aria-label={t("reader.settings.markReadOnChapterAdvance")}
         onclick={() => updateSettings({ markReadOnNext: !(settingsState.settings.markReadOnNext ?? true) })}
       ><span class="msp-toggle-knob"></span></button>
     </div>
@@ -258,9 +259,9 @@
   {#if readerState.activeManga}
     <div class="msp-group">
       <div class="msp-row">
-        <span>Per-manga settings</span>
+        <span>{t("reader.settings.perManga")}</span>
         <button class="msp-toggle" class:on={perMangaEnabled}
-          role="switch" aria-checked={perMangaEnabled} aria-label="Per-manga settings"
+          role="switch" aria-checked={perMangaEnabled} aria-label={t("reader.settings.perManga")}
           onclick={onTogglePerManga}
         ><span class="msp-toggle-knob"></span></button>
       </div>
@@ -271,23 +272,23 @@
 
   <div class="msp-group">
     <div class="msp-row">
-      <p class="msp-label">Presets</p>
+      <p class="msp-label">{t("reader.settings.presets")}</p>
       {#if !presetSaving}
-        <button class="rp-new" onclick={() => { presetSaving = true; presetNameInput = ""; }}>+ Save current</button>
+        <button class="rp-new" onclick={() => { presetSaving = true; presetNameInput = ""; }}>+ {t("reader.settings.saveCurrent")}</button>
       {/if}
     </div>
 
     {#if presetSaving}
       <div class="rp-name">
-        <input class="rp-input" placeholder="Preset name…" bind:value={presetNameInput}
+        <input class="rp-input" placeholder={t("reader.settings.presetName")} bind:value={presetNameInput}
           onkeydown={(e) => { if (e.key === "Enter") commitSavePreset(); if (e.key === "Escape") presetSaving = false; }} />
-        <button class="rp-icon" aria-label="Confirm" disabled={!presetNameInput.trim()} onclick={commitSavePreset}><Check size={12} weight="bold" /></button>
-        <button class="rp-icon" aria-label="Cancel" onclick={() => (presetSaving = false)}><X size={12} weight="light" /></button>
+        <button class="rp-icon" aria-label={t("common.confirm")} disabled={!presetNameInput.trim()} onclick={commitSavePreset}><Check size={12} weight="bold" /></button>
+        <button class="rp-icon" aria-label={t("common.cancel")} onclick={() => (presetSaving = false)}><X size={12} weight="light" /></button>
       </div>
     {/if}
 
     {#if presets.length === 0 && !presetSaving}
-      <p class="rp-empty">No presets yet — save the current settings to make one.</p>
+      <p class="rp-empty">{t("reader.settings.noPresets")}</p>
     {:else}
       <div class="rp-list">
         {#each presets as p (p.id)}
@@ -295,8 +296,8 @@
             <div class="rp-name">
               <input class="rp-input" bind:value={presetEditName}
                 onkeydown={(e) => { if (e.key === "Enter") commitRenamePreset(); if (e.key === "Escape") presetEditId = null; }} />
-              <button class="rp-icon" aria-label="Confirm" disabled={!presetEditName.trim()} onclick={commitRenamePreset}><Check size={12} weight="bold" /></button>
-              <button class="rp-icon" aria-label="Cancel" onclick={() => (presetEditId = null)}><X size={12} weight="light" /></button>
+              <button class="rp-icon" aria-label={t("common.confirm")} disabled={!presetEditName.trim()} onclick={commitRenamePreset}><Check size={12} weight="bold" /></button>
+              <button class="rp-icon" aria-label={t("common.cancel")} onclick={() => (presetEditId = null)}><X size={12} weight="light" /></button>
             </div>
           {:else}
             <div class="rp-row">
@@ -304,8 +305,8 @@
                 <span class="rp-name-txt">{p.name}</span>
                 <span class="rp-desc">{describeSettings(p.settings)}</span>
               </button>
-              <button class="rp-icon" title="Rename" onclick={() => { presetEditId = p.id; presetEditName = p.name; }}><PencilSimple size={12} weight="regular" /></button>
-              <button class="rp-icon danger" title="Delete" onclick={() => onDeletePreset(p.id)}><Trash size={12} weight="regular" /></button>
+              <button class="rp-icon" title={t("common.rename")} onclick={() => { presetEditId = p.id; presetEditName = p.name; }}><PencilSimple size={12} weight="regular" /></button>
+              <button class="rp-icon danger" title={t("common.delete")} onclick={() => onDeletePreset(p.id)}><Trash size={12} weight="regular" /></button>
             </div>
           {/if}
         {/each}

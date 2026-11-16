@@ -9,6 +9,7 @@
   import { readerState } from '$lib/state/mangaReader.svelte'
   import { mediaViewState } from '$lib/state/mediaView.svelte'
   import { historyState } from '$lib/state/history.svelte'
+  import { t } from '$lib/i18n/index.svelte'
 
   interface Props {
     forceOverlay?: boolean
@@ -129,12 +130,12 @@
     <span class="title" data-tauri-drag-region>Moku</span>
     {#if !isMac}
       <div class="controls">
-        <button onclick={() => win.minimize()} title="Minimize" aria-label="Minimize">
+        <button onclick={() => win.minimize()} title={t('chrome.titleBar.minimize')} aria-label={t('chrome.titleBar.minimize')}>
           <svg width="10" height="1" viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" stroke-width="1.5" /></svg>
         </button>
         <button onclick={() => overlay && isFullscreen ? win.setFullscreen(false) : win.toggleMaximize()}
-          title={overlay && isFullscreen ? "Exit fullscreen" : "Maximize"}
-          aria-label={overlay && isFullscreen ? "Exit fullscreen" : "Maximize"}>
+          title={overlay && isFullscreen ? t('chrome.titleBar.exitFullscreen') : t('chrome.titleBar.maximize')}
+          aria-label={overlay && isFullscreen ? t('chrome.titleBar.exitFullscreen') : t('chrome.titleBar.maximize')}>
           {#if overlay && isFullscreen}
             <svg width="10" height="10" viewBox="0 0 10 10">
               <polyline points="1,4 1,1 4,1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -146,7 +147,7 @@
             <svg width="9" height="9" viewBox="0 0 9 9"><rect x="0.75" y="0.75" width="7.5" height="7.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
           {/if}
         </button>
-        <button class="close" onclick={handleCloseRequested} title="Close" aria-label="Close">
+        <button class="close" onclick={handleCloseRequested} title={t('common.close')} aria-label={t('common.close')}>
           <svg width="10" height="10" viewBox="0 0 10 10">
             <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
             <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
@@ -168,28 +169,28 @@
       class="close-dialog"
       role="dialog"
       aria-modal="true"
-      aria-label="Close Moku"
+      aria-label={t('chrome.titleBar.closeDialogLabel')}
       tabindex="-1"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
     >
       <div class="close-header">
-        <p class="close-title">Close Moku?</p>
-        <p class="close-sub">Choose how the app should exit.</p>
+        <p class="close-title">{t('chrome.titleBar.closeTitle')}</p>
+        <p class="close-sub">{t('chrome.titleBar.closeSub')}</p>
       </div>
       <div class="close-actions">
         <button class="close-btn" onclick={() => confirmClose('tray')}>
-          <span class="close-btn-label">Minimize to Tray</span>
-          <span class="close-btn-desc">Keep running in the background</span>
+          <span class="close-btn-label">{t('chrome.titleBar.minimizeToTray')}</span>
+          <span class="close-btn-desc">{t('chrome.titleBar.minimizeToTrayDesc')}</span>
         </button>
         <button class="close-btn close-btn-danger" onclick={() => confirmClose('quit')}>
-          <span class="close-btn-label">Quit</span>
-          <span class="close-btn-desc">Stop Moku entirely</span>
+          <span class="close-btn-label">{t('chrome.titleBar.quit')}</span>
+          <span class="close-btn-desc">{t('chrome.titleBar.quitDesc')}</span>
         </button>
       </div>
       <button class="close-remember" onclick={() => closeRemember = !closeRemember}>
         <span class="close-remember-toggle" class:on={closeRemember}><span class="close-remember-thumb"></span></span>
-        <span class="close-remember-label">Remember my choice</span>
+        <span class="close-remember-label">{t('chrome.titleBar.rememberChoice')}</span>
       </button>
     </div>
   </div>

@@ -105,6 +105,22 @@ function find(key: string): string | undefined {
 }
 
 export function t(key: MessageKey, params?: MessageParams): string {
+	return format(key, params)
+}
+
+const SLOT = '\u0000'
+
+/**
+ * Splits a translation around one placeholder, so the template can wrap that value in markup:
+ *   {@const [before, after] = tSplit('x.removeConfirm', 'title')} {before}<b>{title}</b>{after}
+ */
+export function tSplit(key: MessageKey, slot: string, params?: MessageParams): [string, string] {
+	const text = format(key, params, slot)
+	const i = text.indexOf(SLOT)
+	return i < 0 ? [text, ''] : [text.slice(0, i), text.slice(i + SLOT.length)]
+}
+
+function format(key: MessageKey, params?: MessageParams, slot?: string): string {
 	// Reading `locale` subscribes the caller, so templates update on switch.
 	void locale
 
@@ -119,7 +135,7 @@ export function t(key: MessageKey, params?: MessageParams): string {
 		if (import.meta.env.DEV) console.warn(`[i18n] missing key "${key}"`)
 		return key
 	}
-	if (!params) return template
+	if (!params && !slot) return template
 	return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, name: string) =>
-		name in params ? String(params[name]) : match)
+		name === slot ? SLOT : params && name in params ? String(params[name]) : match)
 }

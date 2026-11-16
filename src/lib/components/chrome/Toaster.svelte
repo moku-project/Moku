@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import { dismissToast } from '$lib/state/notifications.svelte'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
   import type { Toast } from '$lib/state/notifications.svelte'
 
   let { toasts }: { toasts: Toast[] } = $props()
@@ -11,11 +12,11 @@
 
   let detail = $state<Toast | null>(null)
 
-  function schedule(t: Toast) {
-    if (timers.has(t.id)) return
-    const dur = t.duration ?? 3500
+  function schedule(toast: Toast) {
+    if (timers.has(toast.id)) return
+    const dur = toast.duration ?? 3500
     if (dur === 0) return
-    timers.set(t.id, setTimeout(() => dismiss(t.id), dur))
+    timers.set(toast.id, setTimeout(() => dismiss(toast.id), dur))
   }
 
   async function dismiss(id: string) {
@@ -36,10 +37,10 @@
     dismissToast(id)
   }
 
-  function openDetail(e: MouseEvent, t: Toast) {
+  function openDetail(e: MouseEvent, toast: Toast) {
     e.preventDefault()
-    detail = t
-    if (timers.has(t.id)) { clearTimeout(timers.get(t.id)!); timers.delete(t.id) }
+    detail = toast
+    if (timers.has(toast.id)) { clearTimeout(timers.get(toast.id)!); timers.delete(toast.id) }
   }
 
   function closeDetail() {
@@ -48,13 +49,20 @@
   }
 
   $effect(() => {
-    const activeIds = new Set(toasts.map(t => t.id))
+    const activeIds = new Set(toasts.map(toast => toast.id))
     toasts.forEach(schedule)
     for (const [id, timer] of timers) {
       if (!activeIds.has(id)) { clearTimeout(timer); timers.delete(id) }
     }
     if (detail && !activeIds.has(detail.id)) detail = null
   })
+
+  const kindLabels: Record<Toast['kind'], MessageKey> = {
+    success:  'chrome.toaster.kindSuccess',
+    error:    'chrome.toaster.kindError',
+    info:     'chrome.toaster.kindInfo',
+    download: 'chrome.toaster.kindDownload',
+  }
 
   const icons: Record<Toast['kind'], string> = {
     success:  'M20 6L9 17l-5-5',
@@ -66,23 +74,23 @@
 
 {#if toasts.length}
   <div class="toaster" aria-live="polite">
-    {#each toasts as t (t.id)}
+    {#each toasts as toast (toast.id)}
       <button
-        class="toast toast-{t.kind}"
-        data-toast-id={t.id}
-        aria-label="{t.title}{t.body ? ': ' + t.body : ''}"
-        onclick={() => dismiss(t.id)}
-        oncontextmenu={(e) => openDetail(e, t)}
+        class="toast toast-{toast.kind}"
+        data-toast-id={toast.id}
+        aria-label="{toast.title}{toast.body ? ': ' + toast.body : ''}"
+        onclick={() => dismiss(toast.id)}
+        oncontextmenu={(e) => openDetail(e, toast)}
       >
         <div class="accent-bar"></div>
         <span class="icon">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d={icons[t.kind]}/>
+            <path d={icons[toast.kind]}/>
           </svg>
         </span>
         <div class="body">
-          <p class="message">{t.title}</p>
-          <p class="sub">{t.body ?? '\u00a0'}</p>
+          <p class="message">{toast.title}</p>
+          <p class="sub">{toast.body ?? '\u00a0'}</p>
         </div>
       </button>
     {/each}
@@ -108,8 +116,8 @@
       <div class="detail-accent"></div>
       <div class="detail-body">
         <div class="detail-header">
-          <span class="detail-kind">{detail.kind}</span>
-          <button class="detail-close" onclick={closeDetail} aria-label="Close">
+          <span class="detail-kind">{t(kindLabels[detail.kind])}</span>
+          <button class="detail-close" onclick={closeDetail} aria-label={t('common.close')}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -121,10 +129,10 @@
         {/if}
         <div class="detail-actions">
           <button class="detail-copy" onclick={() => navigator.clipboard.writeText(`${detail!.title}${detail!.body ? '\n' + detail!.body : ''}`)}>
-            Copy
+            {t('common.copy')}
           </button>
           <button class="detail-dismiss" onclick={closeDetail}>
-            Dismiss
+            {t('chrome.toaster.dismiss')}
           </button>
         </div>
       </div>

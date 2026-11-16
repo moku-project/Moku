@@ -4,6 +4,7 @@
   import { tsunagu }  from '$lib/server-adapters/tsunagu'
   import { settingsState }   from '$lib/state/settings.svelte'
   import type { Settings }   from '$lib/types/settings'
+  import { t } from '$lib/i18n/index.svelte'
   import {
     SETTINGS_GROUPS,
     buildEnvironmentBlock,
@@ -134,11 +135,11 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="br-backdrop"
-  role="button" tabindex="-1" aria-label="Close"
+  role="button" tabindex="-1" aria-label={t('common.close')}
   onclick={(e) => { if (e.target === e.currentTarget) onClose() }}
   onkeydown={(e) => e.key === 'Escape' && onClose()}>
 
-  <div class="br-shell" role="dialog" aria-label="Report an issue"
+  <div class="br-shell" role="dialog" aria-label={t('settings.bugReport.dialogLabel')}
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}>
 
@@ -150,27 +151,27 @@
           <Lightbulb size={15} weight="duotone" class="br-header-icon feature" />
         {/if}
         <span class="br-title">
-          {step === 'type' ? 'Report an Issue' : reportType === 'bug' ? 'Bug Report' : 'Feature Request'}
+          {step === 'type' ? t('settings.bugReport.title') : reportType === 'bug' ? t('settings.bugReport.bugReport') : t('settings.bugReport.featureRequest')}
         </span>
       </div>
-      <button class="br-close" onclick={onClose} aria-label="Close"><X size={14} weight="bold" /></button>
+      <button class="br-close" onclick={onClose} aria-label={t('common.close')}><X size={14} weight="bold" /></button>
     </header>
 
     {#if step === 'type'}
       <div class="br-type-step">
-        <p class="br-type-hint">What would you like to submit?</p>
+        <p class="br-type-hint">{t('settings.bugReport.typeHint')}</p>
         <div class="br-type-cards">
           <button class="br-type-card" class:selected={reportType === 'bug'}
             onclick={() => { reportType = 'bug'; step = 'compose' }}>
             <Bug size={28} weight="duotone" />
-            <span class="br-type-name">Bug Report</span>
-            <span class="br-type-desc">Something isn't working as expected</span>
+            <span class="br-type-name">{t('settings.bugReport.bugReport')}</span>
+            <span class="br-type-desc">{t('settings.bugReport.bugDesc')}</span>
           </button>
           <button class="br-type-card" class:selected={reportType === 'feature'}
             onclick={() => { reportType = 'feature'; step = 'compose' }}>
             <Lightbulb size={28} weight="duotone" />
-            <span class="br-type-name">Feature Request</span>
-            <span class="br-type-desc">Suggest an improvement or new idea</span>
+            <span class="br-type-name">{t('settings.bugReport.featureRequest')}</span>
+            <span class="br-type-desc">{t('settings.bugReport.featureDesc')}</span>
           </button>
         </div>
       </div>
@@ -182,63 +183,63 @@
           <div class="br-form-scroll">
 
             <div class="br-field">
-              <label class="br-label" for="br-title">Title <span class="br-required">*</span></label>
+              <label class="br-label" for="br-title">{t('settings.bugReport.fieldTitle')} <span class="br-required">*</span></label>
               <input id="br-title" class="br-input" bind:value={title}
-                placeholder={reportType === 'bug' ? 'Short summary of the bug' : 'Short summary of your idea'}
+                placeholder={reportType === 'bug' ? t('settings.bugReport.titleBugPlaceholder') : t('settings.bugReport.titleFeaturePlaceholder')}
                 maxlength={120} spellcheck />
             </div>
 
             {#if reportType === 'bug'}
               <div class="br-field">
-                <label class="br-label" for="br-desc">Description <span class="br-required">*</span></label>
+                <label class="br-label" for="br-desc">{t('settings.bugReport.fieldDescription')} <span class="br-required">*</span></label>
                 <textarea id="br-desc" class="br-textarea" bind:value={description}
                   use:autoResize
-                  placeholder="What's broken? A clear, concise summary." rows={3} spellcheck></textarea>
+                  placeholder={t('settings.bugReport.descriptionPlaceholder')} rows={3} spellcheck></textarea>
               </div>
               <div class="br-field">
-                <label class="br-label" for="br-steps">Steps to Reproduce</label>
+                <label class="br-label" for="br-steps">{t('settings.bugReport.fieldSteps')}</label>
                 <textarea id="br-steps" class="br-textarea" bind:value={steps}
                   use:autoResize
-                  placeholder={"1. Open Settings → Library\n2. Enable \"Always show card stats\"\n3. Return to Library\n4. Unread counts are not visible"}
+                  placeholder={t('settings.bugReport.stepsPlaceholder')}
                   rows={4} spellcheck></textarea>
               </div>
               <div class="br-field-row">
                 <div class="br-field">
-                  <label class="br-label" for="br-expected">Expected</label>
+                  <label class="br-label" for="br-expected">{t('settings.bugReport.fieldExpected')}</label>
                   <textarea id="br-expected" class="br-textarea" bind:value={expected}
                     use:autoResize
-                    placeholder="What should have happened?" rows={2} spellcheck></textarea>
+                    placeholder={t('settings.bugReport.expectedPlaceholder')} rows={2} spellcheck></textarea>
                 </div>
                 <div class="br-field">
-                  <label class="br-label" for="br-actual">Actual</label>
+                  <label class="br-label" for="br-actual">{t('settings.bugReport.fieldActual')}</label>
                   <textarea id="br-actual" class="br-textarea" bind:value={actual}
                     use:autoResize
-                    placeholder="What actually happened?" rows={2} spellcheck></textarea>
+                    placeholder={t('settings.bugReport.actualPlaceholder')} rows={2} spellcheck></textarea>
                 </div>
               </div>
             {:else}
               <div class="br-field">
-                <label class="br-label" for="br-problem">Problem / Motivation <span class="br-required">*</span></label>
+                <label class="br-label" for="br-problem">{t('settings.bugReport.fieldProblem')} <span class="br-required">*</span></label>
                 <textarea id="br-problem" class="br-textarea" bind:value={problem}
                   use:autoResize
-                  placeholder="What gap or frustration does this address?" rows={3} spellcheck></textarea>
+                  placeholder={t('settings.bugReport.problemPlaceholder')} rows={3} spellcheck></textarea>
               </div>
               <div class="br-field">
-                <label class="br-label" for="br-solution">Proposed Solution <span class="br-required">*</span></label>
+                <label class="br-label" for="br-solution">{t('settings.bugReport.fieldSolution')} <span class="br-required">*</span></label>
                 <textarea id="br-solution" class="br-textarea" bind:value={solution}
                   use:autoResize
-                  placeholder="What would you like to see?" rows={3} spellcheck></textarea>
+                  placeholder={t('settings.bugReport.solutionPlaceholder')} rows={3} spellcheck></textarea>
               </div>
               <div class="br-field">
-                <label class="br-label" for="br-alt">Alternatives Considered</label>
+                <label class="br-label" for="br-alt">{t('settings.bugReport.fieldAlternatives')}</label>
                 <textarea id="br-alt" class="br-textarea" bind:value={alternatives}
                   use:autoResize
-                  placeholder="Any workarounds or other approaches?" rows={2} spellcheck></textarea>
+                  placeholder={t('settings.bugReport.alternativesPlaceholder')} rows={2} spellcheck></textarea>
               </div>
             {/if}
 
             <div class="br-field">
-              <label class="br-label" for="br-env">Environment <span class="br-auto">auto-filled</span></label>
+              <label class="br-label" for="br-env">{t('settings.bugReport.fieldEnvironment')} <span class="br-auto">{t('settings.bugReport.autoFilled')}</span></label>
               <pre id="br-env" class="br-env-block">{envBlock}</pre>
             </div>
 
@@ -248,8 +249,8 @@
         {#if reportType === 'bug'}
           <div class="br-sidebar">
             <div class="br-sidebar-header">
-              <span class="br-sidebar-title">Include Settings</span>
-              <span class="br-sidebar-hint">Select groups relevant to the bug</span>
+              <span class="br-sidebar-title">{t('settings.bugReport.includeSettings')}</span>
+              <span class="br-sidebar-hint">{t('settings.bugReport.includeSettingsHint')}</span>
             </div>
             <div class="br-sidebar-scroll">
               {#each SETTINGS_GROUPS as group}
@@ -265,7 +266,7 @@
                       {:else}
                         <CaretRight size={9} weight="bold" />
                       {/if}
-                      <span class="br-group-label">{group.label}</span>
+                      <span class="br-group-label">{t(group.name)}</span>
                       {#if selectedInGroup > 0}
                         <span class="br-group-count">{selectedInGroup}</span>
                       {/if}
@@ -273,8 +274,8 @@
                     <button class="br-group-all"
                       class:active={allSelected}
                       onclick={() => selectGroupAll(group.keys)}
-                      title={allSelected ? 'Deselect all' : 'Select all'}>
-                      {allSelected ? 'none' : 'all'}
+                      title={allSelected ? t('settings.bugReport.deselectAll') : t('settings.bugReport.selectAll')}>
+                      {allSelected ? t('settings.bugReport.pickNone') : t('settings.bugReport.pickAll')}
                     </button>
                   </div>
 
@@ -301,17 +302,17 @@
       </div>
 
       <footer class="br-footer">
-        <button class="br-btn ghost" onclick={() => (step = 'type')}>Back</button>
+        <button class="br-btn ghost" onclick={() => (step = 'type')}>{t('common.back')}</button>
         <div class="br-footer-right">
-          <button class="br-btn secondary" onclick={handleCopy} title="Copy report to clipboard">
+          <button class="br-btn secondary" onclick={handleCopy} title={t('settings.bugReport.copyTitle')}>
             {#if copied}
-              <Check size={13} /><span>Copied!</span>
+              <Check size={13} /><span>{t('settings.bugReport.copied')}</span>
             {:else}
-              <ClipboardText size={13} /><span>Copy</span>
+              <ClipboardText size={13} /><span>{t('common.copy')}</span>
             {/if}
           </button>
           <button class="br-btn primary" disabled={!canSubmit} onclick={handleOpen}>
-            <ArrowSquareOut size={13} /><span>Open on GitHub</span>
+            <ArrowSquareOut size={13} /><span>{t('settings.bugReport.openGithub')}</span>
           </button>
         </div>
       </footer>

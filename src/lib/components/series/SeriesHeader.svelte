@@ -10,9 +10,9 @@
   import Thumbnail         from '$lib/components/shared/manga/Thumbnail.svelte'
   import ExtensionIcon     from '$lib/components/extensions/ExtensionIcon.svelte'
   import { resolvedCover } from '$lib/core/cover/coverResolver'
-  import { readPastTense } from '$lib/core/contentTypeLabels'
   import type { Manga, Chapter } from '$lib/types'
   import type { Folder } from '$lib/server-adapters/types'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
   import { seriesState }                                        from '$lib/state/series.svelte'
   import { setPreviewManga }                                    from '$lib/state/series.svelte'
@@ -67,8 +67,20 @@
   let descExpanded:   boolean = $state(false)
   let altOpen:        boolean = $state(false)
 
+  const STATUS_LABELS: Record<string, MessageKey> = {
+    ONGOING:             'series.status.ongoing',
+    COMPLETED:           'series.status.completed',
+    HIATUS:              'series.status.hiatus',
+    ON_HIATUS:           'series.status.onHiatus',
+    CANCELLED:           'series.status.cancelled',
+    PUBLISHING_FINISHED: 'series.status.publishingFinished',
+    UNKNOWN:             'common.unknown',
+  }
+
   const statusLabel = $derived(
-    manga?.status ? manga.status.charAt(0) + manga.status.slice(1).toLowerCase() : null
+    manga?.status
+      ? (STATUS_LABELS[manga.status] ? t(STATUS_LABELS[manga.status]) : manga.status.charAt(0) + manga.status.slice(1).toLowerCase())
+      : null
   )
 
   const sourceLabel = $derived(
@@ -94,11 +106,11 @@
 
 <div class="sidebar">
   <button class="back" onclick={goBack}>
-    <ArrowLeft size={13} weight="light" /> Back
+    <ArrowLeft size={13} weight="light" /> {t('common.back')}
   </button>
 
   <div class="cover-wrap">
-    <button class="cover-btn" onclick={() => manga && setPreviewManga(manga)} title="Quick preview" disabled={!manga}>
+    <button class="cover-btn" onclick={() => manga && setPreviewManga(manga)} title={t('series.header.quickPreview')} disabled={!manga}>
       <Thumbnail src={resolvedCover(manga?.id ?? seriesState.activeManga?.id ?? "", manga?.thumbnailUrl ?? seriesState.activeManga?.thumbnailUrl ?? "")} alt={manga?.title ?? seriesState.activeManga?.title ?? ""} class="cover" id={manga?.id ?? seriesState.activeManga?.id} contentType={manga?.contentType ?? seriesState.activeManga?.contentType} />
     </button>
   </div>
@@ -131,12 +143,12 @@
       {#if altTitles.length > 0}
         <div class="alttitles-section">
           <button class="row-toggle" onclick={() => altOpen = !altOpen}>
-            <span>Also known as</span>
+            <span>{t('series.header.alsoKnownAs')}</span>
             <CaretDown size={10} weight="light" style="transform:{altOpen ? 'rotate(180deg)' : 'rotate(0)'};transition:transform 0.15s ease;flex-shrink:0" />
           </button>
           {#if altOpen}
             <div class="alttitles-list">
-              {#each altTitles as t}<p class="alttitle">{t}</p>{/each}
+              {#each altTitles as alt}<p class="alttitle">{alt}</p>{/each}
             </div>
           {/if}
         </div>
@@ -149,7 +161,7 @@
           {/each}
           {#if manga.genre.length > 3}
             <button class="genre-toggle" onclick={() => genresExpanded = !genresExpanded}>
-              {genresExpanded ? 'less' : `+${manga.genre.length - 3}`}
+              {genresExpanded ? t('series.header.genresLess') : `+${manga.genre.length - 3}`}
             </button>
           {/if}
         </div>
@@ -158,7 +170,7 @@
       {#if manga?.description}
         <div class="desc-wrap">
           <p class="desc" class:desc-open={descExpanded}>{manga.description}</p>
-          <button class="expand-toggle" onclick={() => descExpanded = !descExpanded}>{descExpanded ? 'Show less' : 'Read more'}</button>
+          <button class="expand-toggle" onclick={() => descExpanded = !descExpanded}>{descExpanded ? t('series.header.showLess') : t('series.header.readMore')}</button>
         </div>
       {/if}
     </div>
@@ -167,21 +179,20 @@
   <div class="cta-section">
     {#if continueChapter}
       {@const isAnime = manga?.contentType === 'ANIME'}
-      {@const unit    = isAnime ? 'Ep.' : 'Ch.'}
       {@const ref     = continueChapter.chapter.chapterNumber >= 0
-        ? `${unit}${continueChapter.chapter.chapterNumber}`
-        : (continueChapter.chapter.name || 'chapter')}
+        ? t(isAnime ? 'series.header.episodeRef' : 'series.header.chapterRef', { number: continueChapter.chapter.chapterNumber })
+        : (continueChapter.chapter.name || t('series.header.chapterFallback'))}
       <button class="read-btn" onclick={() => onRead(continueChapter!)}>
         <Play size={12} weight="fill" />
-        {continueChapter.type === 'reread' ? (isAnime ? 'Watch again' : 'Read again')
-          : continueChapter.type === 'start' ? (isAnime ? 'Start watching' : 'Start reading')
-          : `Continue · ${ref}`}
+        {continueChapter.type === 'reread' ? (isAnime ? t('series.header.watchAgain') : t('series.header.readAgain'))
+          : continueChapter.type === 'start' ? (isAnime ? t('series.header.startWatching') : t('series.header.startReading'))
+          : t('series.header.continueAt', { ref })}
       </button>
     {/if}
     <div class="actions">
       <button class="library-btn" class:active={manga?.inLibrary} onclick={onToggleLibrary} disabled={togglingLibrary || loadingManga}>
         <BookmarkSimple size={13} weight={manga?.inLibrary ? 'fill' : 'light'} />
-        {manga?.inLibrary ? 'In Library' : 'Add to Library'}
+        {manga?.inLibrary ? t('series.header.inLibrary') : t('series.header.addToLibrary')}
       </button>
       {#if manga?.realUrl}
         <a href={manga.realUrl} target="_blank" rel="noreferrer" class="external-link">
@@ -194,7 +205,7 @@
   {#if totalCount > 0}
     <div class="progress-section">
       <div class="progress-header">
-        <span class="progress-label">{readCount} / {totalCount} {readPastTense(manga?.contentType)}</span>
+        <span class="progress-label">{t(manga?.contentType === 'ANIME' ? 'series.header.progressWatched' : 'series.header.progressRead', { read: readCount, total: totalCount })}</span>
         <span class="progress-pct">{Math.round(progressPct)}%</span>
       </div>
       <div class="progress-track"><div class="progress-fill" style="width:{progressPct}%"></div></div>
@@ -204,7 +215,7 @@
   {#if !loadingManga && manga}
     <div class="details-section">
       <button class="details-toggle" onclick={() => manageOpen = !manageOpen}>
-        <span>Manage</span>
+        <span>{t('series.header.manage')}</span>
         <CaretDown size={11} weight="light" style="transform:{manageOpen ? 'rotate(180deg)' : 'rotate(0)'};transition:transform 0.15s ease" />
       </button>
       {#if manageOpen}
@@ -212,31 +223,31 @@
           <div class="detail-actions">
             {#if !isLocal}
               <button class="detail-action-btn" onclick={onMigrateOpen}>
-                <ArrowsClockwise size={12} weight="light" /> Switch Source
+                <ArrowsClockwise size={12} weight="light" /> {t('series.header.switchSource')}
               </button>
             {/if}
             <button class="detail-action-btn" class:detail-action-active={linkedIds.length > 0} onclick={onLinkPickerOpen}>
               <LinkSimpleHorizontalBreak size={12} weight={linkedIds.length > 0 ? 'fill' : 'light'} />
-              Series Link{linkedIds.length > 0 ? ` (${linkedIds.length})` : ''}
+              {linkedIds.length > 0 ? t('series.header.seriesLinkCount', { count: linkedIds.length }) : t('series.header.seriesLink')}
             </button>
             <button class="detail-action-btn" class:detail-action-active={hasCoverOverride} onclick={onCoverPickerOpen}>
-              <Image size={12} weight={hasCoverOverride ? 'fill' : 'light'} /> Cover Image
+              <Image size={12} weight={hasCoverOverride ? 'fill' : 'light'} /> {t('series.header.coverImage')}
             </button>
             <button class="detail-action-btn" class:detail-action-active={!!manga?.metadata} onclick={onMetadataOpen}>
-              <Database size={12} weight={manga?.metadata ? 'fill' : 'light'} /> Metadata
+              <Database size={12} weight={manga?.metadata ? 'fill' : 'light'} /> {t('series.header.metadata')}
             </button>
             {#if manga?.inLibrary && !isLocal}
               <button class="detail-action-btn" class:detail-action-active={hasAnyAutomation} onclick={onAutoOpen}>
-                <Gear size={12} weight={hasAnyAutomation ? 'fill' : 'light'} /> Automation
+                <Gear size={12} weight={hasAnyAutomation ? 'fill' : 'light'} /> {t('series.header.automation')}
               </button>
               <button class="detail-action-btn" class:detail-action-active={trackLinkCount > 0} onclick={onTrackerOpen}>
                 <Broadcast size={12} weight={trackLinkCount > 0 ? 'fill' : 'light'} />
-                Tracking{trackLinkCount > 0 ? ` (${trackLinkCount})` : ''}
+                {trackLinkCount > 0 ? t('series.header.trackingCount', { count: trackLinkCount }) : t('series.header.tracking')}
               </button>
             {/if}
             {#if downloadedCount > 0 && !isLocal}
               <button class="detail-action-btn detail-action-danger" onclick={onDeleteAll} disabled={deletingAll}>
-                <Trash size={12} weight="light" /> {deletingAll ? 'Deleting…' : `Delete Downloads (${downloadedCount})`}
+                <Trash size={12} weight="light" /> {deletingAll ? t('series.header.deleting') : t('series.header.deleteDownloads', { count: downloadedCount })}
               </button>
             {/if}
           </div>

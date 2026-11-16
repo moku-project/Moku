@@ -3,6 +3,7 @@
     ArrowsClockwise, BookOpen, CircleNotch,
     MagnifyingGlass, NewspaperClipping, Trash,
   } from 'phosphor-svelte'
+  import { t } from '$lib/i18n/index.svelte'
 
   interface Props {
     tab:                   'updates' | 'history'
@@ -28,16 +29,16 @@
 </script>
 
 <div class="header">
-  <span class="heading">Recent</span>
+  <span class="heading">{t('nav.recent')}</span>
 
   <div class="tabs">
     <button class="tab" class:active={tab === 'history'} onclick={() => onTabChange('history')}>
       <BookOpen size={11} weight="bold" />
-      History
+      {t('recent.toolbar.history')}
     </button>
     <button class="tab" class:active={tab === 'updates'} onclick={() => onTabChange('updates')}>
       <NewspaperClipping size={11} weight="bold" />
-      Updates
+      {t('recent.toolbar.updates')}
     </button>
   </div>
 
@@ -47,7 +48,7 @@
         <MagnifyingGlass size={11} class="search-icon" weight="light" />
         <input
           class="search"
-          placeholder="Search…"
+          placeholder={t('recent.toolbar.searchPlaceholder')}
           value={updatesSearch}
           oninput={(e) => onUpdatesSearchChange((e.target as HTMLInputElement).value)}
         />
@@ -61,7 +62,7 @@
         class:running={updaterRunning}
         onclick={onRefreshUpdates}
         disabled={updaterRunning || updatesLoading}
-        title={updaterRunning ? 'Updating library…' : 'Run library update'}
+        title={updaterRunning ? t('library.toolbar.updatingLibrary') : t('recent.toolbar.runLibraryUpdate')}
       >
         {#if updaterRunning || updatesLoading}
           <CircleNotch size={14} weight="light" class="anim-spin" />
@@ -74,7 +75,7 @@
         <MagnifyingGlass size={11} class="search-icon" weight="light" />
         <input
           class="search"
-          placeholder="Search…"
+          placeholder={t('recent.toolbar.searchPlaceholder')}
           value={historySearch}
           oninput={(e) => onHistorySearchChange((e.target as HTMLInputElement).value)}
         />
@@ -88,10 +89,10 @@
           class="clear-btn"
           class:confirm={historyConfirmClear}
           onclick={onHistoryClear}
-          title={historyConfirmClear ? 'Click again to confirm' : 'Clear history'}
+          title={historyConfirmClear ? t('recent.toolbar.clickAgainToConfirm') : t('recent.toolbar.clearHistory')}
         >
           <Trash size={12} weight="light" />
-          {#if historyConfirmClear}<span class="clear-label">Confirm?</span>{/if}
+          {#if historyConfirmClear}<span class="clear-label">{t('recent.toolbar.confirmClear')}</span>{/if}
         </button>
       {/if}
     {/if}

@@ -1,4 +1,5 @@
 import { GraphQLError } from '$lib/graphql/client'
+import { t, type MessageKey } from '$lib/i18n/index.svelte'
 
 export type SourceErrorCode =
 	| 'SOURCE_CLOUDFLARE'
@@ -18,14 +19,14 @@ export interface SourceErrorInfo {
 	expected: boolean
 }
 
-const LABELS: Record<SourceErrorCode, { label: string; retriable: boolean; expected: boolean }> = {
-	SOURCE_CLOUDFLARE:   { label: 'Behind Cloudflare',       retriable: false, expected: true },
-	SOURCE_NOT_FOUND:    { label: 'Not found',               retriable: false, expected: true },
-	SOURCE_UNAVAILABLE:  { label: 'Source unreachable',      retriable: true,  expected: true },
-	SOURCE_NETWORK:      { label: 'Source unreachable',      retriable: true,  expected: true },
-	SOURCE_RATE_LIMITED: { label: 'Rate limited',            retriable: true,  expected: true },
-	SOURCE_PARSE:        { label: 'Source changed — the extension may need updating', retriable: false, expected: false },
-	INTERNAL:            { label: 'Something went wrong',     retriable: true,  expected: false },
+const LABELS: Record<SourceErrorCode, { label: MessageKey; retriable: boolean; expected: boolean }> = {
+	SOURCE_CLOUDFLARE:   { label: 'notices.sourceError.cloudflare', retriable: false, expected: true },
+	SOURCE_NOT_FOUND:    { label: 'notices.sourceError.notFound', retriable: false, expected: true },
+	SOURCE_UNAVAILABLE:  { label: 'notices.sourceError.unreachable', retriable: true,  expected: true },
+	SOURCE_NETWORK:      { label: 'notices.sourceError.unreachable', retriable: true,  expected: true },
+	SOURCE_RATE_LIMITED: { label: 'notices.sourceError.rateLimited', retriable: true,  expected: true },
+	SOURCE_PARSE:        { label: 'notices.sourceError.parse', retriable: false, expected: false },
+	INTERNAL:            { label: 'notices.sourceError.internal', retriable: true,  expected: false },
 }
 
 function errorText(e: unknown): string {
@@ -67,10 +68,11 @@ export function sourceErrorInfo(e: unknown): SourceErrorInfo | null {
 	const code = sourceErrorCode(e)
 	if (!code) return null
 	const meta = LABELS[code]
+	const metaLabel = t(meta.label)
 	return {
 		code,
-		label: isTimeout(e) ? 'Source timed out' : meta.label,
-		message: errorText(e) || meta.label,
+		label: isTimeout(e) ? t('notices.sourceError.timedOut') : metaLabel,
+		message: errorText(e) || metaLabel,
 		retriable: meta.retriable,
 		cloudflare: code === 'SOURCE_CLOUDFLARE',
 		expected: meta.expected,
@@ -78,7 +80,7 @@ export function sourceErrorInfo(e: unknown): SourceErrorInfo | null {
 }
 
 export function sourceErrorLabel(e: unknown): string {
-	return sourceErrorInfo(e)?.label ?? (errorText(e) || 'Something went wrong')
+	return sourceErrorInfo(e)?.label ?? (errorText(e) || t('notices.sourceError.internal'))
 }
 
 export function isExpectedSourceNoise(e: unknown): boolean {

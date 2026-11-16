@@ -24,6 +24,17 @@
   import type { Manga, Chapter } from "$lib/types";
   import type { Folder as TsunaguFolder } from "$lib/server-adapters/types";
   import ModalBlur from '$lib/components/shared/ui/ModalBlur.svelte';
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
+
+  const STATUS_LABELS: Record<string, MessageKey> = {
+    ONGOING:             "series.status.ongoing",
+    COMPLETED:           "series.status.completed",
+    HIATUS:              "series.status.hiatus",
+    ON_HIATUS:           "series.status.onHiatus",
+    CANCELLED:           "series.status.cancelled",
+    PUBLISHING_FINISHED: "series.status.publishingFinished",
+    UNKNOWN:             "common.unknown",
+  };
 
   let manga: Manga | null         = $state(null);
   let loadingDetail               = $state(false);
@@ -36,7 +47,7 @@
   let mangaFolders: TsunaguFolder[] = $state([]);
   let catsLoading                 = $state(false);
   let queueingAll                 = $state(false);
-  let fetchError: string | null   = $state(null);
+  let fetchError: MessageKey | null = $state(null);
   let folderRef: HTMLDivElement   = $state() as HTMLDivElement;
 
   let linkPickerOpen           = $state(false);
@@ -76,7 +87,7 @@
   const lastUpload   = $derived(uploadDates.length ? new Date(Math.max(...uploadDates)) : null);
   const statusLabel  = $derived(
     displayManga?.status
-      ? displayManga.status.charAt(0) + displayManga.status.slice(1).toLowerCase()
+      ? (STATUS_LABELS[displayManga.status] ? t(STATUS_LABELS[displayManga.status]) : displayManga.status.charAt(0) + displayManga.status.slice(1).toLowerCase())
       : null,
   );
   const assignedFolders = $derived(mangaFolders);
@@ -109,17 +120,16 @@
   });
 
   const isAnime  = $derived(displayManga?.contentType === "ANIME");
-  const unitOne  = $derived(isAnime ? "episode" : "chapter");
-  const unitMany = $derived(isAnime ? "episodes" : "chapters");
 
   const continueLabel = $derived.by(() => {
     if (!continueChapter) return "";
     const { ch, type, resumePage } = continueChapter;
-    const unit    = isAnime ? "Ep." : "Ch.";
-    const ref     = ch.chapterNumber >= 0 ? `${unit}${ch.chapterNumber}` : (ch.name || unitOne);
-    if (type === "reread") return isAnime ? "Watch again" : "Read again";
-    if (type === "start")  return `Start · ${ref}`;
-    return `Continue · ${ref}${resumePage ? ` p.${resumePage}` : ""}`;
+    const ref     = ch.chapterNumber >= 0
+      ? t(isAnime ? "series.header.episodeRef" : "series.header.chapterRef", { number: ch.chapterNumber })
+      : (ch.name || t(isAnime ? "shared.preview.episodeFallback" : "series.header.chapterFallback"));
+    if (type === "reread") return isAnime ? t("series.header.watchAgain") : t("series.header.readAgain");
+    if (type === "start")  return t("shared.preview.startAt", { ref });
+    return resumePage ? t("shared.preview.continueAtPage", { ref, page: resumePage }) : t("series.header.continueAt", { ref });
   });
 
   let detailAbort: AbortController | null = null;
@@ -200,7 +210,7 @@
       if (shouldAutoLink) {
         if (allMangaForLink.length) {
           autoLinkLibrary(focal, allMangaForLink)
-            .then((n: number) => { if (n > 0) addToast({ kind: "success", title: "Series linked", body: `${n} new link${n === 1 ? "" : "s"} found` }); });
+            .then((n: number) => { if (n > 0) addToast({ kind: "success", title: t("shared.preview.seriesLinked"), body: t("shared.preview.newLinksFound", { count: n }) }); });
         } else {
           loadingLinkList = true;
           (async () => {
@@ -208,7 +218,7 @@
               const items = await loadAllMangaForLink();
               allMangaForLink = items;
               const n = await autoLinkLibrary(focal, items);
-              if (n > 0) addToast({ kind: "success", title: "Series linked", body: `${n} new link${n === 1 ? "" : "s"} found` });
+              if (n > 0) addToast({ kind: "success", title: t("shared.preview.seriesLinked"), body: t("shared.preview.newLinksFound", { count: n }) });
             } catch (e) {
               console.error(e);
             } finally {
@@ -251,7 +261,7 @@
       if (e?.name === "AbortError") return;
       console.error("loadDetail failed:", e);
       manga = seriesState.previewManga as Manga;
-      fetchError = "Could not load full details — showing cached data";
+      fetchError = "shared.preview.detailsFailed";
     } finally {
       if (!ctrl.signal.aborted) loadingDetail = false;
     }
@@ -266,7 +276,7 @@
         cache.clear(CACHE_KEYS.MANGA(manga.id));
         cache.clear(CACHE_KEYS.LIBRARY);
         void loadLibrary(true);
-        addToast({ kind: "success", title: "Removed from library" });
+        addToast({ kind: "success", title: t("series.detail.removedFromLibrary") });
         close();
       } else {
         const entry = await tsunagu.addToLibrary(manga.id);
@@ -276,11 +286,11 @@
         manga = { ...manga, id: entry.id, inLibrary: true, libraryEntryId: entry.id };
         setPreviewManga(manga);
         void loadLibrary(true);
-        addToast({ kind: "success", title: "Added to library" });
+        addToast({ kind: "success", title: t("series.detail.addedToLibrary") });
       }
     } catch (e) {
       console.error(e);
-      addToast({ kind: "error", title: "Failed", body: (e as Error)?.message });
+      addToast({ kind: "error", title: t("shared.preview.failed"), body: (e as Error)?.message });
     } finally {
       togglingLib = false;
     }
@@ -292,7 +302,7 @@
     queueingAll = true;
     try {
       await tsunagu.enqueueDownloads(mangaId, ids);
-      addToast({ kind: "download", title: "Downloading", body: `${ids.length} ${unitMany} queued` });
+      addToast({ kind: "download", title: t("shared.preview.downloading"), body: t(isAnime ? "shared.preview.episodesQueued" : "shared.preview.chaptersQueued", { count: ids.length }) });
     } catch (e) {
       console.error(e);
     } finally {
@@ -419,11 +429,11 @@
   class="backdrop"
   role="button"
   tabindex="-1"
-  aria-label="Close preview"
+  aria-label={t("shared.preview.closeLabel")}
   onclick={(e) => { if (e.target === e.currentTarget) close(); }}
   onkeydown={(e) => { if (e.key === "Escape") close(); }}
 >
-  <div class="modal" role="dialog" aria-label="Media preview">
+  <div class="modal" role="dialog" aria-label={t("shared.preview.dialogLabel")}>
 
     <div class="cover-col">
       <div class="cover-wrap">
@@ -446,13 +456,13 @@
             <BookmarkSimple size={13} weight={inLibrary ? "fill" : "light"} />
           </span>
           <span class="action-label">
-            {togglingLib ? "…" : inLibrary ? "In Library" : "Add to Library"}
+            {togglingLib ? "…" : inLibrary ? t("series.header.inLibrary") : t("series.header.addToLibrary")}
           </span>
         </button>
 
         <button class="action-btn" onclick={openSeriesDetail}>
           <span class="action-icon"><Books size={13} weight="light" /></span>
-          <span class="action-label">Series Detail</span>
+          <span class="action-label">{t("shared.preview.seriesDetail")}</span>
         </button>
 
         <div class="folder-wrap" bind:this={folderRef}>
@@ -465,16 +475,16 @@
               <FolderSimplePlus size={13} weight={assignedFolders.length > 0 ? "fill" : "light"} />
             </span>
             <span class="action-label">
-              {assignedFolders.length > 0 ? assignedFolders.map((f) => f.name).join(", ") : "Add to folder"}
+              {assignedFolders.length > 0 ? assignedFolders.map((f) => f.name).join(", ") : t("shared.preview.addToFolder")}
             </span>
           </button>
 
           {#if folderOpen}
             <div class="folder-menu">
               {#if catsLoading}
-                <p class="folder-empty">Loading…</p>
+                <p class="folder-empty">{t("common.loading")}</p>
               {:else if allFolders.length === 0 && !creatingFolder}
-                <p class="folder-empty">No folders yet</p>
+                <p class="folder-empty">{t("series.actions.noFolders")}</p>
               {/if}
               {#if allFolders.length > 0}
                 <div class="folder-list">
@@ -492,7 +502,7 @@
                 <div class="folder-create-row">
                   <input
                     class="folder-input"
-                    placeholder="Folder name…"
+                    placeholder={t("series.actions.folderNamePlaceholder")}
                     bind:value={newFolderName}
                     onkeydown={(e) => {
                       if (e.key === "Enter")  handleFolderCreate();
@@ -501,11 +511,11 @@
                     use:focusAction
                   />
                   <button class="folder-ok" onclick={handleFolderCreate} disabled={!newFolderName.trim()}>
-                    Add
+                    {t("common.add")}
                   </button>
                 </div>
               {:else}
-                <button class="folder-new" onclick={() => creatingFolder = true}>+ New folder</button>
+                <button class="folder-new" onclick={() => creatingFolder = true}>{t("series.actions.newFolder")}</button>
               {/if}
             </div>
           {/if}
@@ -520,7 +530,7 @@
             <LinkSimpleHorizontalBreak size={13} weight={linkedIds.length > 0 ? "fill" : "light"} />
           </span>
           <span class="action-label">
-            {linkedIds.length > 0 ? `Series Link (${linkedIds.length})` : "Series Link"}
+            {linkedIds.length > 0 ? t("series.header.seriesLinkCount", { count: linkedIds.length }) : t("series.header.seriesLink")}
           </span>
         </button>
 
@@ -532,7 +542,7 @@
           <span class="action-icon">
             <Image size={13} weight={hasCoverOverride ? "fill" : "light"} />
           </span>
-          <span class="action-label">Cover Image</span>
+          <span class="action-label">{t("series.header.coverImage")}</span>
         </button>
       </div>
     </div>
@@ -557,7 +567,7 @@
 
       <div class="content-body">
         {#if fetchError}
-          <div class="error-banner">{fetchError}</div>
+          <div class="error-banner">{t(fetchError)}</div>
         {/if}
 
         {#if loadingDetail}
@@ -579,13 +589,13 @@
               </span>
             {/if}
             {#if inLibrary}
-              <span class="badge badge-accent">In Library</span>
+              <span class="badge badge-accent">{t("series.header.inLibrary")}</span>
             {/if}
             {#if !loadingChapters && unreadCount > 0}
-              <span class="badge badge-unread">{unreadCount} unread</span>
+              <span class="badge badge-unread">{t("shared.preview.unreadCount", { count: unreadCount })}</span>
             {/if}
             {#if !loadingChapters && bookmarkCount > 0}
-              <span class="badge">{bookmarkCount} bookmarked</span>
+              <span class="badge">{t("shared.preview.bookmarkedCount", { count: bookmarkCount })}</span>
             {/if}
           </div>
         {/if}
@@ -594,20 +604,20 @@
           {#if loadingChapters}
             <div class="chapter-loading">
               <CircleNotch size={13} weight="light" class="anim-spin" style="color:var(--text-faint)" />
-              <span class="chapter-loading-label">Loading {unitMany}…</span>
+              <span class="chapter-loading-label">{t(isAnime ? "shared.preview.loadingEpisodes" : "shared.preview.loadingChapters")}</span>
             </div>
           {:else if totalCount > 0}
             <div class="chapter-meta">
               <span class="chapter-label">
-                {totalCount} {totalCount === 1 ? unitOne : unitMany}
-                {readCount > 0 ? ` · ${readCount} ${isAnime ? "watched" : "read"}` : ""}
-                {unreadCount > 0 && readCount > 0 ? ` · ${unreadCount} left` : ""}
-                {downloadedCount > 0 ? ` · ${downloadedCount} dl` : ""}
+                {t(isAnime ? "shared.preview.episodeCount" : "shared.preview.chapterCount", { count: totalCount })}
+                {readCount > 0 ? ` · ${t(isAnime ? "shared.preview.watchedCount" : "shared.preview.readCount", { count: readCount })}` : ""}
+                {unreadCount > 0 && readCount > 0 ? ` · ${t("shared.preview.leftCount", { count: unreadCount })}` : ""}
+                {downloadedCount > 0 ? ` · ${t("shared.preview.downloadedShort", { count: downloadedCount })}` : ""}
               </span>
               {#if unreadCount > 0}
                 <button class="dl-all-btn" onclick={downloadAll} disabled={queueingAll}>
                   {#if queueingAll}<CircleNotch size={11} weight="light" class="anim-spin" />{/if}
-                  {queueingAll ? "Queuing…" : "Download unread"}
+                  {queueingAll ? t("shared.preview.queuing") : t("shared.preview.downloadUnread")}
                 </button>
               {/if}
             </div>
@@ -622,7 +632,7 @@
               </button>
             {/if}
           {:else if !loadingDetail && !loadingChapters}
-            <span class="chapter-label" style="color:var(--text-faint)">No {unitMany} in local library</span>
+            <span class="chapter-label" style="color:var(--text-faint)">{t(isAnime ? "shared.preview.noEpisodes" : "shared.preview.noChapters")}</span>
           {/if}
         </div>
 
@@ -637,7 +647,7 @@
             <p class="desc" class:desc-open={descExpanded}>{displayManga.description}</p>
             {#if displayManga.description.length > 220}
               <button class="desc-toggle" onclick={() => descExpanded = !descExpanded}>
-                {descExpanded ? "Show less" : "Show more"}
+                {descExpanded ? t("series.header.showLess") : t("shared.preview.showMore")}
                 <CaretDown
                   size={10}
                   weight="light"
@@ -664,41 +674,41 @@
             <div class="meta-grid">
               <div class="meta-col">
                 <div class="meta-row">
-                  <span class="meta-key">Status</span>
-                  <span class="meta-val">{statusLabel ?? "N/A"}</span>
+                  <span class="meta-key">{t("series.tracker.status")}</span>
+                  <span class="meta-val">{statusLabel ?? t("shared.preview.notAvailable")}</span>
                 </div>
                 <div class="meta-row">
-                  <span class="meta-key">Source</span>
-                  <span class="meta-val">{displayManga?.sourceName ?? displayManga?.source?.displayName ?? "Unknown source"}</span>
+                  <span class="meta-key">{t("shared.preview.source")}</span>
+                  <span class="meta-val">{displayManga?.sourceName ?? displayManga?.source?.displayName ?? t("shared.preview.unknownSource")}</span>
                 </div>
                 <div class="meta-row">
-                  <span class="meta-key">Link</span>
+                  <span class="meta-key">{t("shared.preview.link")}</span>
                   {#if displayManga?.realUrl}
                     <a href={displayManga.realUrl} target="_blank" rel="noreferrer" class="meta-link">
-                      Open <ArrowSquareOut size={11} weight="light" />
+                      {t("common.open")} <ArrowSquareOut size={11} weight="light" />
                     </a>
                   {:else}
-                    <span class="meta-val">N/A</span>
+                    <span class="meta-val">{t("shared.preview.notAvailable")}</span>
                   {/if}
                 </div>
               </div>
               <div class="meta-col">
                 <div class="meta-row">
-                  <span class="meta-key">Author</span>
-                  <span class="meta-val">{displayManga?.author ?? "N/A"}</span>
+                  <span class="meta-key">{t("shared.preview.author")}</span>
+                  <span class="meta-val">{displayManga?.author ?? t("shared.preview.notAvailable")}</span>
                 </div>
                 <div class="meta-row">
-                  <span class="meta-key">Artist</span>
+                  <span class="meta-key">{t("shared.preview.artist")}</span>
                   <span class="meta-val">
                     {displayManga?.artist && displayManga.artist !== displayManga.author
                       ? displayManga.artist
-                      : (displayManga?.author ?? "N/A")}
+                      : (displayManga?.author ?? t("shared.preview.notAvailable"))}
                   </span>
                 </div>
                 <div class="meta-row">
-                  <span class="meta-key">Scanlator</span>
+                  <span class="meta-key">{t("shared.preview.scanlator")}</span>
                   <span class="meta-val">
-                    {!loadingChapters && scanlators.length > 0 ? scanlators[0] : "N/A"}
+                    {!loadingChapters && scanlators.length > 0 ? scanlators[0] : t("shared.preview.notAvailable")}
                   </span>
                 </div>
               </div>

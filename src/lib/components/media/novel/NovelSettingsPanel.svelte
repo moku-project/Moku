@@ -5,6 +5,7 @@
   import { platformService } from "$lib/platform-service";
   import { settingsState, updateSettings } from "$lib/state/settings.svelte";
   import MediaSettingsPanel from "$lib/components/media/shared/MediaSettingsPanel.svelte";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
   interface Props { onClose: () => void }
   let { onClose }: Props = $props();
@@ -17,24 +18,24 @@
     try { systemFonts = await platformService.listSystemFonts(); } catch { systemFonts = []; }
   });
 
-  const FONTS: { k: NovelFont; label: string }[] = [
-    { k: "serif", label: "Serif" },
-    { k: "sans",  label: "Sans" },
-    { k: "mono",  label: "Mono" },
+  const FONTS: { k: NovelFont; label: MessageKey }[] = [
+    { k: "serif", label: "novel.settings.fontSerif" },
+    { k: "sans",  label: "novel.settings.fontSans" },
+    { k: "mono",  label: "novel.settings.fontMono" },
   ];
-  const THEMES: { k: NovelTheme; label: string; swatch: string }[] = [
-    { k: "paper", label: "Paper", swatch: "#f5f2e9" },
-    { k: "sepia", label: "Sepia", swatch: "#efe3c8" },
-    { k: "dark",  label: "Dark",  swatch: "#14140f" },
+  const THEMES: { k: NovelTheme; label: MessageKey; swatch: string }[] = [
+    { k: "paper", label: "novel.settings.themePaper", swatch: "#f5f2e9" },
+    { k: "sepia", label: "novel.settings.themeSepia", swatch: "#efe3c8" },
+    { k: "dark",  label: "novel.settings.themeDark", swatch: "#14140f" },
   ];
 </script>
 
-<MediaSettingsPanel title="Novel Settings" subtitle={seriesState.activeManga?.title} onClose={onClose}>
+<MediaSettingsPanel title={t("novel.settings.title")} subtitle={seriesState.activeManga?.title} onClose={onClose}>
   <div class="msp-group">
-    <p class="msp-label">Font</p>
+    <p class="msp-label">{t("novel.settings.font")}</p>
     <div class="msp-seg">
       {#each FONTS as f (f.k)}
-        <button class="msp-seg-btn" class:on={st.fontFamily === f.k && !st.systemFont} onclick={() => st.setFont(f.k)}>{f.label}</button>
+        <button class="msp-seg-btn" class:on={st.fontFamily === f.k && !st.systemFont} onclick={() => st.setFont(f.k)}>{t(f.label)}</button>
       {/each}
     </div>
     {#if systemFonts.length > 0}
@@ -43,7 +44,7 @@
         value={st.systemFont ?? ""}
         onchange={(e) => st.setSystemFont((e.currentTarget as HTMLSelectElement).value || null)}
       >
-        <option value="">System font — default</option>
+        <option value="">{t("novel.settings.systemFontDefault")}</option>
         {#each systemFonts as f (f)}
           <option value={f}>{f}</option>
         {/each}
@@ -52,61 +53,61 @@
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Text</p>
+    <p class="msp-label">{t("novel.settings.text")}</p>
     <div class="msp-row">
-      <span>Size</span>
+      <span>{t("novel.settings.size")}</span>
       <div class="msp-stepper">
-        <button aria-label="Smaller" onclick={() => st.bumpFont(-0.05)}>−</button>
+        <button aria-label={t("novel.settings.smaller")} onclick={() => st.bumpFont(-0.05)}>−</button>
         <span class="msp-val">{Math.round(st.fontScale * 100)}%</span>
-        <button aria-label="Larger" onclick={() => st.bumpFont(0.05)}>+</button>
+        <button aria-label={t("novel.settings.larger")} onclick={() => st.bumpFont(0.05)}>+</button>
       </div>
     </div>
     <div class="msp-row">
-      <span>Line height</span>
+      <span>{t("novel.settings.lineHeight")}</span>
       <div class="msp-stepper">
-        <button aria-label="Tighter" onclick={() => st.bumpLine(-0.1)}>−</button>
+        <button aria-label={t("novel.settings.tighter")} onclick={() => st.bumpLine(-0.1)}>−</button>
         <span class="msp-val">{st.lineHeight.toFixed(1)}</span>
-        <button aria-label="Looser" onclick={() => st.bumpLine(0.1)}>+</button>
+        <button aria-label={t("novel.settings.looser")} onclick={() => st.bumpLine(0.1)}>+</button>
       </div>
     </div>
     <div class="msp-row">
-      <span>Paragraph gap</span>
+      <span>{t("novel.settings.paragraphGap")}</span>
       <div class="msp-stepper">
-        <button aria-label="Less" onclick={() => st.bumpPara(-0.1)}>−</button>
+        <button aria-label={t("novel.settings.less")} onclick={() => st.bumpPara(-0.1)}>−</button>
         <span class="msp-val">{st.paraSpacing.toFixed(1)}</span>
-        <button aria-label="More" onclick={() => st.bumpPara(0.1)}>+</button>
+        <button aria-label={t("novel.settings.more")} onclick={() => st.bumpPara(0.1)}>+</button>
       </div>
     </div>
     <div class="msp-row">
-      <span>Column width</span>
+      <span>{t("novel.settings.columnWidth")}</span>
       <div class="msp-stepper">
-        <button aria-label="Narrower" onclick={() => st.bumpWidth(-4)}>−</button>
+        <button aria-label={t("novel.settings.narrower")} onclick={() => st.bumpWidth(-4)}>−</button>
         <span class="msp-val">{st.pageWidth}</span>
-        <button aria-label="Wider" onclick={() => st.bumpWidth(4)}>+</button>
+        <button aria-label={t("novel.settings.wider")} onclick={() => st.bumpWidth(4)}>+</button>
       </div>
     </div>
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Scrolling</p>
+    <p class="msp-label">{t("novel.settings.scrolling")}</p>
     <div class="msp-row">
-      <span>Paged</span>
+      <span>{t("novel.settings.paged")}</span>
       <button class="msp-toggle" class:on={st.paged}
-        role="switch" aria-checked={st.paged} aria-label="Paged reading"
+        role="switch" aria-checked={st.paged} aria-label={t("novel.settings.pagedReading")}
         onclick={() => st.setPaged(!st.paged)}
       ><span class="msp-toggle-knob"></span></button>
     </div>
     {#if !st.paged}
     <div class="msp-row">
-      <span>Auto scroll</span>
+      <span>{t("novel.settings.autoScroll")}</span>
       <button class="msp-toggle" class:on={autoScroll}
-        role="switch" aria-checked={autoScroll} aria-label="Auto scroll"
+        role="switch" aria-checked={autoScroll} aria-label={t("novel.settings.autoScroll")}
         onclick={() => updateSettings({ autoScroll: !autoScroll })}
       ><span class="msp-toggle-knob"></span></button>
     </div>
     {#if autoScroll}
       <div class="msp-row">
-        <span>Scroll speed</span>
+        <span>{t("novel.settings.scrollSpeed")}</span>
         <input class="msp-slider" type="range" min={1} max={30} step={1}
           value={settingsState.settings.autoScrollSpeed ?? 5}
           oninput={(e) => updateSettings({ autoScrollSpeed: Number(e.currentTarget.value) })} />
@@ -117,41 +118,41 @@
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Reading guide</p>
+    <p class="msp-label">{t("novel.settings.readingGuide")}</p>
     <div class="msp-row">
-      <span>Guide bar</span>
+      <span>{t("novel.settings.guideBar")}</span>
       <button class="msp-toggle" class:on={st.readingGuide}
-        role="switch" aria-checked={st.readingGuide} aria-label="Reading guide"
+        role="switch" aria-checked={st.readingGuide} aria-label={t("novel.settings.readingGuide")}
         onclick={() => st.setReadingGuide(!st.readingGuide)}
       ><span class="msp-toggle-knob"></span></button>
     </div>
     {#if st.readingGuide}
       <div class="msp-row">
-        <span>Thickness</span>
+        <span>{t("novel.settings.thickness")}</span>
         <div class="msp-stepper">
-          <button aria-label="Fewer lines" onclick={() => st.bumpGuideLines(-1)}>−</button>
-          <span class="msp-val">{st.readingGuideLines} {st.readingGuideLines === 1 ? "line" : "lines"}</span>
-          <button aria-label="More lines" onclick={() => st.bumpGuideLines(1)}>+</button>
+          <button aria-label={t("novel.settings.fewerLines")} onclick={() => st.bumpGuideLines(-1)}>−</button>
+          <span class="msp-val">{t("novel.settings.guideLines", { count: st.readingGuideLines })}</span>
+          <button aria-label={t("novel.settings.moreLines")} onclick={() => st.bumpGuideLines(1)}>+</button>
         </div>
       </div>
     {/if}
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Alignment</p>
+    <p class="msp-label">{t("novel.settings.alignment")}</p>
     <div class="msp-seg">
-      <button class="msp-seg-btn" class:on={st.textAlign === "left"} onclick={() => st.setAlign("left")}>Left</button>
-      <button class="msp-seg-btn" class:on={st.textAlign === "justify"} onclick={() => st.setAlign("justify")}>Justify</button>
+      <button class="msp-seg-btn" class:on={st.textAlign === "left"} onclick={() => st.setAlign("left")}>{t("novel.settings.alignLeft")}</button>
+      <button class="msp-seg-btn" class:on={st.textAlign === "justify"} onclick={() => st.setAlign("justify")}>{t("novel.settings.alignJustify")}</button>
     </div>
   </div>
 
   <div class="msp-group">
-    <p class="msp-label">Theme</p>
+    <p class="msp-label">{t("novel.settings.theme")}</p>
     <div class="msp-tiles ns-themes">
-      {#each THEMES as t (t.k)}
-        <button class="msp-tile" class:on={st.theme === t.k} onclick={() => st.setTheme(t.k)}>
-          <span class="ns-swatch" style="background:{t.swatch}"></span>
-          <span class="msp-tile-label">{t.label}</span>
+      {#each THEMES as th (th.k)}
+        <button class="msp-tile" class:on={st.theme === th.k} onclick={() => st.setTheme(th.k)}>
+          <span class="ns-swatch" style="background:{th.swatch}"></span>
+          <span class="msp-tile-label">{t(th.label)}</span>
         </button>
       {/each}
     </div>

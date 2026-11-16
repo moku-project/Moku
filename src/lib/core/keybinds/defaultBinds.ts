@@ -1,3 +1,5 @@
+import type { MessageKey } from '$lib/i18n/index.svelte'
+
 export interface Keybinds {
   turnPageRight:          string;
   turnPageLeft:           string;
@@ -30,18 +32,18 @@ export const DEFAULT_KEYBINDS: Keybinds = {
   toggleAutoScroll:       "s",
 };
 
-export const KEYBIND_LABELS: Record<keyof Keybinds, string> = {
-  turnPageRight:          "Turn page right (→)",
-  turnPageLeft:           "Turn page left (←)",
-  firstPage:              "Jump to first page",
-  lastPage:               "Jump to last page",
-  turnChapterRight:       "Turn chapter right (→)",
-  turnChapterLeft:        "Turn chapter left (←)",
-  exitReader:             "Exit reader",
-  toggleReadingDirection: "Toggle reading direction",
-  togglePageStyle:        "Toggle page style",
-  toggleFullscreen:       "Toggle fullscreen",
-  openSettings:           "Open settings",
-  toggleBookmark:         "Toggle bookmark",
-  toggleAutoScroll:       "Toggle auto scroll",
+export const KEYBIND_LABELS: Record<keyof Keybinds, MessageKey> = {
+  turnPageRight:          "keybinds.turnPageRight",
+  turnPageLeft:           "keybinds.turnPageLeft",
+  firstPage:              "keybinds.firstPage",
+  lastPage:               "keybinds.lastPage",
+  turnChapterRight:       "keybinds.turnChapterRight",
+  turnChapterLeft:        "keybinds.turnChapterLeft",
+  exitReader:             "keybinds.exitReader",
+  toggleReadingDirection: "keybinds.toggleReadingDirection",
+  togglePageStyle:        "keybinds.togglePageStyle",
+  toggleFullscreen:       "keybinds.toggleFullscreen",
+  openSettings:           "keybinds.openSettings",
+  toggleBookmark:         "keybinds.toggleBookmark",
+  toggleAutoScroll:       "keybinds.toggleAutoScroll",
 };

@@ -1,22 +1,23 @@
 import { tsunagu } from "$lib/server-adapters/tsunagu";
 import type { ContentType, Tracker } from "$lib/server-adapters/types";
+import { t } from "$lib/i18n/index.svelte";
 
 export const TRACK_STATUSES: { value: number; label: string }[] = [
-  { value: 1, label: "Reading" },
-  { value: 2, label: "Plan to read" },
-  { value: 3, label: "Completed" },
-  { value: 4, label: "On hold" },
-  { value: 5, label: "Dropped" },
-  { value: 6, label: "Rereading" },
+  { value: 1, get label() { return t("notices.trackStatus.reading"); } },
+  { value: 2, get label() { return t("notices.trackStatus.planToRead"); } },
+  { value: 3, get label() { return t("notices.trackStatus.completed"); } },
+  { value: 4, get label() { return t("notices.trackStatus.onHold"); } },
+  { value: 5, get label() { return t("notices.trackStatus.dropped"); } },
+  { value: 6, get label() { return t("notices.trackStatus.rereading"); } },
 ];
 
 const TRACK_STATUSES_ANIME: { value: number; label: string }[] = [
-  { value: 1, label: "Watching" },
-  { value: 2, label: "Plan to watch" },
-  { value: 3, label: "Completed" },
-  { value: 4, label: "On hold" },
-  { value: 5, label: "Dropped" },
-  { value: 6, label: "Rewatching" },
+  { value: 1, get label() { return t("notices.trackStatus.watching"); } },
+  { value: 2, get label() { return t("notices.trackStatus.planToWatch"); } },
+  { value: 3, get label() { return t("notices.trackStatus.completed"); } },
+  { value: 4, get label() { return t("notices.trackStatus.onHold"); } },
+  { value: 5, get label() { return t("notices.trackStatus.dropped"); } },
+  { value: 6, get label() { return t("notices.trackStatus.rewatching"); } },
 ];
 
 export function statusesFor(
@@ -47,11 +48,11 @@ class TrackerState {
   private loaded = false;
   private inFlight: Promise<void> | null = null;
 
-  get configured(): boolean  { return this.list.some(t => t.configured); }
-  get anyLoggedIn(): boolean { return this.list.some(t => t.isLoggedIn); }
+  get configured(): boolean  { return this.list.some(tr => tr.configured); }
+  get anyLoggedIn(): boolean { return this.list.some(tr => tr.isLoggedIn); }
 
   byKey(key: string): Tracker | undefined {
-    return this.list.find(t => t.key === key);
+    return this.list.find(tr => tr.key === key);
   }
 
   async load(force = false): Promise<void> {
@@ -73,8 +74,8 @@ class TrackerState {
     return this.inFlight;
   }
 
-  patch(t: Tracker) {
-    this.list = this.list.map(x => x.key === t.key ? t : x);
+  patch(tracker: Tracker) {
+    this.list = this.list.map(x => x.key === tracker.key ? tracker : x);
   }
 }
 

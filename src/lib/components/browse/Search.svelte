@@ -8,6 +8,7 @@
   import { toCachedManga, toBrowseManga, toSource, shouldHideNsfw, runConcurrent, type CachedManga, coverFirst } from "$lib/components/browse/lib/searchFilter";
   import type { Manga, Source } from "$lib/types";
   import { canonicalLang, LANG_ALL } from "$lib/core/lang";
+  import { t } from "$lib/i18n/index.svelte";
 
   import KeywordTab from "$lib/components/browse/KeywordTab.svelte";
   import TagTab     from "$lib/components/browse/TagTab.svelte";
@@ -86,7 +87,7 @@
           id:             "__local__",
           name:           "Local source",
           lang:           "local",
-          displayName:    "Local source",
+          displayName:    t("browse.search.localSource"),
           iconUrl:        "",
           isNsfw:         false,
           isConfigurable: false,
@@ -279,7 +280,7 @@
 
 <div class="root">
   <div class="header">
-    <span class="heading">Search</span>
+    <span class="heading">{t("common.search")}</span>
 
     <div class="tabs" class:tabs-anims={anims} bind:this={tabsEl}>
       {#if anims && tabIndicator.width > 0}
@@ -289,19 +290,19 @@
         <svg width="11" height="11" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
           <path d="M229.66,218.34l-50.07-50.07a88,88,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.31ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/>
         </svg>
-        Keyword
+        {t("browse.search.tabKeyword")}
       </button>
       <button class="tab" class:tabActive={urlTab === "tag"} onclick={() => setTab("tag")}>
         <svg width="11" height="11" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
           <path d="M224,104H200l8-48a8,8,0,0,0-15.79-2.67L183.79,104H136l8-48a8,8,0,0,0-15.79-2.67L119.79,104H72a8,8,0,0,0,0,16h45.33L105.6,200H56a8,8,0,0,0,0,16H103l-8,48a8,8,0,0,0,15.79,2.67L119.21,216H168l-8,48a8,8,0,0,0,15.79,2.67L184.21,216H232a8,8,0,0,0,0-16H186.67l11.73-80H224a8,8,0,0,0,0-16Zm-69.33,96H101.6L113.33,120h53.07Z"/>
         </svg>
-        Tags
+        {t("browse.search.tabTags")}
       </button>
       <button class="tab" class:tabActive={urlTab === "source"} onclick={() => setTab("source")}>
         <svg width="11" height="11" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
           <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/>
         </svg>
-        Sources
+        {t("browse.search.tabSources")}
       </button>
     </div>
   </div>

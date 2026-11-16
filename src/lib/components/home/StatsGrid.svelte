@@ -2,20 +2,21 @@
   import { Fire, BookOpen, Clock, Books, CalendarCheck, CalendarBlank, TrendUp } from 'phosphor-svelte'
   import { formatReadTime, timeAgo } from '$lib/core/util'
   import type { ReadingStats, MediaKind } from '$lib/types/history'
+  import { t, currentLocale, type MessageKey } from '$lib/i18n/index.svelte'
   import type { Manga } from '$lib/types'
 
   let { stats, library }: { stats: ReadingStats; library: Manga[] } = $props()
 
   const sinceLabel = $derived(
     stats.firstReadAt
-      ? new Date(stats.firstReadAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      ? new Date(stats.firstReadAt).toLocaleDateString(currentLocale(), { month: 'short', year: 'numeric' })
       : '—'
   )
 
-  const TYPES: { key: MediaKind; label: string; color: string }[] = [
-    { key: 'MANGA', label: 'Manga',  color: 'var(--accent)' },
-    { key: 'NOVEL', label: 'Novels', color: '#7c7cf0' },
-    { key: 'ANIME', label: 'Anime',  color: '#f0a05a' },
+  const TYPES: { key: MediaKind; label: MessageKey; color: string }[] = [
+    { key: 'MANGA', label: 'nav.contentManga',  color: 'var(--accent)' },
+    { key: 'NOVEL', label: 'nav.contentNovels', color: '#7c7cf0' },
+    { key: 'ANIME', label: 'nav.contentAnime',  color: '#f0a05a' },
   ]
 
   const byType = $derived.by(() => {
@@ -37,9 +38,9 @@
     const { m, total } = byType
     if (total === 0) return []
     let offset = 0
-    return TYPES.filter(t => m[t.key] > 0).map(t => {
-      const frac = m[t.key] / total
-      const arc = { ...t, count: m[t.key], pct: Math.round(frac * 100), len: frac * CIRC, off: offset }
+    return TYPES.filter(ty => m[ty.key] > 0).map(ty => {
+      const frac = m[ty.key] / total
+      const arc = { ...ty, count: m[ty.key], pct: Math.round(frac * 100), len: frac * CIRC, off: offset }
       offset += frac * CIRC
       return arc
     })
@@ -51,39 +52,39 @@
     return (stats.totalChaptersRead / days).toFixed(1)
   })
 
-  const tiles = $derived([
-    { icon: BookOpen,      value: String(stats.totalChaptersRead), label: 'Chapters / episodes' },
-    { icon: Clock,         value: formatReadTime(stats.totalMinutesRead), label: 'Read time' },
-    { icon: CalendarBlank, value: String(stats.chaptersThisWeek), label: 'This week' },
-    { icon: TrendUp,       value: perDay, label: 'Per day' },
-    { icon: Books,         value: String(stats.totalMangaRead), label: 'Series started' },
-    { icon: CalendarCheck, value: sinceLabel, label: 'Reading since' },
+  const tiles: { icon: any; value: string; label: MessageKey }[] = $derived([
+    { icon: BookOpen,      value: String(stats.totalChaptersRead), label: 'home.stats.chaptersEpisodes' },
+    { icon: Clock,         value: formatReadTime(stats.totalMinutesRead), label: 'home.stats.readTime' },
+    { icon: CalendarBlank, value: String(stats.chaptersThisWeek), label: 'home.stats.thisWeek' },
+    { icon: TrendUp,       value: perDay, label: 'home.stats.perDay' },
+    { icon: Books,         value: String(stats.totalMangaRead), label: 'home.stats.seriesStarted' },
+    { icon: CalendarCheck, value: sinceLabel, label: 'home.stats.readingSince' },
   ])
 </script>
 
 <div class="stats">
   <div class="head">
-    <span class="head-title"><TrendUp size={10} weight="bold" /> Your Stats</span>
+    <span class="head-title"><TrendUp size={10} weight="bold" /> {t('home.stats.title')}</span>
   </div>
 
   <div class="streak">
     <div class="streak-flame"><Fire size={18} weight="fill" /></div>
     <div class="streak-body">
-      <span class="streak-val">{stats.currentStreakDays}<span class="streak-unit">day{stats.currentStreakDays === 1 ? '' : 's'}</span></span>
-      <span class="streak-label">Current streak</span>
+      <span class="streak-val">{stats.currentStreakDays}<span class="streak-unit">{t('home.stats.streakUnit', { count: stats.currentStreakDays })}</span></span>
+      <span class="streak-label">{t('home.stats.currentStreak')}</span>
     </div>
     <div class="streak-best">
-      <span class="streak-best-val">{stats.longestStreakDays}d</span>
-      <span class="streak-best-label">best</span>
+      <span class="streak-best-val">{t('home.stats.bestValue', { days: stats.longestStreakDays })}</span>
+      <span class="streak-best-label">{t('home.stats.best')}</span>
     </div>
   </div>
 
   <div class="breakdown">
     <div class="section-head">
-      <span class="section-label">Read by type</span>
+      <span class="section-label">{t('home.stats.readByType')}</span>
     </div>
     {#if byType.total === 0}
-      <p class="empty">No reading tracked yet.</p>
+      <p class="empty">{t('home.stats.empty')}</p>
     {:else}
       <div class="donut-row">
         <svg class="donut" viewBox="0 0 100 100" aria-hidden="true">
@@ -101,7 +102,7 @@
           {#each arcs as a}
             <div class="legend-row">
               <span class="legend-dot" style="background:{a.color}"></span>
-              <span class="legend-name">{a.label}</span>
+              <span class="legend-name">{t(a.label)}</span>
               <span class="legend-count">{a.count}</span>
               <span class="legend-pct">{a.pct}%</span>
             </div>
@@ -112,19 +113,19 @@
   </div>
 
   <div class="grid">
-    {#each tiles as t}
+    {#each tiles as tile}
       <div class="tile">
-        <div class="tile-icon"><t.icon size={14} weight="light" /></div>
+        <div class="tile-icon"><tile.icon size={14} weight="light" /></div>
         <div class="tile-body">
-          <span class="tile-val">{t.value}</span>
-          <span class="tile-label">{t.label}</span>
+          <span class="tile-val">{tile.value}</span>
+          <span class="tile-label">{t(tile.label)}</span>
         </div>
       </div>
     {/each}
   </div>
 
   <div class="foot">
-    Updated {stats.lastReadAt ? timeAgo(stats.lastReadAt) : '—'}
+    {t('home.stats.updated', { time: stats.lastReadAt ? timeAgo(stats.lastReadAt) : '—' })}
   </div>
 </div>
 

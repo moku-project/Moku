@@ -1,6 +1,7 @@
 <script lang="ts">
   import logoUrl                          from '$lib/assets/moku-icon-splash.svg'
   import { tourState, finishTour }        from '$lib/state/onboarding.svelte'
+  import { t } from '$lib/i18n/index.svelte'
 
   const DISCORD_URL = 'https://discord.gg/Jq3pwuNqPp'
 
@@ -89,14 +90,14 @@
   <div class="card-wrap">
     <div class="card">
       <img src={logoUrl} alt="Moku" class="logo" />
-      <p class="title">welcome to moku</p>
-      <p class="body">You're all set. Add a source, build your library, and settle in.</p>
+      <p class="title">{t('onboarding.welcomeTitle')}</p>
+      <p class="body">{t('onboarding.finishBody')}</p>
 
       <a class="discord" href={DISCORD_URL} target="_blank" rel="noreferrer">
-        Join the Discord
+        {t('onboarding.joinDiscord')}
       </a>
 
-      <button class="btn" onclick={finishTour}>Done</button>
+      <button class="btn" onclick={finishTour}>{t('common.done')}</button>
     </div>
   </div>
 {/if}

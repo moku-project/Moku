@@ -7,6 +7,7 @@
   import { platformService } from "$lib/platform-service";
   import { addToast }        from "$lib/state/notifications.svelte";
   import { settingsState }   from "$lib/state/settings.svelte";
+  import { t, type MessageKey } from "$lib/i18n/index.svelte";
 
   import { libraryByExtension, type LibraryManga, type SourceNode, type SourceLibrary } from "$lib/components/extensions/lib/extensionLibrary";
   import SourceMigrateModal  from "$lib/components/extensions/panels/SourceMigrateModal.svelte";
@@ -109,14 +110,14 @@
       });
       if (imported.length > 0) {
         await tsunagu.rescanLocalMedia();
-        addToast({ kind: "success", title: `Imported ${imported.length} series`, body: [...new Set(imported)].join(", ") });
+        addToast({ kind: "success", title: t("extensions.library.imported", { count: imported.length }), body: [...new Set(imported)].join(", ") });
         await load();
       }
       for (const err of errors) {
-        addToast({ kind: "error", title: "Import failed", body: `${err.path}: ${err.message}` });
+        addToast({ kind: "error", title: t("extensions.library.importFailed"), body: `${err.path}: ${err.message}` });
       }
     } catch (e: any) {
-      addToast({ kind: "error", title: "Import failed", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("extensions.library.importFailed"), body: e?.message ?? String(e) });
     } finally {
       importing = false;
       importProgress = null;
@@ -188,7 +189,7 @@
       renaming = null;
       await load();
     } catch (e: any) {
-      addToast({ kind: "error", title: "Rename failed", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("extensions.library.renameFailed"), body: e?.message ?? String(e) });
     }
   }
 
@@ -201,11 +202,11 @@
     deleteBusy = true;
     try {
       await tsunagu.deleteLocalSeries(deleting.id);
-      addToast({ kind: "success", title: "Deleted", body: deleting.title });
+      addToast({ kind: "success", title: t("extensions.library.deleted"), body: deleting.title });
       deleting = null;
       await load();
     } catch (e: any) {
-      addToast({ kind: "error", title: "Delete failed", body: e?.message ?? String(e) });
+      addToast({ kind: "error", title: t("extensions.library.deleteFailed"), body: e?.message ?? String(e) });
     } finally {
       deleteBusy = false;
     }
@@ -252,9 +253,9 @@
     return () => document.removeEventListener("mousedown", onOutside, true);
   });
 
-  const CONTENT_FILTERS: [ContentFilter, string][] = [
-    ["unread",     "Unread"],
-    ["downloaded", "Downloaded"],
+  const CONTENT_FILTERS: [ContentFilter, MessageKey][] = [
+    ["unread",     "extensions.library.filterUnread"],
+    ["downloaded", "extensions.library.filterDownloaded"],
   ];
 </script>
 
@@ -267,7 +268,7 @@
       <Thumbnail src={iconUrl} alt={extensionName} class="header-icon" onerror={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
     {/if}
     <div class="title-block">
-      <span class="eyebrow">{isLocal ? 'Local Source' : 'In Library'}</span>
+      <span class="eyebrow">{isLocal ? t('extensions.local.name') : t('extensions.library.inLibrary')}</span>
       <span class="title">{extensionName}</span>
     </div>
     {#if !loading}
@@ -279,24 +280,24 @@
       <div class="search-wrap">
         <MagnifyingGlass size={12} class="search-icon" weight="light" />
         {#if isLocal}
-          <input class="search" placeholder="Search" bind:value={searchInput} autocomplete="off" onkeydown={onSearchKeydown} />
+          <input class="search" placeholder={t("common.search")} bind:value={searchInput} autocomplete="off" onkeydown={onSearchKeydown} />
         {:else}
-          <input class="search" placeholder="Search" bind:value={search} autocomplete="off" />
+          <input class="search" placeholder={t("common.search")} bind:value={search} autocomplete="off" />
         {/if}
       </div>
 
       {#if canImport}
         <div class="filter-wrap add-menu-wrap">
-          <button class="settings-btn" onclick={() => addMenuOpen = !addMenuOpen} title="Add series">
+          <button class="settings-btn" onclick={() => addMenuOpen = !addMenuOpen} title={t("extensions.library.addSeries")}>
             <Plus size={14} weight="bold" />
           </button>
           {#if addMenuOpen}
             <div class="filter-panel" role="menu">
               <button class="panel-item" role="menuitem" onclick={() => pickAndImport(true)}>
-                Add folder…
+                {t("extensions.library.addFolder")}
               </button>
               <button class="panel-item" role="menuitem" onclick={() => pickAndImport(false)}>
-                Add files…
+                {t("extensions.library.addFiles")}
               </button>
             </div>
           {/if}
@@ -308,7 +309,7 @@
           <button
             class="filter-btn"
             class:filter-btn-active={hasActiveFilters}
-            title="Filter"
+            title={t("extensions.library.filter")}
             onclick={() => filterOpen = !filterOpen}
           >
             <Funnel size={13} weight={hasActiveFilters ? "fill" : "bold"} />
@@ -316,13 +317,13 @@
           {#if filterOpen}
             <div class="filter-panel" role="menu">
               <div class="filter-panel-header">
-                <span class="panel-heading">Filter</span>
+                <span class="panel-heading">{t("extensions.library.filter")}</span>
                 {#if hasActiveFilters}
-                  <button class="panel-clear-btn" onclick={clearFilters}>Clear all</button>
+                  <button class="panel-clear-btn" onclick={clearFilters}>{t("extensions.library.clearAll")}</button>
                 {/if}
               </div>
               <div class="panel-divider"></div>
-              <p class="panel-label">Content</p>
+              <p class="panel-label">{t("extensions.library.content")}</p>
               {#each CONTENT_FILTERS as [f, label]}
                 <button
                   class="panel-item"
@@ -333,7 +334,7 @@
                   <span class="panel-check" class:panel-check-on={activeFilters[f]}>
                     {#if activeFilters[f]}<Check size={9} weight="bold" />{/if}
                   </span>
-                  {label}
+                  {t(label)}
                 </button>
               {/each}
             </div>
@@ -341,7 +342,7 @@
         </div>
 
         {#if sources.length > 0}
-          <button class="settings-btn" onclick={onSettings} title="Extension settings">
+          <button class="settings-btn" onclick={onSettings} title={t("extensions.library.settings")}>
             <GearSix size={14} weight="bold" />
           </button>
         {/if}
@@ -354,16 +355,16 @@
       {#if importing}
         <CircleNotch size={13} weight="light" class="anim-spin" />
         {#if importProgress && importProgress.total > 0}
-          Importing… {importProgress.copied} / {importProgress.total} files
+          {t("extensions.library.importingProgress", { copied: importProgress.copied, total: importProgress.total })}
           <div class="import-progress-track">
             <div class="import-progress-fill" style="width:{Math.min(100, (importProgress.copied / importProgress.total) * 100)}%"></div>
           </div>
         {:else}
-          Importing…
+          {t("extensions.library.importing")}
         {/if}
       {:else}
         <UploadSimple size={13} weight="bold" />
-        Drag manga, anime, or novel folders (or .cbz/.cbr/.cb7/.cbt/.pdf/.epub/.docx files) anywhere in this window to import them
+        {t("extensions.library.dropHint")}
       {/if}
     </div>
   {/if}
@@ -382,11 +383,11 @@
       <div class="empty">
         {isLocal
           ? (allManga.length === 0
-              ? (canImport ? 'No local series yet — drag a manga, anime, or novel folder in to get started.' : 'No local series yet.')
-              : 'No matches.')
+              ? (canImport ? t('extensions.library.emptyLocalImport') : t('extensions.library.emptyLocal'))
+              : t('extensions.library.noMatches'))
           : allManga.length === 0
-            ? 'Nothing from this extension is in your library.'
-            : 'No matches.'}
+            ? t('extensions.library.emptyExtension')
+            : t('extensions.library.noMatches')}
       </div>
     {:else}
       {#if !isLocal && groups.length > 1}
@@ -395,9 +396,9 @@
             <div class="source-group-header">
               <span class="source-group-name">{group.displayName}</span>
               <span class="source-group-count">{group.manga.length}</span>
-              <button class="migrate-btn" onclick={() => openMigrate(group)} title="Migrate this source">
+              <button class="migrate-btn" onclick={() => openMigrate(group)} title={t("extensions.library.migrateTitle")}>
                 <Swap size={12} weight="bold" />
-                Migrate source
+                {t("extensions.library.migrate")}
               </button>
             </div>
           {/each}
@@ -405,9 +406,9 @@
       {:else if !isLocal && groups.length === 1}
         <div class="single-source-bar">
           <span class="source-group-name">{groups[0].displayName}</span>
-          <button class="migrate-btn" onclick={() => openMigrate(groups[0])} title="Migrate this source">
+          <button class="migrate-btn" onclick={() => openMigrate(groups[0])} title={t("extensions.library.migrateTitle")}>
             <Swap size={12} weight="bold" />
-            Migrate source
+            {t("extensions.library.migrate")}
           </button>
         </div>
       {/if}
@@ -428,9 +429,9 @@
                 <div class="card-info-overlay" class:anim={anims} class:instant={!anims} class:always={statsAlways}>
                   <div class="overlay-badges">
                     {#if isCompleted}
-                      <span class="badge badge-done">✓ Done</span>
+                      <span class="badge badge-done">{t("extensions.library.badgeDone")}</span>
                     {:else if m.unreadCount}
-                      <span class="badge badge-unread">{m.unreadCount} new</span>
+                      <span class="badge badge-unread">{t("extensions.library.badgeUnread", { count: m.unreadCount })}</span>
                     {/if}
                     {#if m.downloadCount}
                       <span class="badge badge-dl">↓ {m.downloadCount}</span>
@@ -442,14 +443,14 @@
                 <div class="card-actions">
                   <button
                     class="rename-btn"
-                    title="Rename"
+                    title={t("common.rename")}
                     onclick={(e) => { e.stopPropagation(); startRename(m as LibraryManga); }}
                   >
                     <PencilSimple size={11} weight="bold" />
                   </button>
                   <button
                     class="rename-btn delete-btn"
-                    title="Delete"
+                    title={t("common.delete")}
                     onclick={(e) => { e.stopPropagation(); startDelete(m as LibraryManga); }}
                   >
                     <Trash size={11} weight="bold" />
@@ -467,9 +468,9 @@
           <button class="load-more-btn" onclick={loadMoreLocal} disabled={localLoadingMore}>
             {#if localLoadingMore}
               <CircleNotch size={13} weight="light" class="anim-spin" />
-              Loading…
+              {t("common.loading")}
             {:else}
-              Load more
+              {t("extensions.library.loadMore")}
             {/if}
           </button>
         </div>
@@ -479,9 +480,9 @@
 </div>
 
 {#if renaming}
-  <div class="backdrop" role="button" tabindex="-1" aria-label="Close" onclick={(e) => { if (e.target === e.currentTarget) renaming = null; }} onkeydown={(e) => e.key === 'Escape' && (renaming = null)}>
-    <div class="rename-modal" role="dialog" aria-label="Rename series">
-      <span class="rename-label">Rename series</span>
+  <div class="backdrop" role="button" tabindex="-1" aria-label={t("common.close")} onclick={(e) => { if (e.target === e.currentTarget) renaming = null; }} onkeydown={(e) => e.key === 'Escape' && (renaming = null)}>
+    <div class="rename-modal" role="dialog" aria-label={t("extensions.library.renameSeries")}>
+      <span class="rename-label">{t("extensions.library.renameSeries")}</span>
       <input
         class="rename-input"
         bind:value={renameInput}
@@ -489,21 +490,21 @@
         onkeydown={(e) => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') renaming = null; }}
       />
       <div class="rename-actions">
-        <button class="rename-btn-cancel" onclick={() => renaming = null}>Cancel</button>
-        <button class="rename-btn-confirm" onclick={confirmRename}>Rename</button>
+        <button class="rename-btn-cancel" onclick={() => renaming = null}>{t("common.cancel")}</button>
+        <button class="rename-btn-confirm" onclick={confirmRename}>{t("common.rename")}</button>
       </div>
     </div>
   </div>
 {/if}
 
 {#if deleting}
-  <div class="backdrop" role="button" tabindex="-1" aria-label="Close" onclick={(e) => { if (e.target === e.currentTarget && !deleteBusy) deleting = null; }} onkeydown={(e) => e.key === 'Escape' && !deleteBusy && (deleting = null)}>
-    <div class="rename-modal" role="dialog" aria-label="Delete series">
-      <span class="rename-label">Delete "{deleting.title}"? This permanently removes its files from disk and can't be undone.</span>
+  <div class="backdrop" role="button" tabindex="-1" aria-label={t("common.close")} onclick={(e) => { if (e.target === e.currentTarget && !deleteBusy) deleting = null; }} onkeydown={(e) => e.key === 'Escape' && !deleteBusy && (deleting = null)}>
+    <div class="rename-modal" role="dialog" aria-label={t("extensions.library.deleteSeries")}>
+      <span class="rename-label">{t("extensions.library.deleteConfirm", { title: deleting.title })}</span>
       <div class="rename-actions">
-        <button class="rename-btn-cancel" onclick={() => deleting = null} disabled={deleteBusy}>Cancel</button>
+        <button class="rename-btn-cancel" onclick={() => deleting = null} disabled={deleteBusy}>{t("common.cancel")}</button>
         <button class="rename-btn-confirm delete-confirm-btn" onclick={confirmDelete} disabled={deleteBusy}>
-          {deleteBusy ? 'Deleting…' : 'Delete'}
+          {deleteBusy ? t('extensions.library.deleting') : t('common.delete')}
         </button>
       </div>
     </div>

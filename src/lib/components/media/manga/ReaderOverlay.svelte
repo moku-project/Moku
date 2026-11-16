@@ -2,6 +2,7 @@
   import { readerState }                    from "$lib/state/mangaReader.svelte";
   import { tsunagu }                        from "$lib/server-adapters/tsunagu";
   import type { Chapter }                   from "$lib/types";
+  import { t }                              from "$lib/i18n/index.svelte";
 
   interface Props {
     showResumeBanner: boolean;
@@ -43,7 +44,7 @@
 
 {#if bannerMounted}
   <button class="resume-banner resume-banner-{barPosition}" class:fading={bannerFading} onclick={onDismissResume} onanimationend={onBannerAnimationEnd}>
-    Bookmark at page {resumePage}
+    {t("reader.overlay.resumeBanner", { page: resumePage })}
   </button>
 {/if}
 
@@ -51,19 +52,19 @@
   {@const chapter = readerState.activeChapter}
   <div class="dl-backdrop dl-backdrop-{barPosition}" role="presentation" onclick={() => readerState.dlOpen = false}>
     <div class="dl-modal" role="presentation" onclick={(e) => e.stopPropagation()}>
-      <p class="dl-title">Download</p>
+      <p class="dl-title">{t("reader.download.title")}</p>
 
       <button class="dl-option" disabled={readerState.dlBusy || !!chapter.downloaded}
         onclick={() => runDl(async () => { await tsunagu.enqueueDownload(realMediaId, chapter.id); })}>
-        This chapter
-        <span class="dl-sub">{chapter.downloaded ? "Already downloaded" : chapter.name}</span>
+        {t("reader.download.thisChapter")}
+        <span class="dl-sub">{chapter.downloaded ? t("reader.download.alreadyDownloaded") : chapter.name}</span>
       </button>
 
       <div class="dl-row">
         <button class="dl-option" disabled={readerState.dlBusy || queueable.length === 0}
           onclick={() => runDl(async () => { await tsunagu.enqueueDownloads(realMediaId, queueable.slice(0, readerState.nextN).map(c => c.id)); })}>
-          Next chapters
-          <span class="dl-sub">{Math.min(readerState.nextN, queueable.length)} not yet downloaded</span>
+          {t("reader.download.nextChapters")}
+          <span class="dl-sub">{t("reader.download.notDownloaded", { count: Math.min(readerState.nextN, queueable.length) })}</span>
         </button>
         <div class="dl-stepper" role="presentation" onclick={(e) => e.stopPropagation()}>
           <button class="dl-step-btn" onclick={() => readerState.nextN = Math.max(1, readerState.nextN - 1)} disabled={readerState.nextN <= 1}>−</button>
@@ -74,8 +75,8 @@
 
       <button class="dl-option" disabled={readerState.dlBusy || queueable.length === 0}
         onclick={() => runDl(async () => { await tsunagu.enqueueDownloads(realMediaId, queueable.map(c => c.id)); })}>
-        All remaining
-        <span class="dl-sub">{queueable.length} not yet downloaded</span>
+        {t("reader.download.allRemaining")}
+        <span class="dl-sub">{t("reader.download.notDownloaded", { count: queueable.length })}</span>
       </button>
     </div>
   </div>

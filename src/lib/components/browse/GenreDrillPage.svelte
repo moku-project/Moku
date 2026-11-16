@@ -10,6 +10,7 @@
   import { ArrowLeftIcon, BookmarkSimpleIcon, CircleNotchIcon } from "phosphor-svelte";
   import type { Manga, Source }  from "$lib/types";
   import { toBrowseManga, toSource, coverFirst } from "$lib/components/browse/lib/searchFilter";
+  import { t } from "$lib/i18n/index.svelte";
   import {
     PAGE_SIZE, INITIAL_PAGES, MAX_SOURCES,
     parseTags, tagsLabel, matchesAllTags, runConcurrent,
@@ -71,8 +72,8 @@
     visibleCount   = PAGE_SIZE;
     nextPageMap.clear();
 
-    const t  = parseTags(filter);
-    const pt = t[0] ?? "";
+    const tagList = parseTags(filter);
+    const pt      = tagList[0] ?? "";
 
     tsunagu.library().then((entries) => {
       if (ctrl.signal.aborted) return;
@@ -155,7 +156,7 @@
   function buildCtxItems(m: Manga): MenuEntry[] {
     return [
       {
-        label: m.inLibrary ? "In Library" : "Add to library",
+        label: m.inLibrary ? t("browse.common.inLibrary") : t("browse.common.addToLibrary"),
         icon: BookmarkSimpleIcon,
         disabled: m.inLibrary,
         onClick: () => tsunagu.addToLibrary(m.id)
@@ -171,14 +172,14 @@
 <div class="root">
   <div class="header">
     <button class="back" onclick={onBack}>
-      <ArrowLeftIcon size={13} weight="light" /><span>Back</span>
+      <ArrowLeftIcon size={13} weight="light" /><span>{t("common.back")}</span>
     </button>
     <span class="title">{label}</span>
     {#if !loadingInitial || filtered.length > 0}
-      <span class="result-count">{visibleItems.length}{filtered.length > visibleCount ? "+" : ""} of {filtered.length}</span>
+      <span class="result-count">{t("browse.genre.resultCount", { shown: `${visibleItems.length}${filtered.length > visibleCount ? "+" : ""}`, total: filtered.length })}</span>
     {/if}
     {#if !loadingInitial && hasMoreNetwork}
-      <span class="loading-hint">More loading…</span>
+      <span class="loading-hint">{t("browse.genre.moreLoading")}</span>
     {/if}
   </div>
 
@@ -192,14 +193,14 @@
       {/each}
     </div>
   {:else if filtered.length === 0}
-    <div class="empty">No manga found for "{label}".</div>
+    <div class="empty">{t("browse.genre.empty", { label })}</div>
   {:else}
     <div class="grid">
       {#each visibleItems as m, i (`${m.extensionId}-${m.sourceEntryId}`)}
         <button class="card" onclick={() => setPreviewManga(m)} oncontextmenu={(e) => { e.stopPropagation(); openCtx(e, m); }}>
           <div class="cover-wrap">
             <Thumbnail src={resolvedCover(m.prefsKey ?? m.id, m.thumbnailUrl)} fallbackSrc={m.metadata?.coverUrl} alt={m.title} class="cover" priority={i < 12 ? 12 - i : 0} id={m.id} contentType={m.contentType} />
-            {#if m.inLibrary}<span class="in-library-badge">Saved</span>{/if}
+            {#if m.inLibrary}<span class="in-library-badge">{t("browse.common.saved")}</span>{/if}
           </div>
           <p class="card-title">{m.title}</p>
         </button>
@@ -207,7 +208,7 @@
       {#if hasMore}
         <div class="show-more-cell">
           <button class="show-more-btn" onclick={loadMore} disabled={loadingMore}>
-            {#if loadingMore}<CircleNotchIcon size={13} weight="light" class="anim-spin" /> Loading…{:else}Show more{/if}
+            {#if loadingMore}<CircleNotchIcon size={13} weight="light" class="anim-spin" /> {t("common.loading")}{:else}{t("browse.genre.showMore")}{/if}
           </button>
         </div>
       {/if}

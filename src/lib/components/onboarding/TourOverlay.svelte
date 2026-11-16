@@ -5,6 +5,7 @@
   import { settingsState } from '$lib/state/settings.svelte'
   import { app } from '$lib/state/app.svelte'
   import { tourState, TOUR_STEPS, nextTourStep, endTour } from '$lib/state/onboarding.svelte'
+  import { t } from '$lib/i18n/index.svelte'
 
   const step   = $derived(TOUR_STEPS[tourState.step])
   const isLast = $derived(tourState.step === TOUR_STEPS.length - 1)
@@ -163,12 +164,12 @@
 
     <div class="tooltip" style={tooltipStyle}>
       <div class="tooltip-head">
-        <span class="step-count">{tourState.step + 1} / {TOUR_STEPS.length}</span>
-        <button class="skip" onclick={endTour}>Skip</button>
+        <span class="step-count">{t('onboarding.tour.stepCount', { current: tourState.step + 1, total: TOUR_STEPS.length })}</span>
+        <button class="skip" onclick={endTour}>{t('onboarding.skip')}</button>
       </div>
-      <p class="title">{step.title}</p>
-      <p class="body">{step.body}</p>
-      <button class="btn" onclick={nextTourStep}>{isLast ? 'Done' : 'Next'}</button>
+      <p class="title">{t(step.title)}</p>
+      <p class="body">{t(step.body)}</p>
+      <button class="btn" onclick={nextTourStep}>{isLast ? t('common.done') : t('common.next')}</button>
     </div>
   </div>
 {/if}

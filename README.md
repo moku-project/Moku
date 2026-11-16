@@ -52,6 +52,8 @@ Need more information? Check out the website/docs: https://moku-project.github.i
 - **Per-folder sorting & filtering** — each folder has its own independent sort (unread, A–Z, recently read, latest chapter, and more) and publication status filter (Ongoing, Completed, Hiatus, etc.)
 - **Built-in reader** — single page, long strip, configurable fit modes, customizable keybinds; AniSkip intro/outro markers for anime
 - **Tracking** — link titles to AniList, two-way progress sync
+- **Moku Sync** — pair your other devices with a code or QR code in Settings → Sync; library, progress, folders and history stay in step over your home network
+- **Reading history & stats** — kept on Tsunagu, so every device shows the same history, streaks and activity
 - **Extension support** — install and manage source extensions directly from the app; compatible with Mihon/Tachiyomi- and Aniyomi-format extension repositories, plus LNReader
 - **Download management** — queue and monitor chapter downloads with progress toasts
 - **Automation** — pre-download titles automatically and optionally delete chapters after reading (accessible from Series Detail)
@@ -60,6 +62,7 @@ Need more information? Check out the website/docs: https://moku-project.github.i
 - **Library backup** — export/import your manga & novel library in the Mihon/Tachiyomi `.tachibk` format, plus scheduled SQLite snapshots of the whole server
 - **Server auth** — connect to a password-protected Tsunagu instance from anywhere; sessions persist across launches. Separate from the local app-lock PIN / Windows Hello
 - **Multiple themes** — Dark, Light, Midnight, Warm, High Contrast, and more
+- **Languages** — pick the interface language in Settings → General; to add one, see [`docs/TRANSLATING.md`](docs/TRANSLATING.md)
 - **Auto-updates** — in-app update checker with silent background notifications
 - **Improved NSFW filtering** — expanded tag parser gives the Hide NSFW setting better coverage across sources
 

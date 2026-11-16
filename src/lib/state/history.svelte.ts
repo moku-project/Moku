@@ -40,6 +40,7 @@ class HistoryStore {
   #unsent: ReadSession[] = []
   #statsTimer: ReturnType<typeof setTimeout> | null = null
   #generation = 0
+  #refreshedAt = 0
 
   /** Replaces everything shown with what the connected server has. Called on every connect. */
   async connect() {
@@ -52,34 +53,43 @@ class HistoryStore {
     if (gen === this.#generation) await this.refresh()
   }
 
+  /** Sessions read on paired devices arrive through the server, so views showing history call this when opened. */
   async refresh() {
     const gen = this.#generation
-    try {
-      const [sessions, stats] = await Promise.all([
-        tsunagu.readingSessions(HISTORY_LIMIT),
-        tsunagu.readingStats(timeZone()),
-      ])
-      if (gen !== this.#generation) return
-      this.supported       = true
-      this.sessions        = sessions
-      this.stats           = stats.stats
-      this.dailyReadCounts = stats.daily
-    } catch (e) {
-      if (historyUnsupported(e)) this.supported = false
-      else console.error('[moku] history:', e)
-    }
+    this.#refreshedAt = Date.now()
+    // Fetched apart, so stats failing (say, on an unknown time zone) still leaves the history list.
+    const [sessions, stats] = await Promise.allSettled([
+      tsunagu.readingSessions(HISTORY_LIMIT),
+      tsunagu.readingStats(timeZone()),
+    ])
+    if (gen !== this.#generation) return
+    if (sessions.status === 'rejected' && historyUnsupported(sessions.reason)) { this.supported = false; return }
+    if (sessions.status === 'fulfilled') {
+      this.supported = true
+      const onServer = new Set(sessions.value.map(s => s.id))
+      this.sessions  = [...this.#unsent.filter(s => !onServer.has(s.id)), ...sessions.value].slice(0, HISTORY_LIMIT)
+    } else console.error('[moku] history:', sessions.reason)
+    if (stats.status === 'fulfilled') {
+      this.stats           = stats.value.stats
+      this.dailyReadCounts = stats.value.daily
+    } else console.error('[moku] reading stats:', stats.reason)
   }
 
-  // Only history whose titles this server has, under the same IDs and names, can be the history it lost.
+  /** Like refresh, but skipped when history was just fetched. */
+  refreshSoon() {
+    if (Date.now() - this.#refreshedAt > 15_000) void this.refresh()
+  }
+
+  // A library title with the same ID and name shows this is the server the history came from. Titles read
+  // outside the library count too; the server skips any it doesn't have.
   async #uploadLegacy() {
     const legacy = await loadLegacyLibrary()
     if (!legacy) return
     const library = await tsunagu.library()
     const titles  = new Map(library.map(e => [e.id, e.title]))
-    const sessions = legacy.sessions.filter(s => titles.get(s.mangaId) === s.mangaTitle)
-    if (legacy.sessions.length && !sessions.length) return
+    if (legacy.sessions.length && !legacy.sessions.some(s => titles.get(s.mangaId) === s.mangaTitle)) return
     const days = Object.entries(legacy.stats.days).map(([date, [seconds, chapters]]) => ({ date, seconds, chapters }))
-    await tsunagu.importReadingHistory(legacy.source, sessions, days)
+    await tsunagu.importReadingHistory(legacy.source, legacy.sessions, days)
     await clearLegacyLibrary()
   }
 

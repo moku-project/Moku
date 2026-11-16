@@ -27,7 +27,13 @@
     slotIndex: number
   }
 
-  onMount(() => { loadLibrary() })
+  onMount(() => {
+    loadLibrary()
+    historyState.refreshSoon()
+    const onFocus = () => historyState.refreshSoon()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  })
 
   const manga = $derived(libraryState.items)
 

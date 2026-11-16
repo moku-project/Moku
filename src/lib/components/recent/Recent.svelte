@@ -51,11 +51,15 @@
 
   onMount(() => {
     void loadUpdates()
+    historyState.refreshSoon()
     if (!libraryState.items.length) loadLibrary()
     tsunagu.libraryUpdateStatus().then(s => {
       updateStatus = s
       if (s.running) startUpdatePoll()
     }).catch(() => {})
+    const onFocus = () => historyState.refreshSoon()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   })
 
   onDestroy(() => {
@@ -116,7 +120,7 @@
           s.endChapterName.toLowerCase().includes(historySearch.toLowerCase())
         )
       : historyState.sessions
-    ).filter(s => matchesContentType(s.mangaId)))
+    ).filter(s => !ctFilter || ctFilter === 'all' || s.contentType === ctFilter))
 
   const historyGroups = $derived(collapseAndGroupByDay(filteredHistory))
 

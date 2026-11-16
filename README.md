@@ -106,16 +106,17 @@ The Nix app pulls the Tsunagu backend from its flake and launches it for you. Ap
 
 ### Linux (Arch)
 
-Three PKGBUILDs under [`packaging/`](packaging/), depending on how you want the backend handled:
-
-- [`packaging/moku`](packaging/moku/PKGBUILD) — **default.** Latest tagged release, bundled with Tsunagu (depends on the [`tsunagu`](../Tsunagu/packaging/tsunagu/PKGBUILD) package) so it works out of the box.
-- [`packaging/moku-git`](packaging/moku-git/PKGBUILD) — split package tracking the latest commit of both Moku and Tsunagu: `moku-git` (bundled, depends on `tsunagu-git`) and `moku-nobackend-git` (no bundled backend — `tsunagu` is only an `optdepends`, for a remote/separate Tsunagu).
+Moku isn't on the AUR yet, so build it from the PKGBUILDs here. Moku depends on the `tsunagu` package, which isn't on the AUR either, so build Tsunagu first:
 
 ```bash
+git clone https://github.com/moku-project/Tsunagu
+(cd Tsunagu/packaging/tsunagu && makepkg -si)
+
 git clone https://github.com/moku-project/Moku
-cd Moku/packaging/moku   # or packaging/moku-git, then pick moku-git / moku-nobackend-git
-makepkg -si
+(cd Moku/packaging/moku && makepkg -si)
 ```
+
+To track the latest commits instead, use `packaging/tsunagu-git` and `packaging/moku-git`. The `moku-git` folder builds two packages: `moku-git`, which uses `tsunagu-git`, and `moku-nobackend-git`, for connecting to a Tsunagu running elsewhere.
 
 #### Binary cache (Cachix)
 

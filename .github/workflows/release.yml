@@ -34,8 +34,10 @@ jobs:
           sed -i "s/moku = \"[^\"]*\"/moku = \"$V\"/"             nix/versions.nix
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$V\"/"  src-tauri/tauri.conf.json
           sed -i "0,/^version = \"[^\"]*\"/s//version = \"$V\"/"   src-tauri/Cargo.toml
+          sed -i "s/^pkgver=.*/pkgver=$V/;s/^pkgrel=.*/pkgrel=1/"  packaging/moku/PKGBUILD
           if [ -n "$T" ]; then
             sed -i "s/tsunagu = \"[^\"]*\"/tsunagu = \"$T\"/"      nix/versions.nix
+            sed -i "s/'tsunagu>=[^']*'/'tsunagu>=$T'/"             packaging/moku/PKGBUILD
           fi
           (cd src-tauri && cargo generate-lockfile)
 

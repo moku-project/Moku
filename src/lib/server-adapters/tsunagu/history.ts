@@ -68,9 +68,9 @@ function toInput(s: ReadSession) {
 	}
 }
 
-/** Servers from before history moved to Tsunagu don't know these fields. */
+/** Servers from before history moved to Tsunagu reject these queries as invalid; other failures are passing. */
 export function historyUnsupported(e: unknown): boolean {
-	return /Cannot query field|Unknown (field|argument)|readingSessions|readingStats|resumePoint|HTTP 422/i.test(String(e))
+	return /Cannot query field|Unknown (field|argument|type)|HTTP 422/i.test(String(e))
 }
 
 export const history = {

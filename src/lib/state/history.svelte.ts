@@ -42,14 +42,18 @@ class HistoryStore {
   #generation = 0
   #refreshedAt = 0
 
-  /** Replaces everything shown with what the connected server has. Called on every connect. */
-  async connect() {
+  /** Loads what the connected server has. Called on every connect; sessions not sent yet only belong to the same server. */
+  async connect(switched = false) {
     const gen = ++this.#generation
-    this.sessions = []
-    this.stats = { ...DEFAULT_READING_STATS }
-    this.dailyReadCounts = {}
-    this.#unsent = []
+    if (switched) {
+      this.sessions = []
+      this.stats = { ...DEFAULT_READING_STATS }
+      this.dailyReadCounts = {}
+      this.#unsent = []
+    }
     await this.#uploadLegacy().catch(e => console.warn('[moku] history upload:', e))
+    if (gen !== this.#generation) return
+    await this.#send()
     if (gen === this.#generation) await this.refresh()
   }
 

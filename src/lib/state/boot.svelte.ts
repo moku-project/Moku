@@ -146,7 +146,7 @@ async function onServerConnected() {
 		lib.loadLibrary(true).catch(() => {})
 	}
 	const { historyState } = await import('$lib/state/history.svelte')
-	await historyState.connect()
+	await historyState.connect(switched)
 }
 
 function handleProbeSuccess(gen: number) {

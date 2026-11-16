@@ -6,6 +6,7 @@
 	import { notifications } from '$lib/state/notifications.svelte'
 	import { settingsState, loadSettingsIntoState, updateSettings } from '$lib/state/settings.svelte'
 	import { applyTheme, mountSystemThemeSync } from '$lib/core/theme'
+	import { setLocale } from '$lib/i18n/index.svelte'
 	import { platformService } from '$lib/platform-service'
 	import * as discord from '$lib/core/discord'
 	import SplashScreen from '$lib/components/chrome/SplashScreen.svelte'
@@ -124,6 +125,7 @@
 				const persistedSettings = await loadSettings()
 				const raw = persistedSettings?.settings ?? persistedSettings ?? null
 				await loadSettingsIntoState(raw)
+				await setLocale(settingsState.settings.uiLocale)
 
 				settingsLoaded = true
 				checkForChangelog()

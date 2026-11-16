@@ -4,6 +4,7 @@
   import { app }    from '$lib/state/app.svelte'
   import { settingsState, updateSettings } from '$lib/state/settings.svelte'
   import type { ContentTypeFilter } from '$lib/types/settings'
+  import { t, type MessageKey } from '$lib/i18n/index.svelte'
   import mokuSplash from '$lib/assets/moku-icon-splash.svg?raw'
   import {
     House, Books, MagnifyingGlass, ClockCounterClockwise,
@@ -11,25 +12,25 @@
     ImageSquare, BookOpenText, FilmSlate, SquaresFour,
   } from 'phosphor-svelte'
 
-  const CONTENT_TYPES: { id: ContentTypeFilter; label: string; icon: any }[] = [
-    { id: 'all',   label: 'All',    icon: SquaresFour  },
-    { id: 'MANGA', label: 'Manga',  icon: ImageSquare  },
-    { id: 'NOVEL', label: 'Novels', icon: BookOpenText },
-    { id: 'ANIME', label: 'Anime',  icon: FilmSlate    },
+  const CONTENT_TYPES: { id: ContentTypeFilter; label: MessageKey; icon: any }[] = [
+    { id: 'all',   label: 'nav.contentAll',    icon: SquaresFour  },
+    { id: 'MANGA', label: 'nav.contentManga',  icon: ImageSquare  },
+    { id: 'NOVEL', label: 'nav.contentNovels', icon: BookOpenText },
+    { id: 'ANIME', label: 'nav.contentAnime',  icon: FilmSlate    },
   ]
 
-  function setContentType(t: ContentTypeFilter) {
-    if (t === settingsState.settings.contentTypeFilter) return
-    updateSettings({ contentTypeFilter: t })
+  function setContentType(type: ContentTypeFilter) {
+    if (type === settingsState.settings.contentTypeFilter) return
+    updateSettings({ contentTypeFilter: type })
   }
 
-  const TABS: { path: string; label: string; icon: any }[] = [
-    { path: '/',           label: 'Home',       icon: House           },
-    { path: '/library',    label: 'Library',    icon: Books           },
-    { path: '/browse',     label: 'Browse',     icon: MagnifyingGlass },
-    { path: '/downloads',  label: 'Downloads',  icon: DownloadSimple  },
-    { path: '/recent',  label: 'Recent',  icon: ClockCounterClockwise  },
-    { path: '/extensions', label: 'Extensions', icon: PuzzlePiece     },
+  const TABS: { path: string; label: MessageKey; icon: any }[] = [
+    { path: '/',           label: 'nav.home',       icon: House           },
+    { path: '/library',    label: 'nav.library',    icon: Books           },
+    { path: '/browse',     label: 'nav.browse',     icon: MagnifyingGlass },
+    { path: '/downloads',  label: 'nav.downloads',  icon: DownloadSimple  },
+    { path: '/recent',  label: 'nav.recent',  icon: ClockCounterClockwise  },
+    { path: '/extensions', label: 'nav.extensions', icon: PuzzlePiece     },
   ]
 
   const TAB_SIZE = 36
@@ -46,7 +47,7 @@
 </script>
 
 <aside class="root">
-  <button class="logo" onclick={() => goto('/')} title="Home" aria-label="Go to Home">
+  <button class="logo" onclick={() => goto('/')} title={t('nav.home')} aria-label={t('nav.goHome')}>
     <span class="logo-icon">{@html mokuSplash}</span>
   </button>
 
@@ -59,7 +60,7 @@
         class="tab"
         class:active={activeIndex === TABS.indexOf(tab)}
         data-tour={tab.path === '/browse' ? 'global-search' : 'sidebar-nav'}
-        title={tab.label}
+        title={t(tab.label)}
         onclick={() => goto(tab.path)}
       >
         <tab.icon size={18} weight="light" />
@@ -67,14 +68,14 @@
     {/each}
   </nav>
 
-  <div class="content-type-group" role="group" aria-label="Content type">
+  <div class="content-type-group" role="group" aria-label={t('nav.contentType')}>
     <div class="ct-pills" data-tour="content-switch">
       {#each CONTENT_TYPES as ct}
         <button
           class="ct-pill"
           class:active={settingsState.settings.contentTypeFilter === ct.id}
           onclick={() => setContentType(ct.id)}
-          title={ct.label}
+          title={t(ct.label)}
           aria-pressed={settingsState.settings.contentTypeFilter === ct.id}
         >
           <ct.icon size={16} weight={settingsState.settings.contentTypeFilter === ct.id ? "fill" : "light"} />
@@ -84,7 +85,7 @@
   </div>
 
   <div class="bottom">
-    <button class="settings-btn" data-tour="settings-btn" onclick={() => app.setSettingsOpen(true)} title="Settings">
+    <button class="settings-btn" data-tour="settings-btn" onclick={() => app.setSettingsOpen(true)} title={t('nav.settings')}>
       <GearSix size={18} weight="light" />
     </button>
   </div>

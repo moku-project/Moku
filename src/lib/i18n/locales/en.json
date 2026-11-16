@@ -1,0 +1,63 @@
+{
+  "common": {
+    "never": "Never",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "minutesShort": "{{count}} min"
+  },
+  "nav": {
+    "home": "Home",
+    "goHome": "Go to Home",
+    "library": "Library",
+    "browse": "Browse",
+    "downloads": "Downloads",
+    "recent": "Recent",
+    "extensions": "Extensions",
+    "settings": "Settings",
+    "contentType": "Content type",
+    "contentAll": "All",
+    "contentManga": "Manga",
+    "contentNovels": "Novels",
+    "contentAnime": "Anime"
+  },
+  "settings": {
+    "general": {
+      "scaleTitle": "Interface scale",
+      "scaleDesc": "Fits your screen automatically. 100% is the default; adjust to taste. The reader has its own zoom.",
+      "scaleReset": "Reset to 100%",
+      "serverTitle": "Server",
+      "serverUrl": "Server URL",
+      "serverUrlDesc": "Base URL of your Tsunagu instance",
+      "serverAutoStart": "Auto-start bundled server",
+      "serverAutoStartDesc": "Launch and manage Tsunagu automatically.",
+      "startupTitle": "Startup",
+      "defaultView": "Default view",
+      "defaultViewDesc": "Which view Moku opens to on launch",
+      "windowTitle": "Window",
+      "closeAction": "Close button behavior",
+      "closeActionDesc": "What happens when you click the X button",
+      "closeAsk": "Ask",
+      "closeTray": "Tray",
+      "closeQuit": "Quit",
+      "windowControls": "Window controls",
+      "windowControlsDesc": "Show Moku's title bar with minimize/maximize/close",
+      "inactivityTitle": "Inactivity",
+      "idleTimeout": "Idle screen timeout",
+      "idleTimeoutDesc": "Show the Moku idle splash after this much inactivity",
+      "integrationsTitle": "Integrations",
+      "discordRpc": "Discord Rich Presence",
+      "discordRpcDesc": "Show what you're reading in your Discord status",
+      "animationsTitle": "Animations",
+      "qolAnimations": "QOL Animations",
+      "qolAnimationsDesc": "Hover lifts, active-tab transitions, and icon micro-animations",
+      "languageTitle": "Language",
+      "appLanguage": "App language",
+      "appLanguageDesc": "Language used for Moku's interface",
+      "appLanguageSystem": "System ({{language}})",
+      "sourceLanguage": "Preferred source language",
+      "sourceLanguageDesc": "{{language}}, pre-selected in Search and source grouping.",
+      "langHintSuggest": "Uncommon code. Did you mean {{code}}?",
+      "langHintKept": "Uncommon code, kept as entered."
+    }
+  }
+}

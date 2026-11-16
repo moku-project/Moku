@@ -157,6 +157,7 @@ export interface Settings {
 	serverAuthUser: string
 	serverAuthPass: string
 	preferredExtensionLang: string
+	uiLocale: string
 	keybinds: Keybinds
 	idleTimeoutMin?: number
 	splashCards?: boolean
@@ -261,6 +262,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	serverUrl: 'http://localhost:6007',
 	serverAutoStart: true,
 	preferredExtensionLang: 'all',
+	uiLocale: 'system',
 	keybinds: DEFAULT_KEYBINDS,
 	idleTimeoutMin: 5,
 	splashCards: true,

@@ -6,7 +6,7 @@
 # Tsunagu instance) see moku-nobackend-git instead.
 
 pkgname=moku
-pkgver=0.14.1
+pkgver=0.15.1
 pkgrel=1
 pkgdesc='Reader and player for manga, light novels, and anime, bundled with the Tsunagu backend'
 arch=('x86_64' 'aarch64')

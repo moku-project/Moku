@@ -11,6 +11,25 @@ const keyToGroups = new Map<string, Set<string>>();
 const groups      = new Map<string, Set<string>>();
 
 const DEFAULT_TTL_MS = 5 * 60 * 1_000;
+const MAX_ENTRIES    = 200;
+const SWEEP_EVERY_MS = 30_000;
+let   lastSweep      = 0;
+
+// Drops results nobody is watching once they're well past their TTL, and the oldest of those beyond MAX_ENTRIES.
+function sweep() {
+  const now = Date.now();
+  if (now - lastSweep < SWEEP_EVERY_MS && store.size <= MAX_ENTRIES) return;
+  lastSweep = now;
+  const unwatched: [string, number][] = [];
+  for (const [key, e] of store) {
+    if (subs.get(key)?.size) continue;
+    if (now - e.fetchedAt > 2 * (e.ttl ?? DEFAULT_TTL_MS)) { unregisterKey(key); store.delete(key); }
+    else unwatched.push([key, e.fetchedAt]);
+  }
+  if (store.size <= MAX_ENTRIES) return;
+  unwatched.sort((a, b) => a[1] - b[1]);
+  for (const [key] of unwatched.slice(0, store.size - MAX_ENTRIES)) { unregisterKey(key); store.delete(key); }
+}
 
 function notify(key: string) { subs.get(key)?.forEach(cb => cb()); }
 
@@ -43,6 +62,7 @@ export const cache = {
     store.set(key, { promise, fetchedAt: Date.now(), fetcher: fetcher as () => Promise<unknown>, ttl });
     registerGroups(key, group);
     promise.then(() => notify(key)).catch(() => {});
+    sweep();
     return promise;
   },
 
@@ -136,7 +156,11 @@ export const cache = {
   subscribe(key: string, cb: () => void): () => void {
     if (!subs.has(key)) subs.set(key, new Set());
     subs.get(key)!.add(cb);
-    return () => subs.get(key)?.delete(cb);
+    return () => {
+      const set = subs.get(key);
+      set?.delete(cb);
+      if (set?.size === 0) subs.delete(key);
+    };
   },
 };
 

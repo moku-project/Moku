@@ -1,25 +1,27 @@
 import * as pdfjsLib from "pdfjs-dist";
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { pageServerUrl } from "$lib/core/cache/pageCache";
+import { PDFPAGE_RE, onPdfRelease } from "$lib/core/cache/pdfPageUrl";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const PDFPAGE_RE = /\/content\/([^/]+)\/([^/]+)\/pdfpage\/(\d+)(?:[?#].*)?$/;
+const docCache = new Map<string, PDFDocumentLoadingTask>();
 
-const docCache = new Map<string, Promise<PDFDocumentProxy>>();
-
-export function isPdfPageUrl(url: string): boolean {
-  return PDFPAGE_RE.test(url);
-}
+onPdfRelease(chapterId => {
+  const task = docCache.get(chapterId);
+  docCache.delete(chapterId);
+  // Frees the parsed document and its worker-side memory, not just the map entry.
+  void task?.destroy();
+});
 
 function loadDoc(mediaId: string, chapterId: string): Promise<PDFDocumentProxy> {
   const cached = docCache.get(chapterId);
-  if (cached) return cached;
-  const p = pdfjsLib.getDocument({ url: `${pageServerUrl()}/content/${mediaId}/${chapterId}/pdf` }).promise;
-  docCache.set(chapterId, p);
-  p.catch(() => docCache.delete(chapterId));
-  return p;
+  if (cached) return cached.promise;
+  const task = pdfjsLib.getDocument({ url: `${pageServerUrl()}/content/${mediaId}/${chapterId}/pdf` });
+  docCache.set(chapterId, task);
+  task.promise.catch(() => { if (docCache.get(chapterId) === task) docCache.delete(chapterId); });
+  return task.promise;
 }
 
 export async function renderPdfPage(url: string): Promise<Blob> {
@@ -36,12 +38,12 @@ export async function renderPdfPage(url: string): Promise<Blob> {
   canvas.height = viewport.height;
   const ctx = canvas.getContext("2d")!;
   await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+  page.cleanup();
 
   const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, "image/png"));
+  // Release the backing store now instead of waiting for GC.
+  canvas.width = canvas.height = 0;
   if (!blob) throw new Error(`failed to encode rendered pdf page ${pageStr}`);
   return blob;
 }
 
-export function clearPdfChapterCache(chapterId: string): void {
-  docCache.delete(chapterId);
-}

@@ -1,9 +1,12 @@
 import { platformService } from "$lib/platform-service";
 import { authHeaders } from "$lib/state/auth.svelte";
 import { appState } from "$lib/state/app.svelte";
-import { isPdfPageUrl, renderPdfPage } from "$lib/core/cache/pdfRender";
+import { isPdfPageUrl } from "$lib/core/cache/pdfPageUrl";
 
+// Insertion order doubles as LRU order: reads move an entry to the end.
 const cache    = new Map<string, string>();
+const MAX_CACHED = 48;
+const evicted: ((url: string) => void)[] = [];
 const inflight = new Map<string, Promise<string>>();
 const MAX_CONCURRENT = 6;
 let   active         = 0;
@@ -26,12 +29,28 @@ function isServerUrl(url: string): boolean {
 async function doFetch(url: string, gen: number): Promise<string> {
   if (gen !== generation) throw new DOMException("Cancelled", "AbortError");
   const blob = isPdfPageUrl(url)
-    ? await renderPdfPage(url)
+    ? await (await import("$lib/core/cache/pdfRender")).renderPdfPage(url)
     : await platformService.fetchImage(url, isServerUrl(url) ? authHeaders() : {});
   if (gen !== generation) throw new DOMException("Cancelled", "AbortError");
   const blobUrl = URL.createObjectURL(blob);
   cache.set(url, blobUrl);
+  inflight.delete(url);
+  trim();
   return blobUrl;
+}
+
+/** Callers holding their own url→blob maps register here to drop evicted entries. */
+export function onBlobEvicted(fn: (url: string) => void): void {
+  evicted.push(fn);
+}
+
+function trim() {
+  while (cache.size > MAX_CACHED) {
+    const [url, blob] = cache.entries().next().value!;
+    cache.delete(url);
+    URL.revokeObjectURL(blob);
+    for (const fn of evicted) fn(url);
+  }
 }
 
 function insertSorted(entry: QueueEntry) {
@@ -77,7 +96,11 @@ function enqueue(url: string, priority: number): Promise<string> {
 export function getBlobUrl(url: string, priority = 0): Promise<string> {
   if (!url) return Promise.resolve("");
   const cached = cache.get(url);
-  if (cached) return Promise.resolve(cached);
+  if (cached) {
+    cache.delete(url);
+    cache.set(url, cached);
+    return Promise.resolve(cached);
+  }
   const existing = inflight.get(url);
   if (existing) {
     const idx = queue.findIndex(e => e.url === url);

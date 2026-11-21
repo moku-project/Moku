@@ -4,7 +4,7 @@ import { settingsState }                                       from "$lib/state/
 import { fetchPages, buildPageGroups }                          from "./pageLoader";
 import { cancelQueuedFetches, revokeBlobUrl, preloadBlobUrls } from "$lib/core/cache/imageCache";
 import { clearResolvedUrlCache, clearPageCache, measureAspect, isDegenerateAspect } from "$lib/core/cache/pageCache";
-import { clearPdfChapterCache }                                from "$lib/core/cache/pdfRender";
+import { clearPdfChapterCache }                                from "$lib/core/cache/pdfPageUrl";
 
 function absolutePageUrl(p: string): string {
   if (p.startsWith("http")) return p;

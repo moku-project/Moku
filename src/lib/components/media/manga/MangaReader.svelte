@@ -393,7 +393,10 @@
     if (style === "double" && readerState.pageUrls.length) {
       const snap = readerState.pageUrls;
       readerState.pageGroups = buildPageGroups(snap, effectiveReaderSettings.offsetDoubleSpreads ?? false);
-      for (const url of snap) void measureAspect(url, useBlob);
+      // Nearest pages first, so the spread you're on pairs up before the rest of the chapter.
+      const at = Math.max(0, untrack(() => readerState.pageNumber) - 1);
+      const byDistance = snap.map((url, i) => [Math.abs(i - at), url] as const).sort((a, b) => a[0] - b[0]);
+      for (const [, url] of byDistance) void measureAspect(url, useBlob);
     } else {
       readerState.pageGroups = [];
     }

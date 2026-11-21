@@ -1,11 +1,14 @@
-import { getBlobUrl, preloadBlobUrls, revokeBlobUrl } from "$lib/core/cache/imageCache";
-import { isPdfPageUrl }                               from "$lib/core/cache/pdfRender";
+import { getBlobUrl, preloadBlobUrls, revokeBlobUrl, onBlobEvicted } from "$lib/core/cache/imageCache";
+import { isPdfPageUrl }                                              from "$lib/core/cache/pdfPageUrl";
 import { settingsState }                              from "$lib/state/settings.svelte";
 
 const pageCache        = new Map<string, string[]>();
 const inflight         = new Map<string, Promise<string[]>>();
 const resolvedUrlCache = new Map<string, Promise<string>>();
 const aspectCache      = new Map<string, number>();
+
+// A blob the image cache evicted must not be handed out again.
+onBlobEvicted(url => resolvedUrlCache.delete(url));
 
 function getServerUrl(): string {
   const u = settingsState.settings.serverUrl;
@@ -70,14 +73,38 @@ export function fetchPages(
   });
 }
 
+// Measuring loads the whole image, so only a few run at once and the rest wait their turn.
+const MAX_MEASURING = 3;
+const measuring     = new Map<string, Promise<number>>();
+const measureQueue: (() => void)[] = [];
+let   measuringNow  = 0;
+
+function measureSlot(): Promise<void> {
+  if (measuringNow < MAX_MEASURING) { measuringNow++; return Promise.resolve(); }
+  return new Promise(res => measureQueue.push(() => { measuringNow++; res(); }));
+}
+
+function releaseMeasureSlot() {
+  measuringNow--;
+  measureQueue.shift()?.();
+}
+
 export function measureAspect(url: string, useBlob: boolean): Promise<number> {
   if (aspectCache.has(url)) return Promise.resolve(aspectCache.get(url)!);
-  return resolveUrl(url, useBlob).then(src => new Promise(res => {
-    const img   = new Image();
-    img.onload  = () => { const r = img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : 0.67; aspectCache.set(url, r); res(r); };
-    img.onerror = () => res(0.67);
-    img.src     = src;
-  }));
+  const pending = measuring.get(url);
+  if (pending) return pending;
+  const p = measureSlot()
+    .then(() => resolveUrl(url, useBlob))
+    .then(src => new Promise<number>(res => {
+      const img   = new Image();
+      img.decoding = "async";
+      img.onload  = () => { const r = img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : 0.67; aspectCache.set(url, r); res(r); };
+      img.onerror = () => res(0.67);
+      img.src     = src;
+    }), () => 0.67)
+    .finally(() => { releaseMeasureSlot(); measuring.delete(url); });
+  measuring.set(url, p);
+  return p;
 }
 
 export function preloadImage(url: string, useBlob: boolean): void {
@@ -113,7 +140,6 @@ export function clearPageCache(chapterId?: string): void {
   } else {
     pageCache.clear();
     inflight.clear();
-    resolvedUrlCache.clear();
-    aspectCache.clear();
+    clearResolvedUrlCache();
   }
 }

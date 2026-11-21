@@ -768,21 +768,13 @@
     stroke: var(--border-strong);
     stroke-width: 0.8;
     fill: none;
-    stroke-dasharray: 400;
-    stroke-dashoffset: 400;
-    animation: ps-shimmer 2s ease-in-out infinite;
   }
-  .panel-skeleton :global(.ps-r1) { animation-delay: 0s; }
-  .panel-skeleton :global(.ps-r2) { animation-delay: 0.15s; }
-  .panel-skeleton :global(.ps-r3) { animation-delay: 0.3s; }
-  .panel-skeleton :global(.ps-r4) { animation-delay: 0.1s; }
-  .panel-skeleton :global(.ps-r5) { animation-delay: 0.25s; }
 
+  /* One opacity fade per placeholder runs on the GPU; animating stroke-dashoffset re-laid out the page every frame. */
+  .panel-skeleton { animation: ps-shimmer 2s ease-in-out infinite; }
   @keyframes ps-shimmer {
-    0%   { stroke-dashoffset: 400;  opacity: 0.25; }
-    40%  { stroke-dashoffset: 0;    opacity: 0.55; }
-    70%  { stroke-dashoffset: 0;    opacity: 0.55; }
-    100% { stroke-dashoffset: -400; opacity: 0.25; }
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 0.55; }
   }
 
   :global(.img) { display: block; user-select: none; -webkit-user-drag: none; image-rendering: auto; }

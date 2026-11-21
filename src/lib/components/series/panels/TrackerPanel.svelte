@@ -334,7 +334,7 @@
                         <span class="progress-edit-hint">{t("common.edit")}</span>
                       </button>
                       {#if pct !== null}
-                        <div class="progress-track"><div class="progress-fill" style="width:{pct}%"></div></div>
+                        <div class="progress-track"><div class="progress-fill" style="transform:scaleX({(pct) / 100})"></div></div>
                       {/if}
                     {/if}
 
@@ -515,7 +515,7 @@
   .progress-edit-hint { font-family: var(--font-ui); font-size: 10px; color: var(--text-faint); opacity: 0; letter-spacing: var(--tracking-wide); transition: opacity var(--t-fast); }
   .progress-row:hover:not(:disabled) .progress-edit-hint { opacity: 0.5; }
   .progress-track { height: 2px; background: var(--border-strong); border-radius: var(--radius-full); overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.3s ease; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transform-origin: left center; transition: transform 0.3s ease; }
 
   .record-synced { font-family: var(--font-ui); font-size: 10px; color: var(--text-faint); opacity: 0.7; letter-spacing: var(--tracking-wide); }
 

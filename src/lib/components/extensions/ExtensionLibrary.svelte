@@ -357,7 +357,7 @@
         {#if importProgress && importProgress.total > 0}
           {t("extensions.library.importingProgress", { copied: importProgress.copied, total: importProgress.total })}
           <div class="import-progress-track">
-            <div class="import-progress-fill" style="width:{Math.min(100, (importProgress.copied / importProgress.total) * 100)}%"></div>
+            <div class="import-progress-fill" style="transform:scaleX({(Math.min(100, (importProgress.copied / importProgress.total) * 100)) / 100})"></div>
           </div>
         {:else}
           {t("extensions.library.importing")}
@@ -584,7 +584,7 @@
   .card.anims:hover .cover-wrap { transform: translateY(-3px); border-color: var(--border-strong); box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
   .card:hover .card-title { color: var(--text-primary); }
 
-  .cover-wrap { position: relative; aspect-ratio: 2/3; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-raised); border: 1px solid var(--border-dim); will-change: transform; }
+  .cover-wrap { position: relative; aspect-ratio: 2/3; overflow: hidden; border-radius: var(--radius-md); background: var(--bg-raised); border: 1px solid var(--border-dim); }
   .card.anims .cover-wrap { transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), border-color var(--t-base), box-shadow 0.18s cubic-bezier(0.16,1,0.3,1); }
   .cover-wrap.completed { box-shadow: inset 0 -2px 0 0 var(--accent); }
 
@@ -638,7 +638,7 @@
   }
   .import-progress-fill {
     height: 100%; background: var(--accent);
-    transition: width 0.15s ease;
+    transform-origin: left center; transition: transform 0.15s ease;
   }
 
   .card-actions {

@@ -60,7 +60,7 @@
     {#if pages > 0}
       <div class="progress-row">
         <div class="progress-wrap">
-          <div class="progress-bar" class:progress-error={isError} style="width:{pct}%"></div>
+          <div class="progress-bar" class:progress-error={isError} style="transform:scaleX({pct / 100})"></div>
         </div>
         <span class="pages-label">
           {#if isActive}
@@ -114,7 +114,7 @@
 
   .progress-row  { display: flex; align-items: center; gap: var(--sp-2); }
   .progress-wrap { flex: 1; height: 2px; background: var(--border-base); border-radius: var(--radius-full); overflow: hidden; }
-  .progress-bar  { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.4s ease; opacity: 0.35; }
+  .progress-bar  { height: 100%; background: var(--accent); transform-origin: left center; transition: transform 0.4s ease; opacity: 0.35; }
   .row-active .progress-bar { opacity: 1; }
   .progress-bar.progress-error { background: var(--color-error); opacity: 0.7; }
   .pages-label { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-faint); letter-spacing: var(--tracking-wide); flex-shrink: 0; white-space: nowrap; }

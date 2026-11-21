@@ -208,7 +208,7 @@
         <span class="progress-label">{t(manga?.contentType === 'ANIME' ? 'series.header.progressWatched' : 'series.header.progressRead', { read: readCount, total: totalCount })}</span>
         <span class="progress-pct">{Math.round(progressPct)}%</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" style="width:{progressPct}%"></div></div>
+      <div class="progress-track"><div class="progress-fill" style="transform:scaleX({(progressPct) / 100})"></div></div>
     </div>
   {/if}
 
@@ -404,7 +404,7 @@
   .progress-label { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-faint); letter-spacing: var(--tracking-wide); }
   .progress-pct   { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--accent-fg); letter-spacing: var(--tracking-wide); }
   .progress-track { height: 3px; background: var(--border-base); border-radius: var(--radius-full); overflow: hidden; }
-  .progress-fill  { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.4s ease; }
+  .progress-fill  { height: 100%; background: var(--accent); border-radius: var(--radius-full); transform-origin: left center; transition: transform 0.4s ease; }
 
   .details-section { display: flex; flex-direction: column; gap: 2px; }
   .details-toggle {

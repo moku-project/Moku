@@ -202,7 +202,7 @@
                     {t("downloads.currentChapter", { name: group.activeChapterName })}
                   </span>
                   <div class="prog-track">
-                    <div class="prog-fill" style="width: {group.activeChapterPct}%"></div>
+                    <div class="prog-fill" style="transform: scaleX({group.activeChapterPct / 100})"></div>
                   </div>
                   <span class="prog-pct">{group.activeChapterPct}%</span>
                 </div>
@@ -325,7 +325,7 @@
   .prog-item { display: flex; align-items: center; gap: var(--sp-2); }
   .prog-label { font-family: var(--font-ui); font-size: 10px; color: var(--text-muted); min-width: 85px; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
   .prog-track { flex: 1; height: 3px; background: var(--border-base); border-radius: var(--radius-full); overflow: hidden; }
-  .prog-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.3s ease; }
+  .prog-fill { height: 100%; background: var(--accent); transform-origin: left center; transition: transform 0.3s ease; }
   .prog-pct { font-family: var(--font-ui); font-size: 10px; font-weight: 600; color: var(--accent-fg); min-width: 28px; text-align: right; flex-shrink: 0; }
 
   .series-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
@@ -340,18 +340,13 @@
     display: flex; flex-direction: column; gap: var(--sp-2);
   }
 
-  @keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
   .skeleton {
     border-radius: var(--radius-sm);
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--bg-overlay) 90%, var(--text-primary) 6%) 20%,
-      color-mix(in srgb, var(--bg-overlay) 76%, var(--text-primary) 16%) 50%,
-      color-mix(in srgb, var(--bg-overlay) 90%, var(--text-primary) 6%) 80%
-    );
-    background-size: 220% 100%;
-    animation: shimmer 1.45s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--bg-overlay) 90%, var(--text-primary) 6%);
   }
+  .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bg-overlay) 76%, var(--text-primary) 16%), transparent); transform: translateX(-100%); animation: gpu-shimmer 1.45s ease-in-out infinite; }
 
   .sk-row          { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3); background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius-md); pointer-events: none; }
   .sk-thumb        { width: 36px; height: 54px; flex-shrink: 0; }

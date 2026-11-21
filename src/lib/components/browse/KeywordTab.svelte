@@ -449,8 +449,8 @@
   .srchSource    { font-family: var(--font-ui); font-size: 9px; color: rgba(255,255,255,0.45); letter-spacing: var(--tracking-wide); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .inLibBadge    { position: absolute; top: var(--sp-2); left: var(--sp-2); z-index: 2; font-family: var(--font-ui); font-size: 9px; letter-spacing: var(--tracking-wide); background: var(--accent-muted); color: var(--accent-fg); border: 1px solid var(--accent-dim); border-radius: var(--radius-sm); padding: 1px 5px; }
   .skCard        { display: flex; flex-direction: column; gap: var(--sp-2); flex-shrink: 0; width: 100%; }
-  @keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
-  .skeleton      { border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--bg-raised) 25%, var(--bg-overlay, color-mix(in srgb, var(--bg-raised) 80%, var(--text-primary) 6%)) 50%, var(--bg-raised) 75%); background-size: 200% 100%; animation: shimmer 1.6s ease-in-out infinite; }
+  .skeleton      { position: relative; overflow: hidden; border-radius: var(--radius-sm); background: var(--bg-raised); }
+  .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--bg-overlay, color-mix(in srgb, var(--bg-raised) 80%, var(--text-primary) 6%)), transparent); transform: translateX(-100%); animation: gpu-shimmer 1.6s ease-in-out infinite; }
   .skCover       { aspect-ratio: 2 / 3; width: 100%; border-radius: var(--radius-md); }
   .empty         { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-2); padding: var(--sp-8); }
   .emptyIcon     { color: var(--text-faint); opacity: 0.5; }

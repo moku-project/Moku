@@ -214,7 +214,7 @@
       {#if cf && cf.state !== 'NOT_INSTALLED'}
         <div class="s-row ss-cf">
           {#if cf.state === 'DOWNLOADING'}
-            <div class="ss-bar"><span style="width:{Math.round((cf.downloadProgress ?? 0) * 100)}%"></span></div>
+            <div class="ss-bar"><span style="transform:scaleX({cf.downloadProgress ?? 0})"></span></div>
             <span class="s-step-val">{Math.round((cf.downloadProgress ?? 0) * 100)}%</span>
           {:else if cf.state === 'ERROR'}
             <span class="s-desc ss-err">{cf.error ?? t('settings.server.solverInstallFailed')}</span>
@@ -277,5 +277,5 @@
   .ss-cf { gap: var(--sp-3); }
   .ss-cf .s-desc { flex: 1; }
   .ss-bar { flex: 1; height: 4px; border-radius: var(--radius-full); background: var(--bg-overlay); overflow: hidden; }
-  .ss-bar span { display: block; height: 100%; background: var(--accent); transition: width var(--t-base); }
+  .ss-bar span { display: block; height: 100%; background: var(--accent); transform-origin: left center; transition: transform var(--t-base); }
 </style>

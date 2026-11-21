@@ -426,8 +426,8 @@
   .showMoreBtn:hover:not(:disabled) { background: var(--bg-raised); color: var(--text-secondary); border-color: var(--border-strong); }
   .showMoreBtn:disabled { opacity: 0.4; cursor: default; }
   .skCard             { display: flex; flex-direction: column; gap: var(--sp-2); }
-  @keyframes shimmer  { from { background-position: -200% 0 } to { background-position: 200% 0 } }
-  .skeleton           { border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--bg-raised) 25%, var(--bg-overlay, color-mix(in srgb, var(--bg-raised) 80%, var(--text-primary) 6%)) 50%, var(--bg-raised) 75%); background-size: 200% 100%; animation: shimmer 1.6s ease-in-out infinite; }
+  .skeleton           { position: relative; overflow: hidden; border-radius: var(--radius-sm); background: var(--bg-raised); }
+  .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--bg-overlay, color-mix(in srgb, var(--bg-raised) 80%, var(--text-primary) 6%)), transparent); transform: translateX(-100%); animation: gpu-shimmer 1.6s ease-in-out infinite; }
   .skCover            { aspect-ratio: 2/3; width: 100%; border-radius: var(--radius-md); }
   .skTitle            { height: 10px; width: 80%; }
   .empty              { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-2); padding: var(--sp-8); }

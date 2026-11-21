@@ -1306,9 +1306,10 @@
     text-align: center;
     pointer-events: none;
     z-index: 35;
-    transition: bottom 0.2s ease;
+    transition: transform 0.2s ease;
   }
-  .sub-overlay.bar-up { bottom: calc(var(--sub-gap, 9vh) + (var(--sp-4) + 54px + var(--sp-3)) * var(--ui-zoom-factor, 1)); }
+  /* Lifting with transform keeps subtitles off the layout path while controls show and hide. */
+  .sub-overlay.bar-up { transform: translateY(calc(-1 * (var(--sp-4) + 54px + var(--sp-3)) * var(--ui-zoom-factor, 1))); }
 
   .sub-line {
     display: inline-block;
@@ -1375,11 +1376,11 @@
     background: var(--frost-bg); border: 1px solid var(--frost-border);
     backdrop-filter: var(--frost-blur); -webkit-backdrop-filter: var(--frost-blur);
     box-shadow: var(--frost-shadow);
-    transition: bottom 0.2s ease, background var(--t-fast), border-color var(--t-fast);
+    transition: transform 0.2s ease, background var(--t-fast), border-color var(--t-fast);
     z-index: 41;
   }
   .skip-btn:hover { background: var(--accent-muted); border-color: var(--accent-dim); }
-  .skip-btn.raised { bottom: calc(var(--sp-4) + 54px + var(--sp-3)); }
+  .skip-btn.raised { transform: translateY(calc(var(--sp-6) - (var(--sp-4) + 54px + var(--sp-3)))); }
   .flash-play, .flash-pause { left: 50%; transform: translate(-50%, -50%); }
   .flash-back { left: 22%; transform: translate(-50%, -50%); }
   .flash-fwd  { left: 78%; transform: translate(-50%, -50%); }

@@ -38,7 +38,7 @@
 
   <div class="tabs" class:tabs-anims={anims} bind:this={tabsEl}>
     {#if anims && tabIndicator.width > 0}
-      <div class="tab-slide-indicator" style="left:{tabIndicator.left}px;width:{tabIndicator.width}px" aria-hidden="true"></div>
+      <div class="tab-slide-indicator" style="transform:translateX({tabIndicator.left}px);width:{tabIndicator.width}px" aria-hidden="true"></div>
     {/if}
     {#each FILTERS as f}
       <button class="tab" class:active={filter === f.id} onclick={() => onFilter(f.id)}>
@@ -98,7 +98,7 @@
   .icon-btn:disabled { opacity: 0.4; }
   .icon-btn.active { color: var(--accent-fg); background: var(--accent-muted); }
   .tabs { display: flex; gap: 2px; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius-md); padding: 2px; position: relative; }
-  .tab-slide-indicator { position: absolute; top: 2px; bottom: 2px; border-radius: var(--radius-sm); background: var(--accent-muted); border: 1px solid var(--accent-dim); pointer-events: none; z-index: 0; transition: left 0.22s cubic-bezier(0.16,1,0.3,1), width 0.22s cubic-bezier(0.16,1,0.3,1); }
+  .tab-slide-indicator { position: absolute; top: 2px; bottom: 2px; left: 0; border-radius: var(--radius-sm); background: var(--accent-muted); border: 1px solid var(--accent-dim); pointer-events: none; z-index: 0; transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), width 0.22s cubic-bezier(0.16,1,0.3,1); }
   .tab { position: relative; z-index: 1; display: flex; align-items: center; gap: 5px; font-family: var(--font-ui); font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-sm); color: var(--text-faint); white-space: nowrap; transition: background var(--t-base), color var(--t-base); }
   .tab:hover { color: var(--text-muted); }
   .tab.active { background: var(--accent-muted); color: var(--accent-fg); border: 1px solid var(--accent-dim); }

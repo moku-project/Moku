@@ -745,7 +745,8 @@
   height: 100%;
   background: var(--accent);
   border-radius: var(--radius-full);
-  transition: width 0.4s ease;
+  transform-origin: left center;
+  transition: transform 0.4s ease;
 }
 .s-storage-fill.warn     { background: #d97706; }
 .s-storage-fill.critical { background: var(--color-error); }
@@ -1135,7 +1136,7 @@
 }
 
 .s-update-bar { height: 3px; background: var(--bg-overlay); border-radius: 2px; overflow: hidden; }
-.s-update-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s ease; }
+.s-update-fill { height: 100%; background: var(--accent); border-radius: 2px; transform-origin: left center; transition: transform 0.3s ease; }
 
 .s-update-labels {
   display: flex;

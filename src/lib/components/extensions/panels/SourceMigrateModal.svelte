@@ -276,7 +276,7 @@
           {#if phase === "review"}
             <div class="review-progress-row">
               <div class="review-progress-bar">
-                <div class="review-progress-fill" style="width:{searchProgress.total ? (searchProgress.done / searchProgress.total) * 100 : 0}%"></div>
+                <div class="review-progress-fill" style="transform:scaleX({(searchProgress.total ? (searchProgress.done / searchProgress.total) * 100 : 0) / 100})"></div>
               </div>
               <span class="review-progress-label">
                 {#if searchProgress.done < searchProgress.total}
@@ -289,7 +289,7 @@
           {:else if phase === "migrating"}
             <div class="review-progress-row">
               <div class="review-progress-bar">
-                <div class="review-progress-fill" style="width:{migrateProgress.total ? (migrateProgress.done / migrateProgress.total) * 100 : 0}%"></div>
+                <div class="review-progress-fill" style="transform:scaleX({(migrateProgress.total ? (migrateProgress.done / migrateProgress.total) * 100 : 0) / 100})"></div>
               </div>
               <span class="review-progress-label">{t("extensions.migrate.migratingProgress", { done: migrateProgress.done, total: migrateProgress.total })}</span>
             </div>
@@ -418,7 +418,7 @@
   .review-source-name { font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: var(--weight-medium); }
   .review-progress-row { display: flex; align-items: center; gap: var(--sp-3); }
   .review-progress-bar { flex: 1; height: 3px; background: var(--bg-overlay); border-radius: var(--radius-full); overflow: hidden; }
-  .review-progress-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.3s ease; }
+  .review-progress-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transform-origin: left center; transition: transform 0.3s ease; }
   .review-progress-label { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-faint); letter-spacing: var(--tracking-wide); white-space: nowrap; flex-shrink: 0; }
   .done-summary { display: flex; align-items: center; gap: var(--sp-2); }
   .done-label { font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-secondary); letter-spacing: var(--tracking-wide); }

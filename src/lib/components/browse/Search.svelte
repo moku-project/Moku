@@ -284,7 +284,7 @@
 
     <div class="tabs" class:tabs-anims={anims} bind:this={tabsEl}>
       {#if anims && tabIndicator.width > 0}
-        <div class="tab-slide-indicator" style="left:{tabIndicator.left}px;width:{tabIndicator.width}px" aria-hidden="true"></div>
+        <div class="tab-slide-indicator" style="transform:translateX({tabIndicator.left}px);width:{tabIndicator.width}px" aria-hidden="true"></div>
       {/if}
       <button class="tab" class:tabActive={urlTab === "keyword"} onclick={() => setTab("keyword")}>
         <svg width="11" height="11" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
@@ -350,7 +350,7 @@
   .header { position: relative; z-index: 100; display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4) var(--sp-6); flex-shrink: 0; border-bottom: 1px solid var(--border-dim); }
   .heading { font-family: var(--font-ui); font-size: var(--text-xs); color: var(--text-faint); letter-spacing: var(--tracking-wider); text-transform: uppercase; flex-shrink: 0; }
   .tabs { margin-left: auto; display: flex; gap: 2px; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius-md); padding: 2px; position: relative; }
-  .tab-slide-indicator { position: absolute; top: 2px; bottom: 2px; border-radius: var(--radius-sm); background: var(--accent-muted); border: 1px solid var(--accent-dim); pointer-events: none; z-index: 0; transition: left 0.22s cubic-bezier(0.16,1,0.3,1), width 0.22s cubic-bezier(0.16,1,0.3,1); }
+  .tab-slide-indicator { position: absolute; top: 2px; bottom: 2px; left: 0; border-radius: var(--radius-sm); background: var(--accent-muted); border: 1px solid var(--accent-dim); pointer-events: none; z-index: 0; transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), width 0.22s cubic-bezier(0.16,1,0.3,1); }
   .tab { position: relative; z-index: 1; display: flex; align-items: center; gap: 5px; font-family: var(--font-ui); font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; padding: 4px 10px; border-radius: var(--radius-sm); color: var(--text-faint); white-space: nowrap; transition: background var(--t-base), color var(--t-base); cursor: pointer; border: 1px solid transparent; }
   .tab:hover { color: var(--text-muted); }
   .tabActive { color: var(--accent-fg); background: var(--accent-muted); border-color: var(--accent-dim); }

@@ -61,7 +61,7 @@
     {#each segments as seg}
       <span
         class="ms-seg"
-        style="left:calc({seg.start}% + 1.5px); width:calc({seg.end - seg.start}% - 3px); --seg-played:{fillOf(seg)}%"
+        style="left:calc({seg.start}% + 1.5px); width:calc({seg.end - seg.start}% - 3px); --seg-played:{fillOf(seg) / 100}"
       ></span>
     {/each}
   </div>
@@ -87,9 +87,10 @@
   .ms-track {
     position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
     height: 3px; z-index: 1; pointer-events: none;
-    transition: height 0.15s ease;
+    transition: transform 0.15s ease;
   }
-  .ms-wrap:hover .ms-track { height: 5px; }
+  /* Grows by scaling rather than height, so hovering never re-lays out the bar. */
+  .ms-wrap:hover .ms-track { transform: translateY(-50%) scaleY(1.67); }
 
   .ms-seg {
     position: absolute; top: 0; height: 100%;
@@ -98,10 +99,10 @@
   }
   .ms-seg::before {
     content: ""; position: absolute; inset: 0;
-    width: var(--seg-played, 0%);
+    transform: scaleX(var(--seg-played, 0));
+    transform-origin: left center;
     background: var(--accent);
-    border-radius: 2px;
-    transition: width 0.08s linear;
+    transition: transform 0.08s linear;
   }
 
   .h-range { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; background: transparent; cursor: pointer; position: relative; z-index: 2; margin: 0; padding: 0; }

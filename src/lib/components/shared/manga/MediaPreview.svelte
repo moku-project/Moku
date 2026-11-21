@@ -623,7 +623,7 @@
             </div>
             {#if readCount > 0}
               <div class="progress-track">
-                <div class="progress-fill" style="width:{(readCount / totalCount) * 100}%"></div>
+                <div class="progress-fill" style="transform:scaleX({((readCount / totalCount) * 100) / 100})"></div>
               </div>
             {/if}
             {#if continueChapter}
@@ -928,7 +928,7 @@
   .dl-all-btn:hover:not(:disabled) { color: var(--text-muted); border-color: var(--border-strong); }
   .dl-all-btn:disabled             { opacity: 0.5; cursor: default; }
   .progress-track { height: 3px; background: var(--bg-overlay); border-radius: var(--radius-full); overflow: hidden; }
-  .progress-fill  { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.3s ease; }
+  .progress-fill  { height: 100%; background: var(--accent); border-radius: var(--radius-full); transform-origin: left center; transition: transform 0.3s ease; }
   .read-btn {
     display: flex; align-items: center; gap: var(--sp-2); align-self: flex-start;
     padding: 8px var(--sp-4); border-radius: var(--radius-md);

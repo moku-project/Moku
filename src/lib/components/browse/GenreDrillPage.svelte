@@ -232,14 +232,14 @@
   .card:hover :global(.cover) { filter: brightness(1.06); }
   .card:hover .card-title { color: var(--text-primary); }
   .cover-wrap { position: relative; aspect-ratio: 2/3; border-radius: var(--radius-md); clip-path: inset(0 round var(--radius-md)); background: var(--bg-raised); border: 1px solid var(--border-dim); }
-  :global(.cover) { width: 100%; height: 100%; object-fit: cover; transition: filter var(--t-base); will-change: filter; }
+  :global(.cover) { width: 100%; height: 100%; object-fit: cover; transition: filter var(--t-base); }
   .in-library-badge { position: absolute; bottom: var(--sp-1); left: var(--sp-1); font-family: var(--font-ui); font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); text-transform: uppercase; background: var(--accent-muted); color: var(--accent-fg); border: 1px solid var(--accent-dim); padding: 2px 5px; border-radius: var(--radius-sm); }
   .card-title { margin-top: var(--sp-2); font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-snug); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color var(--t-base); }
   .card-skeleton { padding: 0; }
   .cover-skeleton { aspect-ratio: 2/3; border-radius: var(--radius-md); }
   .title-skeleton { height: 11px; margin-top: var(--sp-2); width: 75%; }
-  @keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
-  .skeleton { border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--bg-raised) 25%, var(--bg-overlay, color-mix(in srgb, var(--bg-raised) 80%, var(--text-primary) 6%)) 50%, var(--bg-raised) 75%); background-size: 200% 100%; animation: shimmer 1.6s ease-in-out infinite; }
+  .skeleton { position: relative; overflow: hidden; border-radius: var(--radius-sm); background: var(--bg-raised); }
+  .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--bg-overlay, color-mix(in srgb, var(--bg-raised) 80%, var(--text-primary) 6%)), transparent); transform: translateX(-100%); animation: gpu-shimmer 1.6s ease-in-out infinite; }
   .empty { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--text-faint); font-family: var(--font-ui); font-size: var(--text-xs); letter-spacing: var(--tracking-wide); }
   .show-more-cell { grid-column: 1/-1; display: flex; justify-content: center; padding: var(--sp-2) 0 var(--sp-4); }
   .show-more-btn { display: flex; align-items: center; gap: var(--sp-2); font-family: var(--font-ui); font-size: var(--text-xs); letter-spacing: var(--tracking-wide); padding: 7px 20px; border-radius: var(--radius-md); background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border-dim); cursor: pointer; transition: color var(--t-base), border-color var(--t-base); }

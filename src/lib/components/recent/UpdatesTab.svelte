@@ -349,21 +349,13 @@
   .day-rule   { height: 1px; flex: 1; background: var(--border-dim); }
   .updates-list { display: flex; flex-direction: column; gap: var(--sp-2); }
 
-  @keyframes shimmer {
-    from { background-position: -200% 0 }
-    to   { background-position:  200% 0 }
-  }
   .skeleton {
     border-radius: var(--radius-sm);
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--bg-overlay, var(--bg-elevated)) 90%, var(--text-primary) 6%) 20%,
-      color-mix(in srgb, var(--bg-elevated, var(--bg-overlay)) 76%, var(--text-primary) 16%) 50%,
-      color-mix(in srgb, var(--bg-overlay, var(--bg-elevated)) 90%, var(--text-primary) 6%) 80%
-    );
-    background-size: 220% 100%;
-    animation: shimmer 1.45s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--bg-overlay, var(--bg-elevated)) 90%, var(--text-primary) 6%);
   }
+  .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bg-elevated, var(--bg-overlay)) 76%, var(--text-primary) 16%), transparent); transform: translateX(-100%); animation: gpu-shimmer 1.45s ease-in-out infinite; }
   .skeleton-row   { min-height: 74px; pointer-events: none; }
   .thumb-skeleton { width: 34px; aspect-ratio: 2/3; margin: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3); border-radius: var(--radius-sm); flex-shrink: 0; align-self: center; }
   .info-skeleton  { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3) var(--sp-2) 0; }

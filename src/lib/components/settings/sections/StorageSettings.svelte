@@ -614,7 +614,7 @@
             <span class="s-storage-used">{t('settings.storage.usedOf', { used: fmtBytes(srvStorage.usedBytes), total: fmtBytes(cap) })}</span>
           </div>
           <div class="s-storage-bar">
-            <div class="s-storage-fill" class:critical={pct > 90} class:warn={pct > 75 && pct <= 90} style="width:{pct}%"></div>
+            <div class="s-storage-fill" class:critical={pct > 90} class:warn={pct > 75 && pct <= 90} style="transform:scaleX({(pct) / 100})"></div>
           </div>
           <div class="s-storage-footer">
             <span>{srvStorage.mediaDir ?? srvStorage.dataDir ?? ''}</span>
@@ -640,7 +640,7 @@
               <span class="s-storage-used">{t('settings.storage.usedOf', { used: fmtBytes(info.manga_bytes), total: fmtBytes(cap) })}</span>
             </div>
             <div class="s-storage-bar">
-              <div class="s-storage-fill" class:critical={pct > 90} class:warn={pct > 75 && pct <= 90} style="width:{pct}%"></div>
+              <div class="s-storage-fill" class:critical={pct > 90} class:warn={pct > 75 && pct <= 90} style="transform:scaleX({(pct) / 100})"></div>
             </div>
             <div class="s-storage-footer">
               <span>{info.path}</span>

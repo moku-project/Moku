@@ -167,7 +167,7 @@
       {#if updatePhase === 'downloading' && IS_WINDOWS}
         <div class="s-update-progress">
           <div class="s-update-bar">
-            <div class="s-update-fill" style="width:{dlTotal ? Math.round((dlBytes / dlTotal) * 100) : 0}%"></div>
+            <div class="s-update-fill" style="transform:scaleX({(dlTotal ? Math.round((dlBytes / dlTotal) * 100) : 0) / 100})"></div>
           </div>
           <div class="s-update-labels">
             <span>{targetTag ? t('settings.about.downloadingTag', { tag: targetTag }) : t('settings.about.downloadingUpdate')}</span>

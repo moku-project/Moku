@@ -414,7 +414,7 @@
   .cover-wrap {
     position: relative; aspect-ratio: 2/3; overflow: hidden;
     border-radius: var(--radius-md); background: var(--bg-raised);
-    border: 1px solid var(--border-dim); will-change: transform;
+    border: 1px solid var(--border-dim);
     transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), border-color var(--t-base), box-shadow 0.18s cubic-bezier(0.16,1,0.3,1);
   }
 

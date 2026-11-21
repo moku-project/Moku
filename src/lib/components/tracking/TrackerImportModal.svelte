@@ -899,7 +899,7 @@
           {#if phase === "matching"}
             <div class="review-progress-row">
               <div class="review-progress-bar">
-                <div class="review-progress-fill" style="width:{searchProgress.total ? (searchProgress.done / searchProgress.total) * 100 : 0}%"></div>
+                <div class="review-progress-fill" style="transform:scaleX({(searchProgress.total ? (searchProgress.done / searchProgress.total) * 100 : 0) / 100})"></div>
               </div>
               <span class="review-progress-label">
                 {#if searchProgress.done < searchProgress.total}
@@ -915,7 +915,7 @@
           {:else}
             <div class="review-progress-row">
               <div class="review-progress-bar">
-                <div class="review-progress-fill" style="width:{importProgress.total ? (importProgress.done / importProgress.total) * 100 : 0}%"></div>
+                <div class="review-progress-fill" style="transform:scaleX({(importProgress.total ? (importProgress.done / importProgress.total) * 100 : 0) / 100})"></div>
               </div>
               <span class="review-progress-label">{dryRun ? t('trackerImport.dryRunProgress', { done: importProgress.done, total: importProgress.total }) : t('trackerImport.importingProgress', { done: importProgress.done, total: importProgress.total })}</span>
               <button class="stop-btn" onclick={stopWork} title={t('trackerImport.stopImport')}>
@@ -1257,7 +1257,7 @@
   .review-source-name { font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: var(--weight-medium); }
   .review-progress-row { display: flex; align-items: center; gap: var(--sp-3); }
   .review-progress-bar { flex: 1; height: 3px; background: var(--bg-overlay); border-radius: var(--radius-full); overflow: hidden; }
-  .review-progress-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transition: width 0.3s ease; }
+  .review-progress-fill { height: 100%; background: var(--accent); border-radius: var(--radius-full); transform-origin: left center; transition: transform 0.3s ease; }
   .review-progress-label { font-family: var(--font-ui); font-size: var(--text-2xs); color: var(--text-faint); letter-spacing: var(--tracking-wide); white-space: nowrap; flex-shrink: 0; }
   .stop-btn { display: flex; align-items: center; gap: 4px; font-family: var(--font-ui); font-size: var(--text-2xs); letter-spacing: var(--tracking-wide); padding: 3px 8px; border-radius: var(--radius-sm); background: none; color: var(--text-muted); border: 1px solid var(--border-dim); cursor: pointer; flex-shrink: 0; }
   .stop-btn:hover { color: var(--color-error); border-color: var(--color-error); background: var(--bg-raised); }

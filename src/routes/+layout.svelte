@@ -30,15 +30,37 @@
 
 	let { children } = $props()
 
-	const POLL_MS = 1500
+	// Fast while downloads move, slow when idle, slower still when the window is hidden.
+	const POLL_ACTIVE_MS = 1500
+	const POLL_IDLE_MS = 10_000
+	const POLL_HIDDEN_MS = 30_000
 	let pollTimer: ReturnType<typeof setTimeout> | null = null
 	let polling = false
 
 	async function pollLoop() {
 		if (!polling) return
-		await downloadStore.tickStatus()
-		if (polling) pollTimer = setTimeout(pollLoop, POLL_MS)
+		pollTimer = null
+		const busy = await downloadStore.tickStatus()
+		if (!polling) return
+		const wait = document.hidden ? POLL_HIDDEN_MS : busy ? POLL_ACTIVE_MS : POLL_IDLE_MS
+		pollTimer = setTimeout(pollLoop, wait)
 	}
+
+	// Check right away when the window comes back or the drawer opens instead of waiting out an idle delay.
+	function pollNow() {
+		if (!polling || pollTimer === null) return
+		clearTimeout(pollTimer)
+		pollLoop()
+	}
+	$effect(() => {
+		document.addEventListener('visibilitychange', pollNow)
+		return () => document.removeEventListener('visibilitychange', pollNow)
+	})
+	// Derived booleans only notify on change; reading the queue directly would rerun on every poll.
+	const pollUrgent = $derived(downloadStore.drawerOpen || downloadStore.queue.length > 0)
+	$effect(() => {
+		if (pollUrgent) pollNow()
+	})
 
 	const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 

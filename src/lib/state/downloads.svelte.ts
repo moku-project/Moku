@@ -115,7 +115,8 @@ class DownloadStore {
     this.prevQueue = next.slice();
   }
 
-  async tickStatus() {
+  /** Returns whether the queue needs watching closely, so the caller can slow down when idle. */
+  async tickStatus(): Promise<boolean> {
     this.syncAutoRetry();
     try {
       const status = await tsunagu.downloaderStatus();
@@ -124,17 +125,19 @@ class DownloadStore {
         status.isRunning ||
         status.queuedCount > 0 ||
         status.downloadingCount > 0;
-      if (active || this.drawerOpen || this.wasActive) await this.poll();
+      const busy = active || this.drawerOpen || this.wasActive;
+      if (busy) await this.poll(status);
       this.wasActive = active;
-    } catch { } finally {
+      return busy;
+    } catch { return false; } finally {
       this.loading = false;
     }
   }
   private wasActive = false;
 
-  async poll() {
+  async poll(known?: Awaited<ReturnType<typeof tsunagu.downloaderStatus>>) {
     try {
-      const [all, status] = await Promise.all([tsunagu.downloadQueue(), tsunagu.downloaderStatus()]);
+      const [all, status] = await Promise.all([tsunagu.downloadQueue(), known ?? tsunagu.downloaderStatus()]);
       const active = all.filter(d => d.status !== "DONE");
       const done   = all.filter(d => d.status === "DONE")
         .sort((a, b) => (Date.parse(b.completedAt ?? "") || 0) - (Date.parse(a.completedAt ?? "") || 0));
